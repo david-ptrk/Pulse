@@ -20,7 +20,7 @@ This document maps key chapters from **Crafting Interpreters** by Robert Nystrom
 
 ---
 
-### ✅ Summary
+### Summary
 
 - Chapters **4–7** → Core interpreter (Lexer, Parser, AST, Evaluator)
 - Chapters **8–10** → Runtime and control flow (Variables, Functions, Loops)
