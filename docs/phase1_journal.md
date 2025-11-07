@@ -7,7 +7,7 @@
 - Connected to GitHub
 - README file created
 
-## Step 1: Mapping (07–08 Nov 2025)
+## Step 1: Mapping (07 Nov 2025)
 
 - Revisited _Crafting Interpreters_ chapters.
 - Created `docs/mapping.md` linking each chapter to corresponding Pulse implementation components.
