@@ -1,3 +1,72 @@
 *{
     outline: 1px dotted red;
 }
+/*Logo*/
+.logo{
+    margin-left: 65px;
+    margin-top: 20px;
+    font-size: 50px;
+}
+/*Navigation bar*/
+  .four-nav {
+    width: 90%; 
+    margin: 0 auto;
+    border-radius: 10px;
+    box-shadow: 4px 9px 13px -1px rgb(55 104 120);
+    margin-top: 8px;
+  }
+  .four-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;           
+    width: 100%;
+  }
+  .four-nav ul li {
+    width: 25%;             
+    text-align: center;
+    border-right: 1px solid #19405d;
+    background: linear-gradient(45deg, #2b5b84, #1f3c73);
+  }
+  .four-nav ul li:last-child {
+    border-right: none;
+  }
+  .four-nav ul li a {
+    display: block;         
+    padding: 15px 0;
+    text-decoration: none;
+    color: white;
+    font-weight: 600;
+    transition: 0.2s;
+    font-size: 20px;
+  }
+  .four-nav ul li:first-child{
+    border-radius: 10px 0px 0px 10px;
+  }
+  .four-nav ul li:last-child{
+    border-radius: 0px 10px 10px 0px;
+  }
+  .four-nav ul li a:hover {
+    background: #1f466b;
+  }
+   .four-nav ul li:first-child a:hover{
+    border-radius: 10px 0px 0px 10px;
+  }
+  .four-nav ul li:last-child a:hover{
+    border-radius: 0px 10px 10px 0px;
+  }  
+/*Hero Section*/
+.home-sections{
+    width: 80%;
+    margin: 0 auto;
+}
+#hero-section{
+    margin-top: 20px;
+    padding: 5px;
+    font-size: 22px;
+}
+#hero-subtitle{
+    margin-left: 40px;
+    margin-top: -18px;
+    font-size: 20px;
+}
