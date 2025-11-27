@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="learn-pulse-btn.css">
     <title>Pulse</title>
 </head>
 
@@ -18,18 +19,110 @@
             <li><a href="#">Contact</a></li>
         </ul>
     </nav>
-    <div class="home-sections" id="hero-section">
+    <div class="section" id="hero-section">
         <div class="title" id="hero-tittle">
             <h1>Pulse: The AI-Native Programming Language</h1>
         </div>
         <div class="subtitle" id="hero-subtitle">
-            <h3>Built, train and run AI with language-native speed
-            </h3>
+            <h3>Built, train and run AI with language-native speed</h3>
         </div>
-        <div class="btn" id="hero-btn">
+        <a href="#" class="animated-button1">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            Learn Pulse
+        </a>
+        <div class="container">
+            <div class="center">
+                <button class="btn">
+                    <svg width="180px" height="60px" viewBox="0 0 180 60" class="border">
+                        <polyline points="179,1 179,59 1,59 1,1 179,1" class="bg-line" />
+                        <polyline points="179,1 179,59 1,59 1,1 179,1" class="hl-line" />
+                    </svg>
+                    <span>Try Demo Editor</span>
+                </button>
+            </div>
         </div>
-        <img src="" alt="Mani pic" width="300">
     </div>
+    <hr>
+    <div class="code-pre">
+        <div class="title" id="code-pre-title">
+            <h1>
+                Pulse:Code Example Preview
+            </h1>
+        </div>
+        <div class="pulse-code">
+            <pre id="typewriter"></pre>
+        </div>
+    </div>
+    <hr id="after-code-hr">
+    <div class="section" id="section3">
+        <div class="title" id="why-pulse-title">
+            <h1>Why Pulse Exist</h1>
+        </div>
+        <section class="why-pulse-card">
+            <ol class="olcards">
+                <li style="--cardColor:#214276">
+                    <div class="content">
+                        <div class="bullet-title">Designed specifically for AI & ML</div>
+                        <div class="text">PULSE is tailored to efficiently handle AI and Machine Learning workflows
+                        </div>
+                </li>
+                <li style="--cardColor:#214276">
+                    <div class="content">
+                        <div class="bullet-title">Native tensor and matrix operations</div>
+                        <div class="text">The language provides built-in support for tensors and matrix operations for
+                            numerical computing.</div>
+                    </div>
+                </li>
+                <li style="--cardColor:#214276">
+                    <div class="content">
+                        <div class="bullet-title">Python-like syntax</div>
+                        <div class="text">Offers simple and readable Python-like syntax, making it easy to learn and
+                            use.</div>
+                    </div>
+                </li>
+                <li style="--cardColor:#214276">
+                    <div class="content">
+                        <div class="bullet-title">C++/Rust-like speed through optimized backend</div>
+                        <div class="text">Optimized backend ensures high performance comparable to C++ or Rust.</div>
+                    </div>
+                </li>
+                <li style="--cardColor:#214276">
+                    <div class="content">
+                        <div class="bullet-title">Simple, clean, modern language</div>
+                        <div class="text">Designed with clarity and modern programming practices in mind.</div>
+                    </div>
+                </li>
+            </ol>
+        </section>
+    </div>
+    <hr id="after-code-hr">
+    <div class="section" id="section4">
+        <div class="title" id="feature-title">
+            <h1>Key Feature</h1>
+        </div>
+        <section class="card-container">
+            <div class="card">
+                <h3>Tensor-Native Syntax</h3>
+            </div>
+            <div class="card">
+                <h3>Built-In AI Ops</h3>
+            </div>
+            <div class="card">
+                <h3>Lightweight Interpreter</h3>
+            </div>
+            <div class="card">
+                <h3>Static + Dynamic Typing Hybrid</h3>
+            </div>
+            <div class="card">
+                <h3>GPU Ready</h3>
+            </div>
+        </section>
+    </div>
+    <hr id="after-code-hr">
+    <script src="script.js"></script>
 </body>
 
 </html>
