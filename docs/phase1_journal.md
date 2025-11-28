@@ -3,9 +3,9 @@
 ## Step 0: Prep
 
 - Repository created: 07-11-2025
-- Folder structure initialized
-- Connected to GitHub
-- `README.md` file created
+- Folder structure initialized.
+- Connected to GitHub.
+- `README.md` file created.
 
 ## Step 1: Mapping (07 Nov 2025)
 
@@ -38,3 +38,16 @@
   - Extension `.pul` chosen for Pulse files.
   - Python-like syntax kept for now; will evolve as more AI-specific constructs are added.
   - Each file is self-contained and demonstrates one or more language features.
+
+## Step 4: Draft Language Specification (28 Nov 2025)
+
+- Created `docs/spec_v1.md` as the initial **Pulse language specification** for v1.
+- Included keywords.
+- Defined data types.
+- Compiled operators & precedence table.
+- **Drafted core grammar rules** (pseudo-BNF).
+- Purpose: Provide a clear reference for parser and interpreter implementation in **Pulse v1**.
+- Decisions made:
+  - Syntax remains **Pythonic** for readability.
+  - AI-specific functions (tensor(), matrix()) included as **first-class** constructs.
+  - Pseudo-BNF rules sufficient to start implementing parser without full language coverage.
