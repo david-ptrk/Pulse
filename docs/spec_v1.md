@@ -14,7 +14,7 @@ int, float, bool, string, list, tuple, set, dict, range, tensor, matrix
 
 > Tensor and Matrix are AI-native types; the rest are standard.
 
-## 3. ## Operators & Precedence
+## 3. Operators & Precedence
 
 | Operator          | Description                   | Precedence |
 | ----------------- | ----------------------------- | ---------- |
