@@ -6,46 +6,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="learn-pulse-btn.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Play&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@100..900&display=swap" rel="stylesheet">
     <title>Pulse</title>
 </head>
 
 <body>
-    <div class="logo">PULSE</div>
-    <nav class="four-nav">
-        <ul>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">About</a></li>
-            <li><a href="#">Services</a></li>
-            <li><a href="#">Contact</a></li>
-        </ul>
-    </nav>
-    <div class="section" id="hero-section">
-        <div class="title" id="hero-tittle">
-            <h1>Pulse: The AI-Native Programming Language</h1>
-        </div>
-        <div class="subtitle" id="hero-subtitle">
-            <h3>Built, train and run AI with language-native speed</h3>
-        </div>
-        <a href="#" class="animated-button1">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            Learn Pulse
-        </a>
-        <div class="container">
-            <div class="center">
-                <button class="btn">
-                    <svg width="180px" height="60px" viewBox="0 0 180 60" class="border">
-                        <polyline points="179,1 179,59 1,59 1,1 179,1" class="bg-line" />
-                        <polyline points="179,1 179,59 1,59 1,1 179,1" class="hl-line" />
-                    </svg>
-                    <span>Try Demo Editor</span>
-                </button>
+    <div class="landin">
+        <div class="logo">PULSE</div>
+        <nav class="four-nav">
+            <ul>
+                <li><a href="#">Home</a></li>
+                <li><a href="#">Document</a></li>
+                <li><a href="#">Project Architecture</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </nav>
+        <div class="section" id="hero-section">
+            <div class="title" id="hero-tittle">
+                <h1>Pulse: The AI-Native Programming Language</h1>
             </div>
-        </div>
+            <div class="subtitle" id="hero-subtitle">
+                <h3>Built, train and run AI with language-native speed</h3>
+            </div>
+            <a href="#" class="animated-button1">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                Learn Pulse
+            </a>
+            <div class="container">
+                <div class="center">
+                    <button class="btn">
+                        <svg width="180px" height="60px" viewBox="0 0 180 60" class="border">
+                            <polyline points="179,1 179,59 1,59 1,1 179,1" class="bg-line" />
+                            <polyline points="179,1 179,59 1,59 1,1 179,1" class="hl-line" />
+                        </svg>
+                        <span>Try Demo Editor</span>
+                    </button>
+                </div>
+            </div>
+        </div>  
     </div>
-    <hr>
+    <hr class="hr-infinity">
     <div class="code-pre">
         <div class="title" id="code-pre-title">
             <h1>
@@ -56,7 +65,7 @@
             <pre id="typewriter"></pre>
         </div>
     </div>
-    <hr id="after-code-hr">
+    <hr class="after-section-hr">
     <div class="section" id="section3">
         <div class="title" id="why-pulse-title">
             <h1>Why Pulse Exist</h1>
@@ -98,7 +107,7 @@
             </ol>
         </section>
     </div>
-    <hr id="after-code-hr">
+    <hr class="after-section-hr">
     <div class="section" id="section4">
         <div class="title" id="feature-title">
             <h1>Key Feature</h1>
@@ -121,7 +130,47 @@
             </div>
         </section>
     </div>
-    <hr id="after-code-hr">
+    <hr class="after-section-hr">
+    <div class="section" id="architecture-diagram">
+        <div class="title" id="why-pulse-title">
+            <h1>Architecture Overview</h1>
+        </div>
+        <div class="pipeline">
+            <div class="block" id="Interpreter">
+                <h2>Interpreter</h2>
+            </div>
+            <div class="block" id="AST">
+                <h2>AST</h2>
+            </div>
+            <div class="block" id="python-bend">
+                <h2>Python Backend</h2>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <div class="footer">
+            <div class="row">
+                <a href="#"><i class="fa fa-facebook"></i></a>
+                <a href="#"><i class="fa fa-instagram"></i></a>
+                <a href="#"><i class="fa fa-youtube"></i></a>
+                <a href="#"><i class="fa fa-twitter"></i></a>
+            </div>
+
+            <div class="row">
+                <ul>
+                    <li><a href="#">links to Docs</a></li>
+                    <li><a href="#">GitHub</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Terms & Conditions</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+
+            <div class="row">
+                HMADA™ Copyright © 2025 - All rights reserved || Designed By: HMADA
+            </div>
+        </div>
+    </footer>
     <script src="script.js"></script>
 </body>
 
