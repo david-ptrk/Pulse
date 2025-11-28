@@ -8,6 +8,7 @@
 - `docs/` — documentation and journals
 - `examples/` — example Pulse programs
 - `tests/` — test scripts and validation
+- `website/` — official website for the Pulse Language
 
 ## Authors
 
