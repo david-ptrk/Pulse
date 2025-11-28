@@ -21,7 +21,7 @@
 - Listed out-of-scope features for v1: JIT, GPU execution, advanced type system, full OOP, modules.
 - Created `docs/problem-and-scope.md` as the official deliverable.
 
-## Step 3: Design Syntax by Examples (11–14 Nov 2025)
+## Step 3: Design Syntax by Examples (28 Nov 2025)
 
 - Created **28 example programs** in `examples/` folder demonstrating Pulse core syntax, AI constructs, and control structures.
 - Examples cover:
