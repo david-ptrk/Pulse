@@ -1,0 +1,15 @@
+# Base Model class
+class Model:
+    def __init__(self, name):
+        self.name = name
+
+    def train(self, X):
+        print(self.name + " training...")
+
+# NeuralNet inherits Model
+class NeuralNet(Model):
+    def train(self, X):
+        print(self.name + " is doing forward pass with data: " + str(X))
+
+nn = NeuralNet("PulseNet")
+nn.train([1, 2, 3])

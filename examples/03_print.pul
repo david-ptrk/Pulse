@@ -1,0 +1,2 @@
+name = 'Pulse'
+print("Hello", name) # Hello Pulse

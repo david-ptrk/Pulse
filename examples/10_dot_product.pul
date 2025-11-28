@@ -1,0 +1,4 @@
+X = tensor([1, 2, 3])
+W = tensor([0.1, 0.2, 0.3])
+Y = X dot W
+print(Y)  # 1.4

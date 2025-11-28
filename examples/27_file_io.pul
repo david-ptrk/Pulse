@@ -1,0 +1,10 @@
+# Writing to a file
+file = open("data.txt", "w")
+file.write("Pulse is awesome!\n")
+file.close()
+
+# Reading from a file
+file = open("data.txt", "r")
+content = file.read()
+print("File content:", content)
+file.close()

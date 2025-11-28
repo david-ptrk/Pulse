@@ -1,0 +1,2 @@
+accuracy = model.evaluate(data, labels)
+print(accuracy)

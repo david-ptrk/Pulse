@@ -1,0 +1,4 @@
+X = tensor([1, 2, 3])
+Y = tensor([4, 5, 6])
+print(X)
+print(Y)

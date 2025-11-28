@@ -1,0 +1,4 @@
+model = LinearModel()
+data = tensor([[1, 2],[3, 4]])
+labels = tensor([0, 1])
+model.train(data, labels)

@@ -1,0 +1,10 @@
+X = matrix([
+    [1, 2],
+    [3, 4]
+])
+Y = matrix([[1, 2], [3, 4]])
+Z = tensor([[1, 2], [3, 4]])
+
+print(X)
+print(Y)
+print(Z)

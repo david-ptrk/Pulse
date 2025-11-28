@@ -1,0 +1,2 @@
+prediction = model.predict(tensor([5, 6]))
+print(prediction)
