@@ -51,3 +51,11 @@
   - Syntax remains **Pythonic** for readability.
   - AI-specific functions (tensor(), matrix()) included as **first-class** constructs.
   - Pseudo-BNF rules sufficient to start implementing parser without full language coverage.
+
+## Step 5: Define Token & AST Shapes (29 Nov 2025)
+
+- Created `docs/tokens.md` defining all Pulse token types for the lexer. Categories include: identifiers, literals, keywords, operators, punctuation, structural tokens, and special tokens.
+- Created `docs/ast.md` outlining AST node shapes for the parser. Node classes include: BinaryExpr, UnaryExpr, Literal, VarDecl, FuncDecl, CallExpr, TensorLiteral, MatrixLiteral, IfStmt, WhileStmt, ForStmt, ClassDecl, AttributeAccess, Assignment.
+- Decisions made:
+  - Tokens and AST nodes designed to cover Pythonic syntax with AI-specific extensions (tensor, matrix, dot, transpose).
+  - Focused on minimal, explicit rules to get the lexer and parser started.
