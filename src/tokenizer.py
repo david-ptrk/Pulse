@@ -1,28 +1,29 @@
 from enum import Enum, auto
 
 class TokenType(Enum):
-    # Single characters
+    # Single charcters
     LEFT_PAREN = auto()
     RIGHT_PAREN = auto()
+    ASSIGN = auto()
     COMMA = auto()
     MINUS = auto()
     PLUS = auto()
     COLON = auto()
-    SLASH = auto()
+    DIVIDE = auto()
     STAR = auto()
-    
+
     # Literals
     IDENTIFIER = auto()
     NUMBER = auto()
     STRING = auto()
-    
+
     # Special
     NEWLINE = auto()
     EOF = auto()
 
-# Add keywords here
+# Keywords
 KEYWORDS = {
-    "if": TokenType.IDENTIFIER, # TokenType here will be changed to TokenType.IF
+    "if": TokenType.IDENTIFIER, # this will be changed to TokenType.IF
     "else": TokenType.IDENTIFIER,
 }
 
@@ -32,9 +33,9 @@ class Token:
         self.lexeme = lexeme
         self.literal = literal
         self.line = line
-    
+
     def __repr__(self):
-        return f"Token({self.type}, {self.lexeme!r}, {self.literal}, line={self.line})"
+        return f'Token({self.type}, {self.lexeme}, {self.literal}, line={self.line})'
 
 class Tokenize:
     def __init__(self, source):
@@ -47,10 +48,12 @@ class Tokenize:
         self.single_char_tokens = {
             '(': TokenType.LEFT_PAREN,
             ')': TokenType.RIGHT_PAREN,
+            '=': TokenType.ASSIGN,
             ',': TokenType.COMMA,
             '-': TokenType.MINUS,
             '+': TokenType.PLUS,
             ':': TokenType.COLON,
+            '/': TokenType.DIVIDE,
             '*': TokenType.STAR,
         }
     
@@ -58,53 +61,50 @@ class Tokenize:
         while not self.isAtEnd():
             self.start = self.current
             self.scanToken()
-
+        
         self.tokens.append(Token(TokenType.EOF, "", None, self.line))
         return self.tokens
     
     def scanToken(self):
         c = self.advance()
 
-        # Single-character tokens via map
-        if c in self.single_char_tokens:
-            self.addToken(self.single_char_tokens[c])
+        # Comment (Pulse uses #)
+        if c == "#":
+            while self.peek() != "\n" and not self.isAtEnd():
+                self.advance()
             return
 
-        # Slash or comment
-        if c == '/':
-            if self.peek() == '/':
-                while self.peek() != '\n' and not self.isAtEnd():
-                    self.advance()
-            else:
-                self.addToken(TokenType.SLASH)
+        # Single-character tokesn
+        if c in self.single_char_tokens:
+            self.addToken(self.single_char_tokens[c])
             return
 
         # Whitespace
         if c in (' ', '\r', '\t'):
             return
-
+        
         # Newline
         if c == '\n':
             self.line += 1
             self.addToken(TokenType.NEWLINE)
             return
-
+        
         # String literal
         if c == '"':
             self.string()
             return
-
+        
         # Number literal
         if c.isdigit():
             self.number()
             return
-
-        # Identifier or keyword
+        
+        # Identifier or Keyword
         if c.isalpha() or c == '_':
             self.identifier()
             return
 
-        raise Exception(f"Unexpected character '{c}' at line {self.line}")
+        raise Exception(f'Unexpected character "{c}" at line {self.line}')
     
     def string(self):
         while not self.isAtEnd() and self.peek() != '"':
@@ -113,33 +113,33 @@ class Tokenize:
             self.advance()
 
         if self.isAtEnd():
-            raise Exception(f"Unterminated string at line {self.line}")
-
-        self.advance()  # closing "
+            raise Exception(f'Unterminated string at line {self.line}')
+        
+        self.advance()
         value = self.source[self.start+1 : self.current-1]
         self.addToken(TokenType.STRING, value)
-
+    
     def number(self):
         while self.peek().isdigit():
             self.advance()
-
+        
         # Fractional part
         if self.peek() == '.' and self.peekNext().isdigit():
             self.advance()
             while self.peek().isdigit():
                 self.advance()
-
-        num_literal = float(self.source[self.start:self.current])
-        self.addToken(TokenType.NUMBER, num_literal)
+        
+        value = float(self.source[self.start : self.current])
+        self.addToken(TokenType.NUMBER, value)
 
     def identifier(self):
         while self.peek().isalnum() or self.peek() == '_':
             self.advance()
-
-        text = self.source[self.start:self.current]
+        
+        text = self.source[self.start : self.current]
         token_type = KEYWORDS.get(text, TokenType.IDENTIFIER)
         self.addToken(token_type)
-
+    
     def isAtEnd(self):
         return self.current >= len(self.source)
 
@@ -155,18 +155,24 @@ class Tokenize:
         char = self.source[self.current]
         self.current += 1
         return char
-
+    
     def addToken(self, type, literal=None):
         text = self.source[self.start:self.current]
+        if text == '\n':
+            text = "\\n"
         self.tokens.append(Token(type, text, literal, self.line))
 
 if __name__ == "__main__":
     import sys
     path = sys.argv[1]
+
+    if not path.endswith(".pul"):
+        raise Exception(f'"{path}" is not a .pul file. Pulse only reads .pul, behave.')
+    
     source = open(path).read()
 
     tokenizer = Tokenize(source)
     tokens = tokenizer.scanTokens()
 
-    for t in tokens:
-        print(t)
+    for token in tokens:
+        print(token)

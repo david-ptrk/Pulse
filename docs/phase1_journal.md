@@ -59,3 +59,11 @@
 - Decisions made:
   - Tokens and AST nodes designed to cover Pythonic syntax with AI-specific extensions (tensor, matrix, dot, transpose).
   - Focused on minimal, explicit rules to get the lexer and parser started.
+
+## Step 6: Implement Tokenizer & Write Tokenizer Tests (30 Nov 2025)
+
+- Implemented complete `tokenizer.py` under `src/`.
+- Ran internal tests using example file `examples/example1_tokenizer.pul`.
+- Verified that the tokenizer correctly outputs lexemes, literals, and line numbers.
+- Documentation Added. Created `tests/tokenizer.md` documenting 8 formal test cases.
+- Tokenizer is minimal but **stable** enough to support Phase 2 (Parser).
