@@ -67,3 +67,9 @@
 - Verified that the tokenizer correctly outputs lexemes, literals, and line numbers.
 - Documentation Added. Created `tests/tokenizer.md` documenting 8 formal test cases.
 - Tokenizer is minimal but **stable** enough to support Phase 2 (Parser).
+
+## Step 7: High-level Architecture Diagram & Module Plan (03 Dec 2025)
+
+- Creatd a simple architecture diagram in `docs/arch.png`.
+- Create `docs/modules.md` listing modules/files that will be created in Phase 2 and their responsibilities.
+- This step doesn’t add new features, but it decides the roadmap for Phase 2.
