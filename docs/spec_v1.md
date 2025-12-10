@@ -53,7 +53,7 @@ int, float, bool, string, list, tuple, set, dict, range, tensor, matrix
 
 ```pul
 # Variable assignment
-X = tensor([1, 2, 3])
+X = @[1, 2, 3]
 
 # Function
 def square(a):

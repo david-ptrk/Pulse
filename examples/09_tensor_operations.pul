@@ -1,4 +1,4 @@
-X = tensor([1, 2])
-Y = tensor([3, 4])
+X = @[1, 2]
+Y = @[3, 4]
 Z = X + Y
 print(Z)  # [4, 6]

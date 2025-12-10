@@ -63,11 +63,7 @@ Indentation-based (Python-style)
 `DEDENT`
 `NEWLINE`
 
-## 7. Comment Tokens
-
-`COMMENT` - Lines starting with `#` are treated as comments and ignored by the lexer.
-
-## 8. Special Tokens
+## 7. Special Tokens
 
 `EOF` - End of file  
 `ERROR` - Invalid or unrecognized token
