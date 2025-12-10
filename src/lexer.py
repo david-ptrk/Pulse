@@ -43,7 +43,6 @@ class TokenType(Enum):
     INDENT = auto()
     DEDENT = auto()
     NEWLINE = auto()
-    COMMENT = auto()
     EOF = auto()
 
     # Keywords
@@ -94,8 +93,8 @@ KEYWORDS = {
     "self": TokenType.SELF,
     "in": TokenType.IN,
     "del": TokenType.DEL,
-    "True": TokenType.BOOL,
-    "False": TokenType.BOOL,
+    "dot": TokenType.DOT,
+    "transpose": TokenType.TRANSPOSE,
 }
 
 class Token:
@@ -118,16 +117,13 @@ class Lexer:
         self.indent_stack = [0]
 
         self.single_char_tokens = {
+            '=': TokenType.EQUAL,
             '(': TokenType.LEFT_PAREN,
             ')': TokenType.RIGHT_PAREN,
             '[': TokenType.LEFT_BRACKET,
             ']': TokenType.RIGHT_BRACKET,
             '{': TokenType.LEFT_BRACE,
             '}': TokenType.RIGHT_BRACE,
-            '-': TokenType.MINUS,
-            '+': TokenType.PLUS,
-            '*': TokenType.STAR,
-            '/': TokenType.SLASH,
             '%': TokenType.MODULUS,
             ',': TokenType.COMMA,
             ':': TokenType.COLON,
@@ -154,38 +150,17 @@ class Lexer:
         if c == '\n':
             self.add_token(TokenType.NEWLINE)
             self.line += 1
-
-            # Check identation of next line
-            spaces = 0
-            while not self.is_at_end() and self.peek() in [' ', '\t']:
-                spaces += 4 if self.peek() == '\t' else 1
-                self.advance()
-            
-            if self.peek() == '\n' or self.peek() == '#':
-                return
-            
-            last_indent = self.indent_stack[-1]
-            if spaces > last_indent:
-                self.indent_stack.append(spaces)
-                self.add_token(TokenType.INDENT)
-            elif spaces < last_indent:
-                while self.indent_stack and spaces < self.indent_stack[-1]:
-                    self.indent_stack.pop()
-                    self.add_token(TokenType.DEDENT)
+            self.handle_indentation()
             return
 
         # Comments
         if c == "#":
             while self.peek() not in ['\n', '\0'] and not self.is_at_end():
                 self.advance()
-            comment_text = self.source[self.start+1 : self.current]
-            self.add_token(TokenType.COMMENT, comment_text)
             return
         
         # Tensor literal
-        if c == '@' and self.peek() == '[' and self.peek_next() == '[':
-            self.advance()
-            self.advance() 
+        if c == '@' and self.peek() == '[':
             self.tensor_literal( )
             return
         
@@ -248,6 +223,34 @@ class Lexer:
 
         raise Exception(f'Unexpected character "{c}" at line {self.line}')
     
+    def handle_indentation(self):
+        spaces = 0
+        pos = self.current
+
+        # count leading spaces/tabs
+        while pos < len(self.source) and self.source[pos] in [' ', '\t']:
+            spaces += 4 if self.source[pos] == '\t' else 1
+            pos += 1
+
+        # skip completely blank lines or comment lines
+        if pos >= len(self.source) or self.source[pos] in ['\n', '#']:
+            return
+
+        last_indent = self.indent_stack[-1]
+
+        if spaces > last_indent:
+            self.indent_stack.append(spaces)
+            self.start = self.current
+            self.add_token(TokenType.INDENT)
+        elif spaces < last_indent:
+            while self.indent_stack and spaces < self.indent_stack[-1]:
+                self.indent_stack.pop()
+                self.start = self.current
+                self.add_token(TokenType.DEDENT)
+
+        # move current pointer past indentation
+        self.current = pos
+    
     def string(self):
         while not self.is_at_end() and self.peek() != '"':
             if self.peek() == '\n':
@@ -288,12 +291,19 @@ class Lexer:
         self.add_token(token_type)
 
     def tensor_literal(self):
-        depth = 2
+        # Start is at '@'
+        self.start = self.current - 1  # include '@'
+        depth = 0
         in_string = False
 
-        while not self.is_at_end() and depth > 0:
+        # The first '[' must appear immediately after '@'
+        if self.peek() != '[':
+            raise Exception(f"Expected '[' after '@' at line {self.line}")
+        
+        while not self.is_at_end():
             ch = self.advance()
 
+            # toggle string mode inside tensor
             if ch == '"' and self.source[self.current - 2] != "\\":
                 in_string = not in_string
 
@@ -302,13 +312,16 @@ class Lexer:
                     depth += 1
                 elif ch == "]":
                     depth -= 1
+                    if depth == 0:
+                        break  # finished tensor
 
         if depth != 0:
             raise Exception(f"Unterminated tensor literal at line {self.line}")
 
-        value = self.source[self.start:self.current]
+        # Capture entire tensor excluding @
+        value = self.source[self.start+1:self.current]
         self.add_token(TokenType.TENSOR_LITERAL, value)
-    
+
     def is_at_end(self):
         return self.current >= len(self.source)
 
@@ -331,6 +344,8 @@ class Lexer:
         lexeme = self.source[self.start:self.current]
         if type == TokenType.NEWLINE:
             lexeme = "\\n"
+        if type == TokenType.DEDENT:
+            lexeme = ""
         self.tokens.append(Token(type, lexeme, literal, self.line))
 
     def match(self, expected):
@@ -340,3 +355,18 @@ class Lexer:
             return False
         self.current += 1
         return True
+
+if __name__ == "__main__":
+    import sys
+    path = sys.argv[1]
+
+    if not path.endswith(".pul"):
+        raise Exception(f'"{path}" is not a .pul file. Pulse only reads .pul, behave.')
+    
+    source = open(path).read()
+
+    lexer = Lexer(source)
+    tokens = lexer.scan_tokens()
+
+    for token in tokens:
+        print(token)
