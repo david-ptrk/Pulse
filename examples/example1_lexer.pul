@@ -1,0 +1,19 @@
+# Pulse lexer final test
+
+x = 10
+y = 3.5
+
+a = @[1, 2, 3]
+b = @[[4, 5, 6]]
+
+sum = x + y * 2
+diff = x - y
+prod = x * y
+ratio = x / y
+
+result = (sum + diff) * (prod - ratio)
+
+if result > 10:
+    return result
+else:
+    return 0

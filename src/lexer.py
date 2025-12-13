@@ -13,8 +13,11 @@ This file defines:
 
 from enum import Enum, auto
 
+# -------------------------------------------------------
+# TokenType Enum
+# -------------------------------------------------------
 class TokenType(Enum):
-    # Single charcters
+    # Single charcter tokens
     LEFT_PAREN = auto()
     RIGHT_PAREN = auto()
     LEFT_BRACKET = auto()
@@ -39,20 +42,20 @@ class TokenType(Enum):
     BOOL = auto()
     TENSOR_LITERAL = auto()
 
-    # One or Two Characters
-    EQUAL = auto()
+    # One or Two Characters operators
+    ASSIGN = auto()
+    EQUALITY = auto()
     PLUS_EQUAL = auto()
     MINUS_EQUAL = auto()
     STAR_EQUAL = auto()
     SLASH_EQUAL = auto()
-    EQUAL_EQUAL = auto()
     BANG_EQUAL = auto()
     LESS = auto()
     GREATER = auto()
     LESS_EQUAL = auto()
     GREATER_EQUAL = auto()
 
-    # Special
+    # Special tokens
     INDENT = auto()
     DEDENT = auto()
     NEWLINE = auto()
@@ -78,11 +81,10 @@ class TokenType(Enum):
     OR = auto()
     NOT = auto()
     CLASS = auto()
-    SELF = auto()
     IN = auto()
     DEL = auto()
 
-# Keywords
+# Mapping of string keywords to TokenType for easy lookup
 KEYWORDS = {
     "if": TokenType.IF,
     "else": TokenType.ELSE,
@@ -103,14 +105,24 @@ KEYWORDS = {
     "or": TokenType.OR,
     "not": TokenType.NOT,
     "class": TokenType.CLASS,
-    "self": TokenType.SELF,
     "in": TokenType.IN,
     "del": TokenType.DEL,
     "dot": TokenType.DOT,
     "transpose": TokenType.TRANSPOSE,
 }
 
+# -------------------------------------------------------
+# Token Class
+# -------------------------------------------------------
 class Token:
+    """
+    Represents a single token in the source code.
+    Attributes:
+        type (TokenType): Type of the token
+        lexeme (str): Original text in source code
+        literal (object): Parsed value of token
+        line (int): Line number in source file
+    """
     def __init__(self, type: TokenType, lexeme: str, literal: object, line: int):
         self.type = type
         self.lexeme = lexeme
@@ -118,9 +130,17 @@ class Token:
         self.line = line
     
     def __repr__(self):
-        return f"Token({self.type}, {self.lexeme}, {self.literal}, line={self.line})"
+        return f"Token({self.type}, '{self.lexeme}', {self.literal}, line={self.line})"
 
+# -------------------------------------------------------
+# Lexer Class
+# -------------------------------------------------------
 class Lexer:
+    """
+    The Lexer class scans source code and produces a list of tokens.
+    It handles whitespace, comments, strings, numbers, identifiers, keywords,
+    operators, and special tokens like indentation and tensor literals.
+    """
     def __init__(self, source):
         self.source = source
         self.tokens = []
@@ -129,8 +149,8 @@ class Lexer:
         self.line = 1
         self.indent_stack = [0]
 
+        # Single character tokens mapping for quick lookup
         self.single_char_tokens = {
-            '=': TokenType.EQUAL,
             '(': TokenType.LEFT_PAREN,
             ')': TokenType.RIGHT_PAREN,
             '[': TokenType.LEFT_BRACKET,
@@ -143,30 +163,43 @@ class Lexer:
             ';': TokenType.SEMICOLON,
         }
 
+    # -------------------------------------------------------
+    # Public Methods
+    # -------------------------------------------------------
     def scan_tokens(self):
+        """Main method to scan the entire source and return tokens list."""
         while not self.is_at_end():
             self.start = self.current
             self.scan_token()
 
-        # Close remaining indents
+        # Close any remaining indents
         while len(self.indent_stack) > 1:
             self.indent_stack.pop()
             self.add_token(TokenType.DEDENT)
         
+        # Append EOF token
         self.tokens.append(Token(TokenType.EOF, "", None, self.line))
         return self.tokens
 
     def scan_token(self):
+        """Scans a single lexeme and adds the corresponding token."""
         c = self.advance()
 
-        # Whitespace at start of line for identation
+        # Newline and Indentation
         if c == '\n':
-            self.add_token(TokenType.NEWLINE)
             self.line += 1
             self.handle_indentation()
+
+            # Emit NEWLINE only if last token is not NEWLINE / INDENT / DEDENT
+            if self.tokens and self.tokens[-1].type not in (
+                TokenType.NEWLINE,
+                TokenType.INDENT,
+                TokenType.DEDENT,
+            ):
+                self.add_token(TokenType.NEWLINE)
             return
 
-        # Comments
+        # Skip Comments
         if c == "#":
             while self.peek() not in ['\n', '\0'] and not self.is_at_end():
                 self.advance()
@@ -177,26 +210,26 @@ class Lexer:
             self.tensor_literal( )
             return
         
-        # Whitespace
+        # Skip Whitespace character
         if c in [" ", "\r", "\t"]:
             return
 
-        # Strings
+        # Strings literal
         if c == '"':
             self.string()
             return
         
-        # Numbers
+        # Numbers literal
         if c.isdigit():
             self.number()
             return
         
-        # Identifier / Keywords
+        # Identifier or Keyword
         if c.isalpha() or c == "_":
             self.identifier()
             return
         
-        # Multi-char operators
+        # Multi-character operators
         if c == "!":
             if self.match("="):
                 self.add_token(TokenType.BANG_EQUAL)
@@ -229,23 +262,38 @@ class Lexer:
             self.add_token(TokenType.GREATER_EQUAL if self.match("=") else TokenType.GREATER)
             return
         
+        if c == "=":
+            self.add_token(TokenType.EQUALITY if self.match("=") else TokenType.ASSIGN)
+            return
+        
         # Single-character tokens
         if c in self.single_char_tokens:
             self.add_token(self.single_char_tokens[c])
             return
 
+        # Unexpected character
         raise Exception(f'Unexpected character "{c}" at line {self.line}')
     
     def handle_indentation(self):
+        """
+        Handles spaces at the start of a line to generate INDENT/DEDENT tokens.
+        Tab are not allowed.
+        """
         spaces = 0
         pos = self.current
 
-        # count leading spaces/tabs
-        while pos < len(self.source) and self.source[pos] in [' ', '\t']:
-            spaces += 4 if self.source[pos] == '\t' else 1
+        # Count leading spaces
+        while pos < len(self.source):
+            ch = self.source[pos]
+            if ch == ' ':
+                spaces += 1
+            elif ch == '\t':
+                raise Exception(f"Tabs are not allowed for indentation (line {self.line})")
+            else:
+                break
             pos += 1
 
-        # skip completely blank lines or comment lines
+        # Skip completely blank lines or comment lines
         if pos >= len(self.source) or self.source[pos] in ['\n', '#']:
             return
 
@@ -261,10 +309,11 @@ class Lexer:
                 self.start = self.current
                 self.add_token(TokenType.DEDENT)
 
-        # move current pointer past indentation
+        # Move current pointer past indentation
         self.current = pos
     
     def string(self):
+        """Handles string literals enclosed in double quotes"""
         while not self.is_at_end() and self.peek() != '"':
             if self.peek() == '\n':
                 self.line += 1
@@ -278,6 +327,7 @@ class Lexer:
         self.add_token(TokenType.STRING, value)
     
     def number(self):
+        """Handles integer and floating-point number literals."""
         while self.peek().isdigit():
             self.advance()
         
@@ -291,6 +341,7 @@ class Lexer:
         self.add_token(TokenType.NUMBER, value)
 
     def identifier(self):
+        """Handles identifiers and keywords."""
         while self.peek().isalnum() or self.peek() == '_':
             self.advance()
         
@@ -303,55 +354,60 @@ class Lexer:
         token_type = KEYWORDS.get(text, TokenType.IDENTIFIER)
         self.add_token(token_type)
 
+    # No strings allowed inside tensors for now
     def tensor_literal(self):
-        # Start is at '@'
-        self.start = self.current - 1  # include '@'
+        """Handles multi-dimensional tensor literals prefixed with '@'."""
+        self.start = self.current - 1
         depth = 0
-        in_string = False
 
-        # The first '[' must appear immediately after '@'
         if self.peek() != '[':
             raise Exception(f"Expected '[' after '@' at line {self.line}")
         
         while not self.is_at_end():
             ch = self.advance()
 
-            # toggle string mode inside tensor
-            if ch == '"' and self.source[self.current - 2] != "\\":
-                in_string = not in_string
+            if ch == '"':
+                raise Exception(f"Strings are not allowed inside tensor literals (line {self.line})")
 
-            if not in_string:
-                if ch == "[":
-                    depth += 1
-                elif ch == "]":
-                    depth -= 1
-                    if depth == 0:
-                        break  # finished tensor
+            if ch == "[":
+                depth += 1
+            elif ch == "]":
+                depth -= 1
+                if depth == 0:
+                    break
 
         if depth != 0:
             raise Exception(f"Unterminated tensor literal at line {self.line}")
 
-        # Capture entire tensor excluding @
-        value = self.source[self.start+1:self.current]
+        # Capture entire tensor WITHOUT @
+        value = self.source[self.start+1 : self.current]
         self.add_token(TokenType.TENSOR_LITERAL, value)
 
+    # -------------------------------------------------------
+    # Utility Methods
+    # -------------------------------------------------------
     def is_at_end(self):
+        """Checks if the lexer has reached the end of the source."""
         return self.current >= len(self.source)
 
     def peek(self):
+        """Returns the current character without consuming it."""
         return '\0' if self.is_at_end() else self.source[self.current]
 
     def peek_next(self):
+        """Returns the next character without consuming it."""
         if self.current + 1 >= len(self.source):
             return '\0'
         return self.source[self.current + 1]
 
     def advance(self):
+        """Consume and returns the current character."""
         char = self.source[self.current]
         self.current += 1
         return char
     
     def add_token(self, type, literal=None):
+        """Creates a token and appends it to the token list."""
         if type is None:
             raise Exception(f"Invalid operator at line {self.line}")
         lexeme = self.source[self.start:self.current]
@@ -362,6 +418,7 @@ class Lexer:
         self.tokens.append(Token(type, lexeme, literal, self.line))
 
     def match(self, expected):
+        """Matches the next character if it equals 'expected' and consumes it."""
         if self.is_at_end():
             return False
         if self.source[self.current] != expected:
@@ -369,6 +426,9 @@ class Lexer:
         self.current += 1
         return True
 
+# -------------------------------------------------------
+# Command-line Interface
+# -------------------------------------------------------
 if __name__ == "__main__":
     import sys
     path = sys.argv[1]
