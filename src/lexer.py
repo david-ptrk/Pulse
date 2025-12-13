@@ -14,6 +14,23 @@ This file defines:
 from enum import Enum, auto
 
 # -------------------------------------------------------
+# LexerError Class
+# -------------------------------------------------------
+class LexerError(Exception):
+    """
+    LexerError class helps in generating same format errors.
+    """
+    def __init__(self, message, line=None, lexeme=None):
+        self.message = message
+        self.line = line
+        self.lexeme = lexeme
+        super().__init__(self.__str__())
+    def __str__(self):
+        info = f"Line {self.line}" if self.line is not None else ""
+        lex = f', Lexeme: "{self.lexeme}"' if self.lexeme else ""
+        return f"LexerError: {self.message} {info}{lex}"
+
+# -------------------------------------------------------
 # TokenType Enum
 # -------------------------------------------------------
 class TokenType(Enum):
@@ -234,7 +251,7 @@ class Lexer:
             if self.match("="):
                 self.add_token(TokenType.BANG_EQUAL)
             else:
-                raise Exception(f'Unexpected "!" at line {self.line}')
+                raise LexerError("Unexpected '!' without '='", line=self.line, lexeme="!")
             return
         elif c in "+-*/":
             if self.match("="):
@@ -272,7 +289,7 @@ class Lexer:
             return
 
         # Unexpected character
-        raise Exception(f'Unexpected character "{c}" at line {self.line}')
+        raise LexerError("Unexpected character", line=self.line, lexeme=c)
     
     def handle_indentation(self):
         """
@@ -288,7 +305,7 @@ class Lexer:
             if ch == ' ':
                 spaces += 1
             elif ch == '\t':
-                raise Exception(f"Tabs are not allowed for indentation (line {self.line})")
+                raise LexerError("Tabs are not allowed for identation", line=self.line)
             else:
                 break
             pos += 1
@@ -320,7 +337,7 @@ class Lexer:
             self.advance()
 
         if self.is_at_end():
-            raise Exception(f'Unterminated string at line {self.line}')
+            raise LexerError("Unterminated string", line=self.line, lexeme=self.source[self.start:self.current])
         
         self.advance()
         value = self.source[self.start+1 : self.current-1]
@@ -361,13 +378,13 @@ class Lexer:
         depth = 0
 
         if self.peek() != '[':
-            raise Exception(f"Expected '[' after '@' at line {self.line}")
+            raise LexerError("Expected '[' after '@'", line=self.line)
         
         while not self.is_at_end():
             ch = self.advance()
 
             if ch == '"':
-                raise Exception(f"Strings are not allowed inside tensor literals (line {self.line})")
+                raise LexerError("Strings are not allowed inside tensor literals", line=self.line)
 
             if ch == "[":
                 depth += 1
@@ -377,7 +394,7 @@ class Lexer:
                     break
 
         if depth != 0:
-            raise Exception(f"Unterminated tensor literal at line {self.line}")
+            raise LexerError("Unterminated tensor literal", line=self.line, lexeme=self.source[self.start:self.current])
 
         # Capture entire tensor WITHOUT @
         value = self.source[self.start+1 : self.current]
@@ -409,7 +426,7 @@ class Lexer:
     def add_token(self, type, literal=None):
         """Creates a token and appends it to the token list."""
         if type is None:
-            raise Exception(f"Invalid operator at line {self.line}")
+            raise LexerError("Invalid operator", line=self.line, lexeme=self.source[self.start:self.current])
         lexeme = self.source[self.start:self.current]
         if type == TokenType.NEWLINE:
             lexeme = "\\n"
