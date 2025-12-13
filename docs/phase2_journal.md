@@ -1,6 +1,6 @@
 # Phase 2 Journal — Pulse
 
-## Step 1: Lexer / Tokenizer (05-XX Dec 2025)
+## Step 1: Lexer / Tokenizer (05-13 Dec 2025)
 
 - Created TokenType, Token, and Lexer
 - Decided to ingnore comments at all, and not generate any Token for it
@@ -12,3 +12,6 @@
 - Few changes made in TokenType as I think they were necessary
 - Test result file for lexer is created `tests/lexer_test.md`
 - Lexer's code documented for understanding easily
+- Created LexerError class for unified formatted errors
+
+## Step 2
