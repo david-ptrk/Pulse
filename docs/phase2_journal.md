@@ -8,3 +8,7 @@
   `a = @[[1, 2], [3, 4]]`
 - Updated `docs/spec_v1.md` and `docs/tokens.md` to reflect some changes
 - Also updated examples in `examples/` to reflect these changes
+- Tested Lexer so that if generates correct Tokens
+- Few changes made in TokenType as I think they were necessary
+- Test result file for lexer is created `tests/lexer_test.md`
+- Lexer's code documented for understanding easily
