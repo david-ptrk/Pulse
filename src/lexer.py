@@ -1,3 +1,16 @@
+"""
+lexer.py
+
+Lexer (tokenizer) for the Pulse Programming Language.
+Responsible for converting raw source code into a stream of tokens to be consumed by the parser.
+
+This file defines:
+- TokenType enum
+- Token data structure
+- Lexer implementation
+
+"""
+
 from enum import Enum, auto
 
 class TokenType(Enum):

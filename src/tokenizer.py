@@ -1,3 +1,5 @@
+# Test tokenizer for phase 1. Not actual used by interpreter
+
 from enum import Enum, auto
 
 class TokenType(Enum):
