@@ -321,6 +321,8 @@ class Lexer:
             self.start = self.current
             self.add_token(TokenType.INDENT)
         elif spaces < last_indent:
+            if spaces not in self.indent_stack:
+                raise LexerError("Invalid indentation level", line=self.line)
             while self.indent_stack and spaces < self.indent_stack[-1]:
                 self.indent_stack.pop()
                 self.start = self.current
@@ -354,7 +356,8 @@ class Lexer:
             while self.peek().isdigit():
                 self.advance()
         
-        value = float(self.source[self.start : self.current])
+        text = self.source[self.start:self.current]
+        value = float(text) if "." in text else int(text)
         self.add_token(TokenType.NUMBER, value)
 
     def identifier(self):
@@ -453,7 +456,8 @@ if __name__ == "__main__":
     if not path.endswith(".pul"):
         raise Exception(f'"{path}" is not a .pul file. Pulse only reads .pul, behave.')
     
-    source = open(path).read()
+    with open(path) as f:
+        source = f.read()
 
     lexer = Lexer(source)
     tokens = lexer.scan_tokens()
