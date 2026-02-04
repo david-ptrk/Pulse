@@ -14,4 +14,6 @@
 - Lexer's code documented for understanding easily
 - Created LexerError class for unified formatted errors
 
-## Step 2
+## Step 2: Parser / AST Construction (04-?? Feb 2026)
+
+-
