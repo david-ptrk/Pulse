@@ -1,0 +1,180 @@
+from typing import List, Optional
+
+from src import expressions as expr
+from src import statements as stmt
+from src.tokens import Token, TokenType
+
+class ParseError(RuntimeError):
+    def __init__(self, token: Token, message: str) -> None:
+        super().__init__(message)
+        self.token = token
+
+
+class Parser:
+    def __init__(self, tokens: List[Token]) -> None:
+        self.tokens = tokens
+        self.current = 0
+    
+    # Core helper functions
+    def peek(self) -> Token:
+        return self.tokens[self.current]
+    
+    def previous(self) -> Token:
+        return self.tokens[self.current - 1]
+    
+    def is_at_end(self) -> bool:
+        return self.peek().type == TokenType.EOF
+    
+    def advance(self) -> Token:
+        if not self.is_at_end():
+            self.current += 1
+        return self.previous()
+    
+    def check(self, typ: TokenType) -> bool:
+        if self.is_at_end():
+            return False
+        return self.peek().type == typ
+    
+    def match(self, *types: TokenType) -> bool:
+        for t in types:
+            if self.check(t):
+                self.advance()
+                return True
+        return False
+    
+    def consume(self, typ: TokenType, message: str) -> Token:
+        if self.check(typ):
+            return self.advance()
+        raise ParseError(message)
+    
+    # Entry
+    def parse(self) -> List[stmt.Stmt]:
+        statements: List[stmt.Stmt] = []
+        
+        while not self.is_at_end():
+            statements.append(self.statement())
+        
+        return statements
+    
+    def statement(self) -> stmt.Stmt:
+        expr_stmt = self.expression()
+        self.match(TokenType.NEWLINE)
+        return stmt.Expression(expr_stmt)
+    
+    def expression(self) -> expr.Expr:
+        return self.assignment()
+    
+    
+    def assignment(self) -> expr.Expr:
+        left = self.logic()
+        
+        if self.match(TokenType.ASSIGN):
+            equals = self.previous()
+            value = self.assignment()
+            
+            if isinstance(left, expr.Variable):
+                return expr.Assign(left.name, value)
+            
+            raise ParseError("Invalid assignment target")
+        
+        return
+    
+    def logic(self) -> expr.Expr:
+        node = self.equality()
+        
+        while self.match(TokenType.AND, TokenType.OR):
+            op = self.previous()
+            right = self.equality()
+            node = expr.Logical(node, op, right)
+        
+        return node
+    
+    def equality(self) -> expr.Expr:
+        node = self.comparison()
+        
+        while self.match(TokenType.EQUALITY, TokenType.BANG_EQUAL):
+            op = self.previous()
+            right = self.comparison()
+            node = expr.Binary(node, op, right)
+        
+        return node
+    
+    def comparison(self) -> expr.Expr:
+        node = self.addition()
+        
+        while self.match(
+            TokenType.GREATER,
+            TokenType.GREATER_EQUAL,
+            TokenType.LESS,
+            TokenType.LESS_EQUAL
+        ):
+            op = self.previous()
+            right = self.addition()
+            node = expr.Binary(node, op, right)
+        
+        return node
+    
+    def addition(self) -> expr.Expr:
+        node = self.multiplication()
+        
+        while self.match(TokenType.PLUS, TokenType.MINUS):
+            op = self.previous()
+            right = self.multiplication()
+            node = expr.Binary(node, op, right)
+        
+        return node
+    
+    def multiplication(self) -> expr.Expr:
+        node = self.unary()
+        
+        while self.match(TokenType.STAR, TokenType.SLASH, TokenType.MODULUS):
+            op = self.previous()
+            right = self.unary()
+            node = expr.Binary(node, op, right)
+        
+        return node
+    
+    def unary(self) -> expr.Expr:
+        if self.match(TokenType.MINUS, TokenType.NOT):
+            op = self.previous()
+            right = self.unary()
+            return expr.Unary(op, right)
+        
+        return self.call()
+    
+    def call(self) -> expr.Expr:
+        node = self.primary()
+        
+        while True:
+            if self.match(TokenType.LEFT_PAREN):
+                node = self.finish_call(node)
+            else:
+                break
+        
+        return node
+    
+    def finish_call(self, callee: expr.Expr) -> expr.Expr:
+        args = []
+        
+        if not self.check(TokenType.RIGHT_PAREN):
+            args.append(self.expression())
+            while self.match(TokenType.COMMA):
+                args.append(self.expression())
+        
+        paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
+        return expr.Call(callee, paren, args)
+    
+    # Primary
+    def primary(self) -> expr.Expr:
+        if self.match(TokenType.NUMBER, TokenType.STRING, TokenType.BOOL):
+            return expr.Literal(self.previous().literal)
+        
+        if self.match(TokenType.IDENTIFIER):
+            return expr.Variable(self.previous())
+        
+        if self.match(TokenType.LEFT_PAREN):
+            e = self.expression()
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')'")
+            return expr.Grouping(e)
+        
+        raise ParseError("Expect expression")
