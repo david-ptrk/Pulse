@@ -45,7 +45,7 @@ class Parser:
     def consume(self, typ: TokenType, message: str) -> Token:
         if self.check(typ):
             return self.advance()
-        raise ParseError(message)
+        raise ParseError(self.peek(), message)
     
     # Entry
     def parse(self) -> List[stmt.Stmt]:
@@ -77,7 +77,7 @@ class Parser:
             
             raise ParseError("Invalid assignment target")
         
-        return
+        return left
     
     def logic(self) -> expr.Expr:
         node = self.equality()
