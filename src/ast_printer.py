@@ -25,11 +25,11 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_binary_expr(self, expr: expressions.Binary) -> str:
         return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)
     
-    def visit_call_expr(self, expr: expressions.Call) -> str:
-        return self.parenthesize("call", expr.callee, *expr.arguments)
+    # def visit_call_expr(self, expr: expressions.Call) -> str:
+    #     return self.parenthesize("call", expr.callee, *expr.arguments)
     
-    def visit_get_expr(self, expr: expressions.Get) -> str:
-        return self.parenthesize(".", expr.obj, expr.name.lexeme)
+    # def visit_get_expr(self, expr: expressions.Get) -> str:
+    #     return self.parenthesize(".", expr.obj, expr.name.lexeme)
     
     def visit_grouping_expr(self, expr: expressions.Grouping) -> str:
         return self.parenthesize("group", expr.expression)
@@ -37,17 +37,17 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_literal_expr(self, expr: expressions.Literal) -> str:
         return "nil" if expr.value is None else str(expr.value)
     
-    def visit_logical_expr(self, expr: expressions.Logical) -> str:
-        return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)
+    # def visit_logical_expr(self, expr: expressions.Logical) -> str:
+    #     return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)
     
-    def visit_this_expr(self, expr: expressions.This) -> str:
-        return "this"
+    # def visit_this_expr(self, expr: expressions.This) -> str:
+    #     return "this"
     
-    def visit_set_expr(self, expr: expressions.Set) -> str:
-        return self.parenthesize("set", expr.obj, expr.name.lexeme, expr.value)
+    # def visit_set_expr(self, expr: expressions.Set) -> str:
+    #     return self.parenthesize("set", expr.obj, expr.name.lexeme, expr.value)
     
-    def visit_super_expr(self, expr: expressions.Super) -> str:
-        return self.parenthesize("super", expr.method.lexeme)
+    # def visit_super_expr(self, expr: expressions.Super) -> str:
+    #     return self.parenthesize("super", expr.method.lexeme)
     
     def visit_unary_expr(self, expr: expressions.Unary) -> str:
         return self.parenthesize(expr.operator.lexeme, expr.right)
