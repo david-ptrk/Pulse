@@ -4,3 +4,4 @@ x = -123 * (45.67)
 y = x + 10
 if x > 5: y = 10 else: y = 0
 if x > 0: y = 3
+while x < 10: y = 0

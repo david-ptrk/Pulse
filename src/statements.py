@@ -11,6 +11,10 @@ class StmtVisitor(ABC):
     def visit_if_stmt(self, expr: 'If') -> Any:
         pass
 
+    @abstractmethod
+    def visit_while_stmt(self, expr: 'While') -> Any:
+        pass
+
 
 
 class Stmt(ABC):
@@ -33,4 +37,12 @@ class If(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_if_stmt(self)
+
+class While(Stmt):
+    def __init__(self, condition: Expr, body: Stmt) -> None:
+        self.condition = condition
+        self.body = body
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_while_stmt(self)
 

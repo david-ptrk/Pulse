@@ -60,15 +60,18 @@ class AstPrinter(expressions.ExprVisitor):
         return expr.name.lexeme
     
     
-    def visit_expression_stmt(self, stmt_node: stmt.Expression):
-        return self.print(stmt_node.expression)
+    def visit_expression_stmt(self, node: stmt.Expression):
+        return self.print(node.expression)
     
-    def visit_if_stmt(self, stmt_node: stmt.If):
-        text = "if " + self.print(stmt_node.condition)
-        text += "\nthen: " + self.print(stmt_node.then_branch)
-        if stmt_node.else_branch:
-            text += "\nelse: " + self.print(stmt_node.else_branch)
+    def visit_if_stmt(self, node: stmt.If):
+        text = "if " + self.print(node.condition)
+        text += " then: " + self.print(node.then_branch)
+        if node.else_branch:
+            text += " else: " + self.print(node.else_branch)
         return text
+    
+    def visit_while_stmt(self, node: stmt.While):
+        return f"(while {self.print(node.condition)} {self.print(node.body)})"
 
 # -------------------------------------------------
 # Quick test

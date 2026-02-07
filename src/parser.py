@@ -59,6 +59,8 @@ class Parser:
     def statement(self) -> stmt.Stmt:
         if self.match(TokenType.IF):
             return self.parse_if_stmt()
+        if self.match(TokenType.WHILE):
+            return self.parse_while_stmt()
         expr_stmt = self.expression()
         self.match(TokenType.NEWLINE)
         return stmt.Expression(expr_stmt)
@@ -73,6 +75,12 @@ class Parser:
             self.match(TokenType.COLON)
             else_branch = self.statement()
         return stmt.If(condition, then_branch, else_branch)
+    
+    def parse_while_stmt(self) -> stmt.Stmt:
+        condition = self.expression()
+        self.consume(TokenType.COLON, "Expected ':' after while condition")
+        body = self.statement()  # single statement for now
+        return stmt.While(condition, body)
     
     
     def expression(self) -> expr.Expr:
