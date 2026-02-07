@@ -56,14 +56,36 @@ class Parser:
         
         return statements
     
-    def statement(self) -> stmt.Stmt:
+    def statement(self) -> Optional[stmt.Stmt]:
+        if self.match(TokenType.INDENT):
+            return self.block()
+        
         if self.match(TokenType.IF):
             return self.parse_if_stmt()
         if self.match(TokenType.WHILE):
             return self.parse_while_stmt()
+        
+        # Skip empty statements
+        if self.match(TokenType.NEWLINE):
+            return None        
+        # Stop parsing expressions if we hit block end
+        if self.check(TokenType.DEDENT) or self.is_at_end():
+            return None
+        
         expr_stmt = self.expression()
         self.match(TokenType.NEWLINE)
         return stmt.Expression(expr_stmt)
+
+    def block(self) -> stmt.Stmt:
+        statements: List[stmt.Stmt] = []
+        
+        while not self.check(TokenType.DEDENT) and not self.is_at_end():
+            s = self.statement()
+            if s is not None:
+                statements.append(s)
+        
+        self.consume(TokenType.DEDENT, "Block not closed")
+        return stmt.Block(statements)
     
     def parse_if_stmt(self) -> stmt.Stmt:
         condition = self.expression()

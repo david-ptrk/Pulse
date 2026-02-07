@@ -47,6 +47,7 @@ EXPRESSIONS: ASTDict = {
 # Statements
 STATEMENTS: ASTDict = {
     "Expression": ("expression: Expr",),
+    "Block": ("statements: list[Stmt]",),
     "If": ("condition: Expr", "then_branch: Stmt", "else_branch: Stmt | None"),
     "While": ("condition: Expr", "body: Stmt"),
 }

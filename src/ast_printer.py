@@ -59,6 +59,8 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_variable_expr(self, expr: expressions.Variable) -> str:
         return expr.name.lexeme
     
+    def visit_block_stmt(self, node: stmt.Block):
+        return self.parenthesize("block", node.statements)
     
     def visit_expression_stmt(self, node: stmt.Expression):
         return self.print(node.expression)
@@ -97,7 +99,8 @@ if __name__ == "__main__":
     
     printer = AstPrinter()
     for s in stmts:
-        print(printer.print(s))
+        if s is not None:
+            print(printer.print(s))
         # if isinstance(s, stmt.Expression):
         #     print(printer.print(s.expression))
         # elif isinstance(s, stmt.If):

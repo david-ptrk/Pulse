@@ -8,6 +8,10 @@ class StmtVisitor(ABC):
         pass
 
     @abstractmethod
+    def visit_block_stmt(self, expr: 'Block') -> Any:
+        pass
+
+    @abstractmethod
     def visit_if_stmt(self, expr: 'If') -> Any:
         pass
 
@@ -28,6 +32,13 @@ class Expression(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_expression_stmt(self)
+
+class Block(Stmt):
+    def __init__(self, statements: list[Stmt]) -> None:
+        self.statements = statements
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_block_stmt(self)
 
 class If(Stmt):
     def __init__(self, condition: Expr, then_branch: Stmt, else_branch: Stmt | None) -> None:
