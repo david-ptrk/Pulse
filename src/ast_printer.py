@@ -1,5 +1,9 @@
 from src import expressions
 from src.tokens import Token, TokenType
+import pathlib
+from src.lexer import Lexer
+from src.parser import Parser
+import src.statements as stmt
 
 class AstPrinter(expressions.ExprVisitor):
     def print(self, expr: expressions.Expr) -> str:
@@ -54,6 +58,17 @@ class AstPrinter(expressions.ExprVisitor):
     
     def visit_variable_expr(self, expr: expressions.Variable) -> str:
         return expr.name.lexeme
+    
+    
+    def visit_expression_stmt(self, stmt_node: stmt.Expression):
+        return self.print(stmt_node.expression)
+    
+    def visit_if_stmt(self, stmt_node: stmt.If):
+        text = "if " + self.print(stmt_node.condition)
+        text += "\nthen: " + self.print(stmt_node.then_branch)
+        if stmt_node.else_branch:
+            text += "\nelse: " + self.print(stmt_node.else_branch)
+        return text
 
 # -------------------------------------------------
 # Quick test
@@ -67,23 +82,23 @@ if __name__ == "__main__":
     #     Token(TokenType.STAR, "*", "", 1),
     #     expressions.Grouping(expressions.Literal(45.67))
     # )
-    import pathlib
     file_path = pathlib.Path(__file__).parent.parent / "tests/code.pul"
     with open(file_path) as f:
         source = f.read()
     
-    from src.lexer import Lexer
     lexer = Lexer(source)
     tokens = lexer.scan_tokens()
     
-    from src.parser import Parser
     parser = Parser(tokens)
     stmts = parser.parse()
     
-    import src.statements as stmt
     printer = AstPrinter()
     for s in stmts:
-        if isinstance(s, stmt.Expression):
-            print(printer.print(s.expression))
-        elif isinstance(s, stmt.Print):
-            print("print", printer.print(s.expression))
+        print(printer.print(s))
+        # if isinstance(s, stmt.Expression):
+        #     print(printer.print(s.expression))
+        # elif isinstance(s, stmt.If):
+        #     print("if", printer.print(s.condition))
+        #     print("then:", printer.print(s.then_branch))
+        #     if s.else_branch:
+        #         print("else:", printer.print(s.else_branch))

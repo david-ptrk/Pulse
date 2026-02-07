@@ -57,13 +57,26 @@ class Parser:
         return statements
     
     def statement(self) -> stmt.Stmt:
+        if self.match(TokenType.IF):
+            return self.parse_if_stmt()
         expr_stmt = self.expression()
         self.match(TokenType.NEWLINE)
         return stmt.Expression(expr_stmt)
     
+    def parse_if_stmt(self) -> stmt.Stmt:
+        condition = self.expression()
+        self.match(TokenType.COLON)
+        
+        then_branch = self.statement()
+        else_branch = None
+        if self.match(TokenType.ELSE):
+            self.match(TokenType.COLON)
+            else_branch = self.statement()
+        return stmt.If(condition, then_branch, else_branch)
+    
+    
     def expression(self) -> expr.Expr:
         return self.assignment()
-    
     
     def assignment(self) -> expr.Expr:
         left = self.logic()
@@ -140,29 +153,7 @@ class Parser:
             right = self.unary()
             return expr.Unary(op, right)
         
-        return self.call()
-    
-    def call(self) -> expr.Expr:
-        node = self.primary()
-        
-        while True:
-            if self.match(TokenType.LEFT_PAREN):
-                node = self.finish_call(node)
-            else:
-                break
-        
-        return node
-    
-    def finish_call(self, callee: expr.Expr) -> expr.Expr:
-        args = []
-        
-        if not self.check(TokenType.RIGHT_PAREN):
-            args.append(self.expression())
-            while self.match(TokenType.COMMA):
-                args.append(self.expression())
-        
-        paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-        return expr.Call(callee, paren, args)
+        return self.primary()
     
     # Primary
     def primary(self) -> expr.Expr:
@@ -177,4 +168,4 @@ class Parser:
             self.consume(TokenType.RIGHT_PAREN, "Expect ')'")
             return expr.Grouping(e)
         
-        raise ParseError("Expect expression")
+        raise ParseError(self.peek(), "Expect expression")

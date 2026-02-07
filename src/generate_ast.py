@@ -47,6 +47,7 @@ EXPRESSIONS: ASTDict = {
 # Statements
 STATEMENTS: ASTDict = {
     "Expression": ("expression: Expr",),
+    "If": ("condition: Expr", "then_branch: Stmt", "else_branch: Stmt | None"),
 }
 
 # Generator Functions
