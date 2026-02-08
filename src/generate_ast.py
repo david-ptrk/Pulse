@@ -50,8 +50,10 @@ STATEMENTS: ASTDict = {
     "Block": ("statements: list[Stmt]",),
     "If": ("condition: Expr", "then_branch: Stmt", "else_branch: Stmt | None"),
     "While": ("condition: Expr", "body: Stmt"),
+    "For": ("var: Token", "iterable: Expr", "body: Stmt"),
     "Break": (),
     "Continue": (),
+    "Return": ("value: Expr | None",),
 }
 
 # Generator Functions

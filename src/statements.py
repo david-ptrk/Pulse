@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 from src.expressions import Expr
+from src.tokens import Token
 
 class StmtVisitor(ABC):
     @abstractmethod
@@ -20,11 +21,19 @@ class StmtVisitor(ABC):
         pass
 
     @abstractmethod
+    def visit_for_stmt(self, expr: 'For') -> Any:
+        pass
+
+    @abstractmethod
     def visit_break_stmt(self, expr: 'Break') -> Any:
         pass
 
     @abstractmethod
     def visit_continue_stmt(self, expr: 'Continue') -> Any:
+        pass
+
+    @abstractmethod
+    def visit_return_stmt(self, expr: 'Return') -> Any:
         pass
 
 
@@ -65,6 +74,15 @@ class While(Stmt):
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_while_stmt(self)
 
+class For(Stmt):
+    def __init__(self, var: Token, iterable: Expr, body: Stmt) -> None:
+        self.var = var
+        self.iterable = iterable
+        self.body = body
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_for_stmt(self)
+
 class Break(Stmt):
     def __init__(self, ) -> None:
         pass
@@ -78,4 +96,11 @@ class Continue(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_continue_stmt(self)
+
+class Return(Stmt):
+    def __init__(self, value: Expr | None) -> None:
+        self.value = value
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_return_stmt(self)
 

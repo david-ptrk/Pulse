@@ -75,11 +75,19 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_while_stmt(self, node: stmt.While):
         return f"(while {self.print(node.condition)} {self.print(node.body)})"
     
+    def visit_for_stmt(self, node: stmt.For):
+        return f"(for {node.var.lexeme} in {self.print(node.iterable)} {self.print(node.body)})"
+    
     def visit_break_stmt(self, node: stmt.Break):
         return "break"
     
     def visit_continue_stmt(self, node: stmt.Continue):
         return "continue"
+    
+    def visit_return_stmt(self, node: stmt.Return):
+        if node.value is None:
+            return "return"
+        return f"(return {self.print(node.value)})"
 
 # -------------------------------------------------
 # Quick test

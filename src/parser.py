@@ -64,11 +64,15 @@ class Parser:
             return self.parse_if_stmt()
         if self.match(TokenType.WHILE):
             return self.parse_while_stmt()
+        if self.match(TokenType.FOR):
+            return self.parse_for_stmt()
         
         if self.match(TokenType.BREAK):
             return stmt.Break()
         if self.match(TokenType.CONTINUE):
             return stmt.Continue()
+        if self.match(TokenType.RETURN):
+            return self.parse_return_stmt()
         
         # Skip empty statements
         if self.match(TokenType.NEWLINE):
@@ -108,6 +112,27 @@ class Parser:
         self.consume(TokenType.COLON, "Expected ':' after while condition")
         body = self.statement()  # single statement for now
         return stmt.While(condition, body)
+    
+    def parse_for_stmt(self) -> stmt.Stmt:
+        var_token = self.consume(TokenType.IDENTIFIER, "Expected loop variable after 'for'")
+        self.consume(TokenType.IN, "Expected 'in' after loop variable")
+        iterable = self.expression()
+        self.consume(TokenType.COLON, "Expected ':' after iterable")
+        
+        # Will work for loop depths later
+        # self.loop_depth += 1
+        body = self.statement()
+        # self.loop_depth -= 1
+        
+        return stmt.For(var_token, iterable, body)
+    
+    def parse_return_stmt(self) -> stmt.Stmt:
+        value = None        
+        if not (self.check(TokenType.NEWLINE) or self.check(TokenType.DEDENT) or self.is_at_end()):
+            value = self.expression()
+        
+        self.match(TokenType.NEWLINE)
+        return stmt.Return(value)
     
     
     def expression(self) -> expr.Expr:
