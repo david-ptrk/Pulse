@@ -74,6 +74,12 @@ class AstPrinter(expressions.ExprVisitor):
     
     def visit_while_stmt(self, node: stmt.While):
         return f"(while {self.print(node.condition)} {self.print(node.body)})"
+    
+    def visit_break_stmt(self, node: stmt.Break):
+        return "break"
+    
+    def visit_continue_stmt(self, node: stmt.Continue):
+        return "continue"
 
 # -------------------------------------------------
 # Quick test

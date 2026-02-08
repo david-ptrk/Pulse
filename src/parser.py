@@ -65,6 +65,11 @@ class Parser:
         if self.match(TokenType.WHILE):
             return self.parse_while_stmt()
         
+        if self.match(TokenType.BREAK):
+            return stmt.Break()
+        if self.match(TokenType.CONTINUE):
+            return stmt.Continue()
+        
         # Skip empty statements
         if self.match(TokenType.NEWLINE):
             return None        

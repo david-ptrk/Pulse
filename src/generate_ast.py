@@ -50,6 +50,8 @@ STATEMENTS: ASTDict = {
     "Block": ("statements: list[Stmt]",),
     "If": ("condition: Expr", "then_branch: Stmt", "else_branch: Stmt | None"),
     "While": ("condition: Expr", "body: Stmt"),
+    "Break": (),
+    "Continue": (),
 }
 
 # Generator Functions
@@ -82,9 +84,12 @@ def define_type(file: TextIO, base_name: str, class_name: str, fields: Tuple[str
     params = ", ".join(fields)
     file.write(f"{INDENT}def __init__(self, {params}) -> None:\n")
     
-    for field in fields:
-        attr = field.split(":")[0]
-        file.write(f"{INDENT*2}self.{attr} = {attr}\n")
+    if not fields:
+        file.write(f"{INDENT*2}pass\n")
+    else:
+        for field in fields:
+            attr = field.split(":")[0]
+            file.write(f"{INDENT*2}self.{attr} = {attr}\n")
     
     file.write("\n")
     
