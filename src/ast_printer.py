@@ -92,6 +92,14 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_function_stmt(self, node: stmt.Function):
         params = ", ".join(p.lexeme for p in node.params)
         return f"(def {node.name.lexeme} ({params}) {self.print(node.body)})"
+    
+    def visit_class_stmt(self, node: stmt.Class):
+        text = f"(class {node.name.lexeme}"        
+        for s in node.body:
+            text += " " + self.print(s)
+        text += ")"
+        
+        return text
 
 # -------------------------------------------------
 # Quick test

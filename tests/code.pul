@@ -32,3 +32,11 @@ def sum(a, b):
 a = 1
 sum(2, 1)
 x = print(2)
+
+# Class
+class Cat:
+    name = "Lucy"
+    age = 5
+    
+    def speak():
+        print("Meow")

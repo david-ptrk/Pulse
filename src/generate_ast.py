@@ -57,6 +57,7 @@ STATEMENTS: ASTDict = {
     "Continue": (),
     "Return": ("value: Expr | None",),
     "Function": ("name: Token", "params: list[Token]", "body: list[Stmt]",),
+    "Class": ("name: Token", "body: list[Stmt]",),
 }
 
 # Generator Functions

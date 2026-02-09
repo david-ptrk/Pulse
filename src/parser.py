@@ -62,6 +62,8 @@ class Parser:
         
         if self.match(TokenType.DEF):
             return self.parse_func_stmt()
+        if self.match(TokenType.CLASS):
+            return self.parse_class_stmt()
         
         if self.match(TokenType.IF):
             return self.parse_if_stmt()
@@ -151,6 +153,29 @@ class Parser:
         self.consume(TokenType.INDENT, "Expect block indentation")
         body = self.block()
         return stmt.Function(name, params, body)
+    
+    def parse_class_stmt(self) -> stmt.Stmt:
+        name = self.consume(TokenType.IDENTIFIER, "Expect class name.")
+        self.consume(TokenType.COLON, "Expect ':' after class name.")
+        
+        self.consume(TokenType.INDENT, "Expect class body indentation")
+        
+        body: list[stmt.Stmt] = []
+        while not self.check(TokenType.DEDENT) and not self.is_at_end():
+            # Skip empty lines
+            if self.match(TokenType.NEWLINE):
+                continue
+            # Methods
+            if self.match(TokenType.DEF):
+                body.append(self.parse_func_stmt())
+            # Assignments at class level
+            else:
+                expr_stmt = self.expression()
+                self.match(TokenType.NEWLINE)
+                body.append(stmt.Expression(expr_stmt))
+        
+        self.consume(TokenType.DEDENT, "Class body not closed")
+        return stmt.Class(name, body)
     
     def parse_return_stmt(self) -> stmt.Stmt:
         value = None        

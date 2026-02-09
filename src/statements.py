@@ -40,6 +40,10 @@ class StmtVisitor(ABC):
     def visit_function_stmt(self, expr: 'Function') -> Any:
         pass
 
+    @abstractmethod
+    def visit_class_stmt(self, expr: 'Class') -> Any:
+        pass
+
 
 
 class Stmt(ABC):
@@ -116,4 +120,12 @@ class Function(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_function_stmt(self)
+
+class Class(Stmt):
+    def __init__(self, name: Token, body: list[Stmt]) -> None:
+        self.name = name
+        self.body = body
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_class_stmt(self)
 
