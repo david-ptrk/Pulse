@@ -32,6 +32,7 @@ EXPRESSIONS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
 STATEMENTS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
     "from typing import Any",
     "from src.expressions import Expr",
+    "from src.tokens import Token"
 )
 
 # Expressions
@@ -42,6 +43,7 @@ EXPRESSIONS: ASTDict = {
     "Literal":  ("value: Any",),
     "Variable": ("name: Token",),
     "Grouping": ("expression: Expr",),
+    "Call":     ("callee: Expr", "paren: Token", "arguments: list[Expr]"),
 }
 
 # Statements
@@ -54,6 +56,7 @@ STATEMENTS: ASTDict = {
     "Break": (),
     "Continue": (),
     "Return": ("value: Expr | None",),
+    "Function": ("name: Token", "params: list[Token]", "body: list[Stmt]",),
 }
 
 # Generator Functions

@@ -60,6 +60,9 @@ class Parser:
         if self.match(TokenType.INDENT):
             return self.block()
         
+        if self.match(TokenType.DEF):
+            return self.parse_func_stmt()
+        
         if self.match(TokenType.IF):
             return self.parse_if_stmt()
         if self.match(TokenType.WHILE):
@@ -125,6 +128,29 @@ class Parser:
         # self.loop_depth -= 1
         
         return stmt.For(var_token, iterable, body)
+    
+    def parse_func_stmt(self) -> stmt.Stmt:
+        name = self.consume(TokenType.IDENTIFIER, "Expect function name.")
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after function name.")
+        
+        params: list[Token] = []
+        if not self.check(TokenType.RIGHT_PAREN):
+            params.append(
+                self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
+            )
+            while self.match(TokenType.COMMA):
+                if self.check(TokenType.RIGHT_PAREN):
+                    break
+                params.append(
+                    self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
+                )
+        
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.")
+        self.consume(TokenType.COLON, "Expect ':' before function body.")
+        
+        self.consume(TokenType.INDENT, "Expect block indentation")
+        body = self.block()
+        return stmt.Function(name, params, body)
     
     def parse_return_stmt(self) -> stmt.Stmt:
         value = None        
@@ -221,7 +247,17 @@ class Parser:
             return expr.Literal(self.previous().literal)
         
         if self.match(TokenType.IDENTIFIER):
-            return expr.Variable(self.previous())
+            name_token = self.previous()
+            if self.match(TokenType.LEFT_PAREN):
+                arguments: list[expr.Expr] = []
+                if not self.check(TokenType.RIGHT_PAREN):
+                    while True:
+                        arguments.append(self.expression())
+                        if not self.match(TokenType.COMMA):
+                            break
+                paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
+                return expr.Call(expr.Variable(name_token), paren, arguments)
+            return expr.Variable(name_token)
         
         if self.match(TokenType.LEFT_PAREN):
             e = self.expression()

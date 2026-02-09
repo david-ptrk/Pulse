@@ -29,8 +29,8 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_binary_expr(self, expr: expressions.Binary) -> str:
         return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)
     
-    # def visit_call_expr(self, expr: expressions.Call) -> str:
-    #     return self.parenthesize("call", expr.callee, *expr.arguments)
+    def visit_call_expr(self, expr: expressions.Call) -> str:
+        return self.parenthesize("call", expr.callee, *expr.arguments)
     
     # def visit_get_expr(self, expr: expressions.Get) -> str:
     #     return self.parenthesize(".", expr.obj, expr.name.lexeme)
@@ -88,6 +88,10 @@ class AstPrinter(expressions.ExprVisitor):
         if node.value is None:
             return "return"
         return f"(return {self.print(node.value)})"
+    
+    def visit_function_stmt(self, node: stmt.Function):
+        params = ", ".join(p.lexeme for p in node.params)
+        return f"(def {node.name.lexeme} ({params}) {self.print(node.body)})"
 
 # -------------------------------------------------
 # Quick test

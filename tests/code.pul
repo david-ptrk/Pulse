@@ -23,3 +23,12 @@ return
 for i in x:
     y = y + 1
     z = z + 1
+
+# function
+def sum(a, b):
+    temp = a + b
+    return temp
+
+a = 1
+sum(2, 1)
+x = print(2)
