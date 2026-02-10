@@ -40,3 +40,10 @@ class Cat:
     
     def speak():
         print("Meow")
+
+# try except
+try:
+    x = 1 / 0
+    y = 2
+except:
+    x = 0

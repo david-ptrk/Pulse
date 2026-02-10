@@ -72,6 +72,9 @@ class Parser:
         if self.match(TokenType.FOR):
             return self.parse_for_stmt()
         
+        if self.match(TokenType.TRY):
+            return self.parse_try_stmt()
+        
         if self.match(TokenType.BREAK):
             return stmt.Break()
         if self.match(TokenType.CONTINUE):
@@ -176,6 +179,16 @@ class Parser:
         
         self.consume(TokenType.DEDENT, "Class body not closed")
         return stmt.Class(name, body)
+    
+    def parse_try_stmt(self) -> stmt.Stmt:
+        self.consume(TokenType.COLON, "Expected ':' after 'try'")
+        try_block = self.statement()
+        
+        self.consume(TokenType.EXCEPT, "Expected 'except' keyword")
+        self.consume(TokenType.COLON, "Expected ':' after 'except'")
+        except_block = self.statement()
+        
+        return stmt.Try(try_block, except_block)
     
     def parse_return_stmt(self) -> stmt.Stmt:
         value = None        

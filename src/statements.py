@@ -44,6 +44,10 @@ class StmtVisitor(ABC):
     def visit_class_stmt(self, expr: 'Class') -> Any:
         pass
 
+    @abstractmethod
+    def visit_try_stmt(self, expr: 'Try') -> Any:
+        pass
+
 
 
 class Stmt(ABC):
@@ -128,4 +132,12 @@ class Class(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_class_stmt(self)
+
+class Try(Stmt):
+    def __init__(self, try_block: Stmt, except_block: Stmt) -> None:
+        self.try_block = try_block
+        self.except_block = except_block
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_try_stmt(self)
 

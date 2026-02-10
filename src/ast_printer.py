@@ -100,6 +100,9 @@ class AstPrinter(expressions.ExprVisitor):
         text += ")"
         
         return text
+    
+    def visit_try_stmt(self, node: stmt.Try) -> str:
+        return f"(try {self.print(node.try_block)} (except {self.print(node.except_block)}))"
 
 # -------------------------------------------------
 # Quick test
