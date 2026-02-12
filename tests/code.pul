@@ -76,3 +76,6 @@ def square(x):
     pass
 
 x = 2
+john.name
+john.speak("hello")
+john.get_speak().loud()

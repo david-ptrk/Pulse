@@ -31,6 +31,10 @@ class ExprVisitor(ABC):
     def visit_call_expr(self, expr: 'Call') -> Any:
         pass
 
+    @abstractmethod
+    def visit_memberaccess_expr(self, expr: 'MemberAccess') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -92,4 +96,12 @@ class Call(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_call_expr(self)
+
+class MemberAccess(Expr):
+    def __init__(self, object: Expr, name: str) -> None:
+        self.object = object
+        self.name = name
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_memberaccess_expr(self)
 

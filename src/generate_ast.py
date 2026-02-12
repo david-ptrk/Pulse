@@ -44,6 +44,7 @@ EXPRESSIONS: ASTDict = {
     "Variable": ("name: Token",),
     "Grouping": ("expression: Expr",),
     "Call":     ("callee: Expr", "paren: Token", "arguments: list[Expr]"),
+    "MemberAccess": ("object: Expr", "name: str"),
 }
 
 # Statements

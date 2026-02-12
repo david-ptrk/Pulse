@@ -295,27 +295,34 @@ class Parser:
         
         return self.primary()
     
-    # Primary
+    # Primary / callOrMember
     def primary(self) -> expr.Expr:
+        # Base expressions
         if self.match(TokenType.NUMBER, TokenType.STRING, TokenType.BOOL):
             return expr.Literal(self.previous().literal)
+        elif self.match(TokenType.IDENTIFIER):
+            expr_node: expr.Expr = expr.Variable(self.previous())
+        elif self.match(TokenType.LEFT_PAREN):
+            expr_node = self.expression()
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression")
+        else:
+            raise ParseError(self.peek(), "Expect expression")
         
-        if self.match(TokenType.IDENTIFIER):
-            name_token = self.previous()
-            if self.match(TokenType.LEFT_PAREN):
-                arguments: list[expr.Expr] = []
+        # Postfix loop for member access and method calls
+        while True:
+            if self.match(TokenType.DOT):
+                name_token = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'")
+                expr_node = expr.MemberAccess(expr_node, name_token.lexeme)
+            elif self.match(TokenType.LEFT_PAREN):
+                arguments: List[expr.Expr] = []
                 if not self.check(TokenType.RIGHT_PAREN):
                     while True:
                         arguments.append(self.expression())
                         if not self.match(TokenType.COMMA):
                             break
                 paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-                return expr.Call(expr.Variable(name_token), paren, arguments)
-            return expr.Variable(name_token)
+                expr_node = expr.Call(expr_node, paren, arguments)
+            else:
+                break
         
-        if self.match(TokenType.LEFT_PAREN):
-            e = self.expression()
-            self.consume(TokenType.RIGHT_PAREN, "Expect ')'")
-            return expr.Grouping(e)
-        
-        raise ParseError(self.peek(), "Expect expression")
+        return expr_node

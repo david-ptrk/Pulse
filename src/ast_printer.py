@@ -120,6 +120,9 @@ class AstPrinter(expressions.ExprVisitor):
             parts.append(f"(finally {self.print(node.finally_block)})")
         
         return " ".join(parts) + ")"
+    
+    def visit_memberaccess_expr(self, expr: expressions.MemberAccess) -> str:
+        return self.parenthesize(".", expr.object, expr.name)
 
 # -------------------------------------------------
 # Quick test
