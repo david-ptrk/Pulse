@@ -81,6 +81,8 @@ class Parser:
             return stmt.Continue()
         if self.match(TokenType.RETURN):
             return self.parse_return_stmt()
+        if self.match(TokenType.PASS):
+            return stmt.Pass()
         
         # Skip empty statements
         if self.match(TokenType.NEWLINE):
@@ -109,11 +111,20 @@ class Parser:
         self.match(TokenType.COLON)
         
         then_branch = self.statement()
+        
+        elif_branches = []
+        while self.match(TokenType.ELIF):
+            elif_condition = self.expression()
+            self.match(TokenType.COLON)
+            elif_stmt = self.statement()
+            elif_branches.append((elif_condition, elif_stmt))
+        
         else_branch = None
         if self.match(TokenType.ELSE):
             self.match(TokenType.COLON)
             else_branch = self.statement()
-        return stmt.If(condition, then_branch, else_branch)
+        
+        return stmt.If(condition, then_branch, elif_branches, else_branch)
     
     def parse_while_stmt(self) -> stmt.Stmt:
         condition = self.expression()

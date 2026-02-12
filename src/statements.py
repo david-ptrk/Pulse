@@ -48,6 +48,10 @@ class StmtVisitor(ABC):
     def visit_try_stmt(self, expr: 'Try') -> Any:
         pass
 
+    @abstractmethod
+    def visit_pass_stmt(self, expr: 'Pass') -> Any:
+        pass
+
 
 
 class Stmt(ABC):
@@ -70,9 +74,10 @@ class Block(Stmt):
         return visitor.visit_block_stmt(self)
 
 class If(Stmt):
-    def __init__(self, condition: Expr, then_branch: Stmt, else_branch: Stmt | None) -> None:
+    def __init__(self, condition: Expr, then_branch: Stmt, elif_branches: list[tuple[Expr, Stmt]], else_branch: Stmt | None) -> None:
         self.condition = condition
         self.then_branch = then_branch
+        self.elif_branches = elif_branches
         self.else_branch = else_branch
 
     def accept(self, visitor: StmtVisitor) -> Any:
@@ -141,4 +146,11 @@ class Try(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_try_stmt(self)
+
+class Pass(Stmt):
+    def __init__(self, ) -> None:
+        pass
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_pass_stmt(self)
 

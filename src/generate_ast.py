@@ -50,7 +50,7 @@ EXPRESSIONS: ASTDict = {
 STATEMENTS: ASTDict = {
     "Expression": ("expression: Expr",),
     "Block": ("statements: list[Stmt]",),
-    "If": ("condition: Expr", "then_branch: Stmt", "else_branch: Stmt | None"),
+    "If": ("condition: Expr", "then_branch: Stmt", "elif_branches: list[tuple[Expr, Stmt]]", "else_branch: Stmt | None"),
     "While": ("condition: Expr", "body: Stmt"),
     "For": ("var: Token", "iterable: Expr", "body: Stmt"),
     "Break": (),
@@ -59,6 +59,7 @@ STATEMENTS: ASTDict = {
     "Function": ("name: Token", "params: list[Token]", "body: list[Stmt]",),
     "Class": ("name: Token", "body: list[Stmt]",),
     "Try": ("try_block: Stmt", "except_block: Stmt", "finally_block: Stmt | None"),
+    "Pass": (),
 }
 
 # Generator Functions

@@ -54,3 +54,25 @@ except:
     x = 0
 finally:
     x = 2
+
+if x = 1:
+    print(3)
+
+if x = 1:
+    print(3)
+else:
+    print(2)
+
+if x = 1:
+    print(3)
+elif x = 2:
+    print(4)
+elif x = 3:
+    print(5)
+else:
+    print(2)
+
+def square(x):
+    pass
+
+x = 2

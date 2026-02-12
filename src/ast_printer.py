@@ -68,8 +68,14 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_if_stmt(self, node: stmt.If):
         text = "if " + self.print(node.condition)
         text += " then: " + self.print(node.then_branch)
+        
+        for cond, branch in node.elif_branches:
+            text += " elif " + self.print(cond)
+            text += " then: " + self.print(branch)
+        
         if node.else_branch:
             text += " else: " + self.print(node.else_branch)
+
         return text
     
     def visit_while_stmt(self, node: stmt.While):
@@ -83,6 +89,9 @@ class AstPrinter(expressions.ExprVisitor):
     
     def visit_continue_stmt(self, node: stmt.Continue):
         return "continue"
+    
+    def visit_pass_stmt(self, node: stmt.Pass):
+        return "pass"
     
     def visit_return_stmt(self, node: stmt.Return):
         if node.value is None:
