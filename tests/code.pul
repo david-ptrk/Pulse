@@ -47,3 +47,10 @@ try:
     y = 2
 except:
     x = 0
+
+try:
+    x = 1
+except:
+    x = 0
+finally:
+    x = 2

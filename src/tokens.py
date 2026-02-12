@@ -65,6 +65,7 @@ class TokenType(Enum):
     PASS = auto()
     TRY = auto()
     EXCEPT = auto()
+    FINALLY = auto()
     IMPORT = auto()
     FROM = auto()
     AS = auto()
@@ -89,6 +90,7 @@ KEYWORDS = {
     "pass": TokenType.PASS,
     "try": TokenType.TRY,
     "except": TokenType.EXCEPT,
+    "finally": TokenType.FINALLY,
     "import": TokenType.IMPORT,
     "from": TokenType.FROM,
     "as": TokenType.AS,

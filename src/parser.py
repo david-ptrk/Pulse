@@ -188,7 +188,12 @@ class Parser:
         self.consume(TokenType.COLON, "Expected ':' after 'except'")
         except_block = self.statement()
         
-        return stmt.Try(try_block, except_block)
+        finally_block = None
+        if self.match(TokenType.FINALLY):
+            self.consume(TokenType.COLON, "Expected ':' after 'finally'")
+            finally_block = self.statement()
+        
+        return stmt.Try(try_block, except_block, finally_block)
     
     def parse_return_stmt(self) -> stmt.Stmt:
         value = None        

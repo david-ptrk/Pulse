@@ -102,7 +102,15 @@ class AstPrinter(expressions.ExprVisitor):
         return text
     
     def visit_try_stmt(self, node: stmt.Try) -> str:
-        return f"(try {self.print(node.try_block)} (except {self.print(node.except_block)}))"
+        parts = [
+            f"(try {self.print(node.try_block)}",
+            f"(except {self.print(node.except_block)})"
+        ]
+        
+        if node.finally_block:
+            parts.append(f"(finally {self.print(node.finally_block)})")
+        
+        return " ".join(parts) + ")"
 
 # -------------------------------------------------
 # Quick test
