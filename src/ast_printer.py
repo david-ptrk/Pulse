@@ -137,7 +137,7 @@ class AstPrinter(expressions.ExprVisitor):
         return " ".join(parts) + ")"
     
     def visit_memberaccess_expr(self, expr: expressions.MemberAccess) -> str:
-        return self.parenthesize(".", expr.object, expr.name)
+        return self.parenthesize(".", expr.object, expr.name.lexeme)
 
 # -------------------------------------------------
 # Quick test
