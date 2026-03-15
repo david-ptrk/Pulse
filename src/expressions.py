@@ -35,6 +35,10 @@ class ExprVisitor(ABC):
     def visit_memberaccess_expr(self, expr: 'MemberAccess') -> Any:
         pass
 
+    @abstractmethod
+    def visit_logical_expr(self, expr: 'Logical') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -43,8 +47,8 @@ class Expr(ABC):
         pass
 
 class Assign(Expr):
-    def __init__(self, name: Token, value: Expr) -> None:
-        self.name = name
+    def __init__(self, target: Expr, value: Expr) -> None:
+        self.target = target
         self.value = value
 
     def accept(self, visitor: ExprVisitor) -> Any:
@@ -104,4 +108,13 @@ class MemberAccess(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_memberaccess_expr(self)
+
+class Logical(Expr):
+    def __init__(self, left: Expr, operator: Token, right: Expr) -> None:
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_logical_expr(self)
 

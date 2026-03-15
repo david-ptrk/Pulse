@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 from src.expressions import Expr
 from src.tokens import Token
 
@@ -139,9 +139,9 @@ class Class(Stmt):
         return visitor.visit_class_stmt(self)
 
 class Try(Stmt):
-    def __init__(self, try_block: Stmt, except_block: Stmt, finally_block: Stmt | None) -> None:
+    def __init__(self, try_block: Stmt, except_blocks: list[tuple[Optional[Token], Stmt]], finally_block: Stmt | None) -> None:
         self.try_block = try_block
-        self.except_block = except_block
+        self.except_blocks = except_blocks
         self.finally_block = finally_block
 
     def accept(self, visitor: StmtVisitor) -> Any:

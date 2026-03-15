@@ -195,16 +195,22 @@ class Parser:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")
         try_block = self.statement()
         
-        self.consume(TokenType.EXCEPT, "Expected 'except' keyword")
-        self.consume(TokenType.COLON, "Expected ':' after 'except'")
-        except_block = self.statement()
+        except_blocks: list[tuple[Optional[Token], stmt.Stmt]] = []
         
-        finally_block = None
+        while self.match(TokenType.EXCEPT):
+            exc_type : Optional[Token] = None
+            if self.check(TokenType.IDENTIFIER):
+                exc_type = self.advance()
+            self.consume(TokenType.COLON, "Excepted ':' after 'except'")
+            block = self.statement()
+            except_blocks.append((exc_type, block))
+        
+        finally_block: Optional[stmt.Stmt] = None
         if self.match(TokenType.FINALLY):
             self.consume(TokenType.COLON, "Expected ':' after 'finally'")
             finally_block = self.statement()
         
-        return stmt.Try(try_block, except_block, finally_block)
+        return stmt.Try(try_block, except_blocks, finally_block)
     
     def parse_return_stmt(self) -> stmt.Stmt:
         value = None        
@@ -225,10 +231,13 @@ class Parser:
             equals = self.previous()
             value = self.assignment()
             
-            if isinstance(left, expr.Variable):
-                return expr.Assign(left.name, value)
+            # if isinstance(left, expr.Variable):
+            #     return expr.Assign(left.name, value)
+            if isinstance(left, (expr.Variable, expr.MemberAccess)):
+                return expr.Assign(left, value)
             
-            raise ParseError("Invalid assignment target")
+            # raise ParseError("Invalid assignment target")
+            raise ParseError(self.previous(), "Invalid assignment target")
         
         return left
     
@@ -312,7 +321,8 @@ class Parser:
         while True:
             if self.match(TokenType.DOT):
                 name_token = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'")
-                expr_node = expr.MemberAccess(expr_node, name_token.lexeme)
+                # expr_node = expr.MemberAccess(expr_node, name_token.lexeme)
+                expr_node = expr.MemberAccess(expr_node, name_token)
             elif self.match(TokenType.LEFT_PAREN):
                 arguments: List[expr.Expr] = []
                 if not self.check(TokenType.RIGHT_PAREN):

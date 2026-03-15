@@ -1,81 +1,21 @@
-# Used by AST Printer
+a = 3
+obj.x = 3
 
-x = -123 * (45.67)
-y = x + 10
-if x > 5: y = 10 else: y = 0
-while x < 10: y = 0
-while x < 2:
-    if a = 1
-        break
-    a = 1
-    if a = 2
-        continue
-    b = 2
-if x > 0: y = 3
-break
-continue
-if y < 1:
-    a = 2
-    b = 2
-return x + 1
-a = 2 + 2
-return
-for i in x:
-    y = y + 1
-    z = z + 1
-
-# function
-def sum(a, b):
-    temp = a + b
-    return temp
-
-a = 1
-sum(2, 1)
-x = print(2)
-
-# Class
-class Cat:
-    name = "Lucy"
-    age = 5
-    
-    def speak():
-        print("Meow")
-
-# try except
-try:
-    x = 1 / 0
-    y = 2
-except:
-    x = 0
-
-try:
+def add():
     x = 1
-except:
-    x = 0
+
+x = 3 and 4
+y = True or False
+
+if x >= 10:
+    y = 5
+
+try:
+    a = 1
+except SomeError:
+    b = 1
+except OtherError:
+    x = 1
+    a = 2
 finally:
-    x = 2
-
-if x = 1:
-    print(3)
-
-if x = 1:
-    print(3)
-else:
-    print(2)
-
-if x = 1:
-    print(3)
-elif x = 2:
-    print(4)
-elif x = 3:
-    print(5)
-else:
-    print(2)
-
-def square(x):
-    pass
-
-x = 2
-john.name
-john.speak("hello")
-john.get_speak().loud()
+    a = 0

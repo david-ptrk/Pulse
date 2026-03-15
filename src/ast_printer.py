@@ -24,7 +24,19 @@ class AstPrinter(expressions.ExprVisitor):
         return f"({name} {' '.join(pieces)})"
     
     def visit_assign_expr(self, expr: expressions.Assign) -> str:
-        return self.parenthesize("=", expr.name.lexeme, expr.value)
+        return self.parenthesize(
+            "=",
+            self.stringify(expr.target),  # instead of expr.name.lexeme
+            expr.value
+        )
+    
+    def stringify(self, expr: expressions.Expr) -> str:
+        if isinstance(expr, expressions.Variable):
+            return expr.name.lexeme
+        if isinstance(expr, expressions.MemberAccess):
+            return f"{self.stringify(expr.object)}.{expr.name.lexeme}"
+        # fallback for other expr types
+        return str(expr)
     
     def visit_binary_expr(self, expr: expressions.Binary) -> str:
         return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)
@@ -41,8 +53,8 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_literal_expr(self, expr: expressions.Literal) -> str:
         return "nil" if expr.value is None else str(expr.value)
     
-    # def visit_logical_expr(self, expr: expressions.Logical) -> str:
-    #     return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)
+    def visit_logical_expr(self, expr: expressions.Logical) -> str:
+        return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)
     
     # def visit_this_expr(self, expr: expressions.This) -> str:
     #     return "this"
@@ -111,10 +123,13 @@ class AstPrinter(expressions.ExprVisitor):
         return text
     
     def visit_try_stmt(self, node: stmt.Try) -> str:
-        parts = [
-            f"(try {self.print(node.try_block)}",
-            f"(except {self.print(node.except_block)})"
-        ]
+        parts = [f"(try {self.print(node.try_block)}"]
+        
+        for exc_type, block in node.except_blocks:
+            if exc_type:
+                parts.append(f"(except {exc_type.lexeme} {self.print(block)})")
+            else:
+                parts.append(f"(except {self.print(block)})")
         
         if node.finally_block:
             parts.append(f"(finally {self.print(node.finally_block)})")
