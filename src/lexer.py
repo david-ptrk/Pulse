@@ -28,24 +28,7 @@ from src.tokens import (
     Token,
     KEYWORDS,
 )
-
-# -------------------------------------------------------
-# LexerError Class
-# -------------------------------------------------------
-class LexerError(Exception):
-    """
-    LexerError class helps in generating same format errors.
-    """
-    def __init__(self, message, line=None, lexeme=None):
-        self.message = message
-        self.line = line
-        self.lexeme = lexeme
-        super().__init__(self.__str__())
-    def __str__(self):
-        info = f"Line {self.line}" if self.line is not None else ""
-        lex = f', Lexeme: "{self.lexeme}"' if self.lexeme else ""
-        return f"LexerError: {self.message} {info}{lex}"
-
+from src.error import LexError, report_error
 
 # -------------------------------------------------------
 # Lexer Class
@@ -150,7 +133,12 @@ class Lexer:
             if self.match("="):
                 self.add_token(TokenType.BANG_EQUAL)
             else:
-                raise LexerError("Unexpected '!' without '='", line=self.line, lexeme="!")
+                raise LexError(
+                    message="Unexpected '!' without '='",
+                    line=self.line,
+                    column=self.column(),
+                    context=self.source.splitlines()[self.line-1]
+                )
             return
         elif c in "+-*/":
             if self.match("="):
@@ -188,7 +176,12 @@ class Lexer:
             return
 
         # Unexpected character
-        raise LexerError("Unexpected character", line=self.line, lexeme=c)
+        raise LexError(
+            message="Unexpected character", 
+            line=self.line, 
+            column=self.column(),
+            context=self.source.splitlines()[self.line-1]
+        )
     
     def handle_indentation(self):
         """
@@ -204,7 +197,12 @@ class Lexer:
             if ch == ' ':
                 spaces += 1
             elif ch == '\t':
-                raise LexerError("Tabs are not allowed for identation", line=self.line)
+                raise LexError(
+                    message="Tabs are not allowed for identation", 
+                    line=self.line,
+                    column=self.column(),
+                    context=self.source.splitlines()[self.line-1]
+                )
             else:
                 break
             pos += 1
@@ -221,7 +219,12 @@ class Lexer:
             self.add_token(TokenType.INDENT)
         elif spaces < last_indent:
             if spaces not in self.indent_stack:
-                raise LexerError("Invalid indentation level", line=self.line)
+                raise LexError(
+                    message="Invalid indentation level", 
+                    line=self.line,
+                    column=self.column(),
+                    context=self.source.splitlines()[self.line-1]
+                )
             while self.indent_stack and spaces < self.indent_stack[-1]:
                 self.indent_stack.pop()
                 self.start = self.current
@@ -238,7 +241,12 @@ class Lexer:
             self.advance()
 
         if self.is_at_end():
-            raise LexerError("Unterminated string", line=self.line, lexeme=self.source[self.start:self.current])
+            raise LexError(
+                message="Unterminated string",
+                line=self.line,
+                column=self.column(),
+                context=self.source.splitlines()[self.line-2]
+            )
         
         self.advance()
         value = self.source[self.start+1 : self.current-1]
@@ -280,13 +288,23 @@ class Lexer:
         depth = 0
 
         if self.peek() != '[':
-            raise LexerError("Expected '[' after '@'", line=self.line)
+            raise LexError(
+                message="Expected '[' after '@'", 
+                line=self.line,
+                column=self.column(),
+                context=self.source.splitlines()[self.line-1]
+            )
         
         while not self.is_at_end():
             ch = self.advance()
 
             if ch == '"':
-                raise LexerError("Strings are not allowed inside tensor literals", line=self.line)
+                raise LexError(
+                    message="Strings are not allowed inside tensor literals", 
+                    line=self.line,
+                    column=self.column(),
+                    context=self.source.splitlines()[self.line-1]
+                )
 
             if ch == "[":
                 depth += 1
@@ -296,7 +314,12 @@ class Lexer:
                     break
 
         if depth != 0:
-            raise LexerError("Unterminated tensor literal", line=self.line, lexeme=self.source[self.start:self.current])
+            raise LexError(
+                message="Unterminated tensor literal", 
+                line=self.line, 
+                column=self.column(),
+                context=self.source.splitlines()[self.line-1]
+            )
 
         # Capture entire tensor WITHOUT @
         value = self.source[self.start+1 : self.current]
@@ -328,7 +351,12 @@ class Lexer:
     def add_token(self, type, literal=None):
         """Creates a token and appends it to the token list."""
         if type is None:
-            raise LexerError("Invalid operator", line=self.line, lexeme=self.source[self.start:self.current])
+            raise LexError(
+                message="Invalid operator", 
+                line=self.line, 
+                column=self.column(),
+                context=self.source.splitlines()[self.line-1]
+            )
         lexeme = self.source[self.start:self.current]
         if type == TokenType.NEWLINE:
             lexeme = "\\n"
@@ -344,6 +372,11 @@ class Lexer:
             return False
         self.current += 1
         return True
+    
+    def column(self):
+        """Returns the column number of current character in the line."""
+        last_newline = self.source.rfind('\n', 0, self.current)
+        return self.current - last_newline - 1
 
 # -------------------------------------------------------
 # Command-line Interface

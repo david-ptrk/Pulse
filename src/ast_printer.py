@@ -25,6 +25,7 @@ import pathlib
 from src.lexer import Lexer
 from src.parser import Parser
 import src.statements as stmt
+from src.error import LexError, SyntaxError, RuntimeError, report_error
 
 class AstPrinter(expressions.ExprVisitor):
     def print(self, expr: expressions.Expr) -> str:
@@ -164,32 +165,22 @@ class AstPrinter(expressions.ExprVisitor):
 # Quick test
 # -------------------------------------------------
 if __name__ == "__main__":
-    # exp = expressions.Binary(
-    #     expressions.Unary(
-    #         Token(TokenType.MINUS, "-", "", 1),
-    #         expressions.Literal(123)
-    #     ),
-    #     Token(TokenType.STAR, "*", "", 1),
-    #     expressions.Grouping(expressions.Literal(45.67))
-    # )
+    import sys
     file_path = pathlib.Path(__file__).parent.parent / "tests/code.pul"
     with open(file_path) as f:
         source = f.read()
     
-    lexer = Lexer(source)
-    tokens = lexer.scan_tokens()
-    
-    parser = Parser(tokens)
-    stmts = parser.parse()
-    
-    printer = AstPrinter()
-    for s in stmts:
-        if s is not None:
-            print(printer.print(s))
-        # if isinstance(s, stmt.Expression):
-        #     print(printer.print(s.expression))
-        # elif isinstance(s, stmt.If):
-        #     print("if", printer.print(s.condition))
-        #     print("then:", printer.print(s.then_branch))
-        #     if s.else_branch:
-        #         print("else:", printer.print(s.else_branch))
+    try:
+        lexer = Lexer(source)
+        tokens = lexer.scan_tokens()
+        
+        parser = Parser(tokens)
+        stmts = parser.parse()
+        
+        printer = AstPrinter()
+        for s in stmts:
+            if s is not None:
+                print(printer.print(s))
+    except (LexError, SyntaxError, RuntimeError) as e:
+        report_error(e)
+        sys.exit(1)

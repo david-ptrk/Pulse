@@ -23,4 +23,4 @@
 - Tests are documented in `tests/parser_test.md`.
 - Pulse Parser v1.0 is now frozen; no structural changes will be made without prior documentation in this journal.
 
-## Step 3:
+## Step 3: Error Reporting (16 Mar - )
