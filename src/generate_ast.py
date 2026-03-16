@@ -1,7 +1,24 @@
 """
 generate_ast.py
 
-Generates AST classes for Pulse using the Visitor pattern.
+Provides the definitions and utilities required to construct the
+Abstract Syntax Tree (AST) for the Pulse programming language.
+
+An Abstract Syntax Tree represents the structural and hierarchical
+syntax of a program after it has been parsed. Instead of working with
+raw tokens, the parser organizes program elements into AST nodes that
+capture the logical relationships between expressions, statements,
+and program blocks.
+
+This module defines the different AST node types used throughout the
+Pulse language implementation, such as expressions, statements, and
+control-flow constructs. These node definitions allow the parser to
+build a structured representation of the program that can later be
+processed by the interpreter or compiler.
+
+The AST generated using these structures serves as the core internal
+representation of Pulse programs and is later traversed during
+interpretation or further compilation stages.
 """
 
 from argparse import ArgumentParser
@@ -30,7 +47,7 @@ EXPRESSIONS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
 )
 
 STATEMENTS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
-    "from typing import Any",
+    "from typing import Any, Optional",
     "from src.expressions import Expr",
     "from src.tokens import Token"
 )

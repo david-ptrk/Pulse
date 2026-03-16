@@ -1,3 +1,24 @@
+"""
+ast_printer.py
+
+Provides utilities for printing the Abstract Syntax Tree (AST) of Pulse programs
+in a human-readable format. This module is primarily used for debugging and
+verifying that the parser correctly converts tokens into structured AST nodes.
+
+The AST printer traverses expression and statement nodes, formatting them
+with indentation and hierarchy to reflect the syntactic structure of the program.
+It supports all AST node types defined in generate_ast.py, including expressions,
+statements, control-flow constructs, and function/class definitions.
+
+This module helps language developers:
+- Visualize the structure of parsed Pulse code.
+- Confirm that the parser and AST generator produce the intended tree.
+- Debug and inspect complex expressions, nested statements, and other language constructs.
+
+The output of this module is not used for execution; it is strictly a developer tool
+to aid in language development and testing.
+"""
+
 from src import expressions
 from src.tokens import Token, TokenType
 import pathlib

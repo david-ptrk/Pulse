@@ -1,5 +1,22 @@
 """
 tokens.py
+
+Defines the token system used by the Pulse programming language lexer.
+
+In the compilation pipeline, raw source code is first processed by the
+lexer (scanner), which converts the stream of characters into a sequence
+of tokens. A token represents the smallest meaningful unit of the language,
+such as identifiers, keywords, operators, literals, and punctuation.
+
+This module provides:
+- The TokenType enumeration containing all token categories used by Pulse.
+- The Token class, which stores information about a token instance
+    (type, lexeme, literal value, and source location).
+- Keyword mappings used by the lexer to distinguish identifiers from 
+    reserved language keywords.
+
+These tokens are later consumed by the parser to construct the Abstract
+Syntax Tree (AST), which represents the structural syntax of a Pulse program.
 """
 
 from enum import Enum, auto
@@ -8,7 +25,7 @@ from enum import Enum, auto
 # TokenType Enum
 # -------------------------------------------------------
 class TokenType(Enum):
-    # Single charcter tokens
+    # Single character tokens
     LEFT_PAREN = auto()
     RIGHT_PAREN = auto()
     LEFT_BRACKET = auto()
