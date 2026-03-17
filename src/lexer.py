@@ -77,7 +77,7 @@ class Lexer:
             self.add_token(TokenType.DEDENT)
         
         # Append EOF token
-        self.tokens.append(Token(TokenType.EOF, "", None, self.line))
+        self.tokens.append(Token(TokenType.EOF, "", None, self.line, self.column()))
         return self.tokens
 
     def scan_token(self):
@@ -362,7 +362,7 @@ class Lexer:
             lexeme = "\\n"
         if type == TokenType.DEDENT:
             lexeme = ""
-        self.tokens.append(Token(type, lexeme, literal, self.line))
+        self.tokens.append(Token(type, lexeme, literal, self.line, self.column()))
 
     def match(self, expected):
         """Matches the next character if it equals 'expected' and consumes it."""

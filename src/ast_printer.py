@@ -174,7 +174,7 @@ if __name__ == "__main__":
         lexer = Lexer(source)
         tokens = lexer.scan_tokens()
         
-        parser = Parser(tokens)
+        parser = Parser(tokens, source)
         stmts = parser.parse()
         
         printer = AstPrinter()

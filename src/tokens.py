@@ -133,11 +133,12 @@ class Token:
         literal (object): Parsed value of token
         line (int): Line number in source file
     """
-    def __init__(self, type: TokenType, lexeme: str, literal: object, line: int):
+    def __init__(self, type: TokenType, lexeme: str, literal: object, line: int, column):
         self.type = type
         self.lexeme = lexeme
         self.literal = literal
         self.line = line
+        self.column = column
     
     def __repr__(self):
-        return f"Token({self.type}, '{self.lexeme}', {self.literal}, line={self.line})"
+        return f"Token({self.type}, '{self.lexeme}', {self.literal}, line={self.line}, columns={self.column})"

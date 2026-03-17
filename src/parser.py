@@ -26,21 +26,29 @@ execute or further process the Pulse program.
 """
 
 from typing import List, Optional
-
 from src import expressions as expr
 from src import statements as stmt
 from src.tokens import Token, TokenType
+from src.error import SyntaxError
 
-class ParseError(RuntimeError):
-    def __init__(self, token: Token, message: str) -> None:
-        super().__init__(message)
-        self.token = token
-
+class ParseError(SyntaxError):
+    def __init__(self, token: Token, message: str, source: str):
+        line = token.line
+        # column = getattr(token, "column", None)
+        
+        context = None
+        if line is not None:
+            lines = source.splitlines()
+            if 0 < line <= len(lines):
+                context = lines[line - 1]
+        
+        super().__init__(message, line=line, context=context)
 
 class Parser:
-    def __init__(self, tokens: List[Token]) -> None:
+    def __init__(self, tokens: List[Token], source: str) -> None:
         self.tokens = tokens
         self.current = 0
+        self.source = source
     
     # Core helper functions
     def peek(self) -> Token:
@@ -69,10 +77,10 @@ class Parser:
                 return True
         return False
     
-    def consume(self, typ: TokenType, message: str) -> Token:
-        if self.check(typ):
+    def consume(self, type: TokenType, message: str) -> Token:
+        if self.check(type):
             return self.advance()
-        raise ParseError(self.peek(), message)
+        raise ParseError(self.peek(), message, self.source)
     
     # Entry
     def parse(self) -> List[stmt.Stmt]:
@@ -135,20 +143,20 @@ class Parser:
     
     def parse_if_stmt(self) -> stmt.Stmt:
         condition = self.expression()
-        self.match(TokenType.COLON)
+        self.consume(TokenType.COLON, "Expect ':' after condition")
         
         then_branch = self.statement()
         
         elif_branches = []
         while self.match(TokenType.ELIF):
             elif_condition = self.expression()
-            self.match(TokenType.COLON)
+            self.consume(TokenType.COLON, "Expect ':' after condition")
             elif_stmt = self.statement()
             elif_branches.append((elif_condition, elif_stmt))
         
         else_branch = None
         if self.match(TokenType.ELSE):
-            self.match(TokenType.COLON)
+            self.consume(TokenType.COLON, "Expect ':' after else")
             else_branch = self.statement()
         
         return stmt.If(condition, then_branch, elif_branches, else_branch)
@@ -258,13 +266,10 @@ class Parser:
             equals = self.previous()
             value = self.assignment()
             
-            # if isinstance(left, expr.Variable):
-            #     return expr.Assign(left.name, value)
             if isinstance(left, (expr.Variable, expr.MemberAccess)):
                 return expr.Assign(left, value)
             
-            # raise ParseError("Invalid assignment target")
-            raise ParseError(self.previous(), "Invalid assignment target")
+            raise ParseError(self.previous(), "Invalid assignment target", self.source)
         
         return left
     
@@ -342,7 +347,7 @@ class Parser:
             expr_node = self.expression()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression")
         else:
-            raise ParseError(self.peek(), "Expect expression")
+            raise ParseError(self.peek(), "Expect expression", self.source)
         
         # Postfix loop for member access and method calls
         while True:
