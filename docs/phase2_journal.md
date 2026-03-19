@@ -23,4 +23,11 @@
 - Tests are documented in `tests/parser_test.md`.
 - Pulse Parser v1.0 is now frozen; no structural changes will be made without prior documentation in this journal.
 
-## Step 3: Error Reporting & Environment (16 Mar - )
+## Step 3: Error Reporting & Environment (16-19 Mar 2026)
+
+- Implemented unified runtime error handling system.
+- Added Environment class with lexical scoping support.
+- Enabled variable definition, lookup, and assignment across nested scopes.
+- Integrated environment structure to support future interpreter execution.
+
+## Step 4: Interpreter (19 Mar)

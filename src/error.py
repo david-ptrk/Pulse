@@ -43,13 +43,13 @@ class PulseError(Exception):
             ctx = f"\n{self.context}"
         return f"{self.RED}[PulseError]{self.RESET} {loc} - {self.message}{ctx}"
 
-class LexError(PulseError):
+class PulseLexError(PulseError):
     pass
 
-class SyntaxError(PulseError):
+class PulseSyntaxError(PulseError):
     pass
 
-class RuntimeError(PulseError):
+class PulseRuntimeError(PulseError):
     _current_stack = []
     
     @classmethod
@@ -77,6 +77,10 @@ class RuntimeError(PulseError):
             )
             return f"{base}\nStack trace:\n{stack_trace}"
         return base
+
+class ReturnException(Exception):
+        def __init__(self, value):
+            self.value = value
 
 # Utility function to report errors
 def report_error(error):

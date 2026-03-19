@@ -26,7 +26,7 @@ The environment system will be used by the interpreter to manage state
 during execution of a Pulse program.
 """
 
-from src.error import RuntimeError
+from src.error import PulseRuntimeError
 
 class Environment:
     def __init__(self, enclosing=None):
@@ -43,7 +43,7 @@ class Environment:
         if self.enclosing:
             return self.enclosing.get(name)
         
-        raise RuntimeError(f"Undefined variable '{name}'")
+        raise PulseRuntimeError(f"Undefined variable '{name}'")
     
     def assign(self, name, value):
         if name in self.values:
@@ -54,4 +54,4 @@ class Environment:
             self.enclosing.assign(name, value)
             return
         
-        raise RuntimeError(f"Undefined variable '{name}'")
+        raise PulseRuntimeError(f"Undefined variable '{name}'")
