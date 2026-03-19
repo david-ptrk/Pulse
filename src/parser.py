@@ -267,7 +267,7 @@ class Parser:
             value = self.assignment()
             
             if isinstance(left, (expr.Variable, expr.MemberAccess)):
-                return expr.Assign(left, value)
+                return expr.Assign(left.name, value)
             
             raise ParseError(self.previous(), "Invalid assignment target", self.source)
         

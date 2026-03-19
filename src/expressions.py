@@ -47,8 +47,8 @@ class Expr(ABC):
         pass
 
 class Assign(Expr):
-    def __init__(self, target: Expr, value: Expr) -> None:
-        self.target = target
+    def __init__(self, name: Token, value: Expr) -> None:
+        self.name = name
         self.value = value
 
     def accept(self, visitor: ExprVisitor) -> Any:

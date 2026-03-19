@@ -48,7 +48,7 @@ class AstPrinter(expressions.ExprVisitor):
     def visit_assign_expr(self, expr: expressions.Assign) -> str:
         return self.parenthesize(
             "=",
-            self.stringify(expr.target),  # instead of expr.name.lexeme
+            self.stringify(expr.name.lexeme),  # instead of expr.name.lexeme
             expr.value
         )
     
