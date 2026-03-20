@@ -28,7 +28,7 @@ from src.tokens import (
     Token,
     KEYWORDS,
 )
-from src.error import LexError, report_error
+from src.error import report_error, PulseLexError
 
 # -------------------------------------------------------
 # Lexer Class
@@ -133,7 +133,7 @@ class Lexer:
             if self.match("="):
                 self.add_token(TokenType.BANG_EQUAL)
             else:
-                raise LexError(
+                raise PulseLexError(
                     message="Unexpected '!' without '='",
                     line=self.line,
                     column=self.column(),
@@ -176,7 +176,7 @@ class Lexer:
             return
 
         # Unexpected character
-        raise LexError(
+        raise PulseLexError(
             message="Unexpected character", 
             line=self.line, 
             column=self.column(),
@@ -197,7 +197,7 @@ class Lexer:
             if ch == ' ':
                 spaces += 1
             elif ch == '\t':
-                raise LexError(
+                raise PulseLexError(
                     message="Tabs are not allowed for identation", 
                     line=self.line,
                     column=self.column(),
@@ -219,7 +219,7 @@ class Lexer:
             self.add_token(TokenType.INDENT)
         elif spaces < last_indent:
             if spaces not in self.indent_stack:
-                raise LexError(
+                raise PulseLexError(
                     message="Invalid indentation level", 
                     line=self.line,
                     column=self.column(),
@@ -241,7 +241,7 @@ class Lexer:
             self.advance()
 
         if self.is_at_end():
-            raise LexError(
+            raise PulseLexError(
                 message="Unterminated string",
                 line=self.line,
                 column=self.column(),
@@ -288,7 +288,7 @@ class Lexer:
         depth = 0
 
         if self.peek() != '[':
-            raise LexError(
+            raise PulseLexError(
                 message="Expected '[' after '@'", 
                 line=self.line,
                 column=self.column(),
@@ -299,7 +299,7 @@ class Lexer:
             ch = self.advance()
 
             if ch == '"':
-                raise LexError(
+                raise PulseLexError(
                     message="Strings are not allowed inside tensor literals", 
                     line=self.line,
                     column=self.column(),
@@ -314,7 +314,7 @@ class Lexer:
                     break
 
         if depth != 0:
-            raise LexError(
+            raise PulseLexError(
                 message="Unterminated tensor literal", 
                 line=self.line, 
                 column=self.column(),
@@ -351,7 +351,7 @@ class Lexer:
     def add_token(self, type, literal=None):
         """Creates a token and appends it to the token list."""
         if type is None:
-            raise LexError(
+            raise PulseLexError(
                 message="Invalid operator", 
                 line=self.line, 
                 column=self.column(),

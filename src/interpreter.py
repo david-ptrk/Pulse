@@ -220,3 +220,27 @@ class Interpreter(ExprVisitor, StmtVisitor):
             raise PulseRuntimeError("Attempted to call a non-function")
         
         return callee.call(self, arguments)
+    
+    def visit_break_stmt(self, stmt):
+        raise PulseRuntimeError("break not implemented yet")
+    
+    def visit_continue_stmt(self, stmt):
+        raise PulseRuntimeError("continue not implemented yet")
+    
+    def visit_for_stmt(self, stmt):
+        raise PulseRuntimeError("for loop not implemented yet")
+    
+    def visit_function_stmt(self, stmt):
+        raise PulseRuntimeError("function not implemented yet")
+    
+    def visit_class_stmt(self, stmt):
+        raise PulseRuntimeError("class not implemented yet")
+    
+    def visit_memberaccess_expr(self, expr):
+        raise PulseRuntimeError("member access not implemented yet")
+    
+    def visit_pass_stmt(self, stmt):
+        return None
+    
+    def visit_try_stmt(self, stmt):
+        raise PulseRuntimeError("try/catch not implemented yet")

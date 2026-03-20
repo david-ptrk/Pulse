@@ -29,9 +29,9 @@ from typing import List, Optional
 from src import expressions as expr
 from src import statements as stmt
 from src.tokens import Token, TokenType
-from src.error import SyntaxError
+from src.error import PulseSyntaxError
 
-class ParseError(SyntaxError):
+class ParseError(PulseSyntaxError):
     def __init__(self, token: Token, message: str, source: str):
         line = token.line
         # column = getattr(token, "column", None)

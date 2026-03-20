@@ -67,7 +67,7 @@ class PulseRuntimeError(PulseError):
     
     def __init__(self, message, line=None, column=None, context=None):
         super().__init__(message, line, column, context)
-        self.stack = list(RuntimeError._current_stack)
+        self.stack = list(PulseRuntimeError._current_stack)
     
     def __str__(self):
         base = super().__str__()

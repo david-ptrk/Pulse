@@ -1,16 +1,21 @@
+"""
+pulse.py
+"""
+
 import sys
 
 from src.lexer import Lexer
 from src.parser import Parser
 from src.interpreter import Interpreter
-from src.resolver import Resolver
+# from src.resolver import Resolver
 from src.lexer import TokenType
+from src.environment import Environment
 
 # Global error flags
 had_error = False
 had_runtime_error = False
 
-interpreter = Interpreter()
+interpreter = Interpreter(Environment())
 
 def run_file(path):
     global had_error, had_runtime_error
@@ -45,15 +50,15 @@ def run(source):
     tokens = lexer.scan_tokens()
 
     # 2. Parse
-    parser = Parser(tokens)
+    parser = Parser(tokens, source)
     statements = parser.parse()
 
     if had_error:
         return
     
     # 3. Resolve (static analysis)
-    resolver = Resolver(interpreter)
-    resolver.resolve(statements)
+    # resolver = Resolver(interpreter)
+    # resolver.resolve(statements)
 
     if had_error:
         return

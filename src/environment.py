@@ -54,4 +54,5 @@ class Environment:
             self.enclosing.assign(name, value)
             return
         
-        raise PulseRuntimeError(f"Undefined variable '{name}'")
+        self.define(name, value)
+        return
