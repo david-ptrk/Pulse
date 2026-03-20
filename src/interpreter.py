@@ -43,6 +43,7 @@ from src.statements import StmtVisitor
 from src.environment import Environment
 from src.error import ReturnException, PulseRuntimeError
 from src.function import PulseFunction, PulseNativeFunction
+from src.tokens import Token
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment):
@@ -53,28 +54,26 @@ class Interpreter(ExprVisitor, StmtVisitor):
             "print", PulseNativeFunction("print", self.native_print)
         )
     
-    def interpret(self, statements):
+    def interpret(self, statements, source):
         """
         Entry point to execute a full AST program.
         'program' is a list of statements or a root node.
         """
+        self.source = source
+
         result = None
-        try:
-            for stmt in statements:
-                result = self.execute(stmt)
-            return result
-        except ReturnException:
-            raise
-        except PulseRuntimeError:
-            raise
-        except Exception as e:
-            raise PulseRuntimeError(str(e))
+        for stmt in statements:
+            result = self.execute(stmt)
+        return result
     
     def execute(self, stmt):
         return stmt.accept(self)
     
     def evaluate(self, expr):
         return expr.accept(self)
+    
+    def runtime_error(self, token: Token, message: str):
+        raise PulseRuntimeError(message, token=token, context_source=self.source)
     
     def visit_expression_stmt(self, stmt):
         self.evaluate(stmt.expression)
@@ -121,7 +120,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif operator == '-':
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return left - right
-            raise PulseRuntimeError("Operands must be two numbers")
+            self.runtime_error(expr.operator, "Operands must be two numbers")
         elif operator == '*':
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return left * right

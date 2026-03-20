@@ -25,7 +25,7 @@ import pathlib
 from src.lexer import Lexer
 from src.parser import Parser
 import src.statements as stmt
-from src.error import LexError, SyntaxError, RuntimeError, report_error
+from src.error import PulseLexError, PulseSyntaxError, PulseRuntimeError, report_error
 
 class AstPrinter(expressions.ExprVisitor):
     def print(self, expr: expressions.Expr) -> str:
@@ -181,6 +181,6 @@ if __name__ == "__main__":
         for s in stmts:
             if s is not None:
                 print(printer.print(s))
-    except (LexError, SyntaxError, RuntimeError) as e:
+    except (PulseLexError, PulseSyntaxError, PulseRuntimeError) as e:
         report_error(e)
         sys.exit(1)

@@ -10,6 +10,7 @@ from src.interpreter import Interpreter
 # from src.resolver import Resolver
 from src.lexer import TokenType
 from src.environment import Environment
+from src.error import PulseRuntimeError, report_error
 
 # Global error flags
 had_error = False
@@ -45,26 +46,29 @@ def run_prompt():
 def run(source):
     global had_error, had_runtime_error, interpreter
 
-    # 1. Lex
-    lexer = Lexer(source)
-    tokens = lexer.scan_tokens()
+    try:
+        # 1. Lex
+        lexer = Lexer(source)
+        tokens = lexer.scan_tokens()
 
-    # 2. Parse
-    parser = Parser(tokens, source)
-    statements = parser.parse()
+        # 2. Parse
+        parser = Parser(tokens, source)
+        statements = parser.parse()
 
-    if had_error:
-        return
-    
-    # 3. Resolve (static analysis)
-    # resolver = Resolver(interpreter)
-    # resolver.resolve(statements)
+        if had_error:
+            return
+        
+        # 3. Resolve (static analysis)
+        # resolver = Resolver(interpreter)
+        # resolver.resolve(statements)
 
-    if had_error:
-        return
-    
-    # 4. Interpret
-    interpreter.interpret(statements)
+        if had_error:
+            return
+        
+        # 4. Interpret
+        interpreter.interpret(statements, source)
+    except PulseRuntimeError as e:
+        report_error(e)
 
 # Error handling
 def error(line, message):

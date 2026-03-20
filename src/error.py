@@ -65,8 +65,17 @@ class PulseRuntimeError(PulseError):
     def clear_stack(cls):
         cls._current_stack.clear()
     
-    def __init__(self, message, line=None, column=None, context=None):
-        super().__init__(message, line, column, context)
+    def __init__(self, message, token=None, context_source=None):
+        line = getattr(token, "line", None) if token else None
+        column = getattr(token, "column", None) if token else None
+        
+        context = None
+        if context_source and line is not None:
+            lines = context_source.splitlines()
+            if 0 < line <= len(lines):
+                context = lines[line - 1]
+        
+        super().__init__(message, line=line, column=column, context=context)
         self.stack = list(PulseRuntimeError._current_stack)
     
     def __str__(self):
