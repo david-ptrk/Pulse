@@ -34,7 +34,13 @@ class Environment:
         self.enclosing = enclosing
     
     def define(self, name, value):
+        if name in self.values:
+            raise RuntimeError(f"Variable '{name}' already defined.")
         self.values[name] = value
+    
+    def define_many(self, funcs):
+        for name, value in funcs:
+            self.define(name, value)
     
     def get(self, name):
         if name in self.values:

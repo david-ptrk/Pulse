@@ -44,15 +44,27 @@ from src.environment import Environment
 from src.error import ReturnException, PulseRuntimeError
 from src.function import PulseFunction, PulseNativeFunction
 from src.tokens import Token
+import math
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment):
         self.environment = global_environment
         
-        # Native functions
-        self.environment.define(
-            "print", PulseNativeFunction("print", self.native_print)
-        )
+        # Native Functions
+        self.environment.define_many([
+            ("print", PulseNativeFunction("print", self.native_print)),
+            ("input", PulseNativeFunction("input", self.native_input)),
+            ("str", PulseNativeFunction("str", self.native_str)),
+            ("int", PulseNativeFunction("int", self.native_int)),
+            ("float", PulseNativeFunction("float", self.native_float)),
+            ("type", PulseNativeFunction("type", self.native_type)),
+            ("abs", PulseNativeFunction("abs", self.native_abs)),
+            ("pow", PulseNativeFunction("pow", self.native_pow)),
+            ("sqrt", PulseNativeFunction("sqrt", self.native_sqrt)),
+            ("min", PulseNativeFunction("min", self.native_min)),
+            ("max", PulseNativeFunction("max", self.native_max)),
+            ("len", PulseNativeFunction("len", self.native_len)),
+        ])
     
     def interpret(self, statements, source):
         """
@@ -74,6 +86,62 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def runtime_error(self, token: Token, message: str):
         raise PulseRuntimeError(message, token=token, context_source=self.source)
+    
+    # Native Functions
+    def native_print(self, *args):
+        output = " ".join(str(arg) for arg in args)
+        print(output)
+        return None
+    
+    def native_input(self, prompt=""):
+        return input(prompt)
+    
+    def native_str(self, x):
+        return str(x)
+    
+    def native_int(self, x):
+        try:
+            return int(x)
+        except:
+            raise PulseRuntimeError("Invalid conversion to int")
+    
+    def native_float(self, x):
+        try:
+            return float(x)
+        except:
+            raise PulseRuntimeError("Invalid conversion to float")
+    
+    def native_type(self, obj):
+        if isinstance(obj, int):
+            return "int"
+        if isinstance(obj, float):
+            return "float"
+        if isinstance(obj, str):
+            return "string"
+        if obj is None:
+            return "null"
+        return "object"
+    
+    def native_abs(self, x):
+        return abs(x)
+    
+    def native_pow(self, base, exp):
+        return pow(base, exp)
+    
+    def native_sqrt(self, x):
+        try:
+            return math.sqrt(x)
+        except:
+            raise PulseRuntimeError("Cannot take square root of negative values")
+    
+    def native_min(self, *args):
+        return min(args)
+    
+    def native_max(self, *args):
+        return max(args)
+    
+    def native_len(self, x):
+        return len(x)
     
     def visit_expression_stmt(self, stmt):
         self.evaluate(stmt.expression)
@@ -205,11 +273,6 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if isinstance(value, bool):
             return value
         return True
-    
-    def native_print(self, *args):
-        output = " ".join(str(arg) for arg in args)
-        print(output)
-        return None
     
     def visit_call_expr(self, expr):
         callee = self.evaluate(expr.callee)
