@@ -62,3 +62,15 @@ class Environment:
         
         self.define(name, value)
         return
+    
+    def ancestor(self, distance):
+        env = self
+        for _ in range(distance):
+            env = env.enclosing
+        return env
+    
+    def get_at(self, distance, name):
+        return self.ancestor(distance).values[name]
+    
+    def assign_at(self, distance, name, value):
+        self.ancestor(distance).values[name] = value

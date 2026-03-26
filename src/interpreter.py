@@ -49,6 +49,7 @@ import math
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment):
         self.environment = global_environment
+        self.locals = {}
         
         # Native Functions
         self.environment.define_many([
@@ -83,6 +84,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def evaluate(self, expr):
         return expr.accept(self)
+    
+    def resolve(self, expr, depth):
+        self.locals[expr] = depth
     
     def runtime_error(self, token: Token, message: str):
         raise PulseRuntimeError(message, token=token, context_source=self.source)
@@ -143,6 +147,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def native_len(self, x):
         return len(x)
     
+    # Visit Functions
     def visit_expression_stmt(self, stmt):
         self.evaluate(stmt.expression)
         return None
@@ -151,11 +156,20 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return expr.value
     
     def visit_variable_expr(self, expr):
-        return self.environment.get(expr.name.lexeme)
+        distance = self.locals.get(expr)
+        if distance is not None:
+            return self.environment.get_at(distance, expr.name.lexeme)
+        else:
+            return self.environment.get(expr.name.lexeme)
     
     def visit_assign_expr(self, expr):
         value = self.evaluate(expr.value)
-        self.environment.assign(expr.name.lexeme, value)
+        distance = self.locals.get(expr)
+        if distance is not None:
+            self.environment.assign_at(distance, expr.name.lexeme, value)
+        else:
+            self.environment.assign(expr.name.lexeme, value)
+        
         return value
     
     def visit_grouping_expr(self, expr):

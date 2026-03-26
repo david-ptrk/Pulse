@@ -1,7 +1,7 @@
-name = "daud"
-if 1 == 1:
-    name = "ahmad"
-    print("hello")
-    print(name)
-print("bye")
-print(name)
+x = 10
+
+def foo():
+    x = 20
+    print(x)
+
+print(x)

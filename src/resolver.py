@@ -115,3 +115,34 @@ class Resolver(ExprVisitor, StmtVisitor):
             if expr.name.lexeme in scope and scope[expr.name.lexeme] is False:
                 raise Exception(f"Cannot read local variable '{expr.name.lexeme}' before assignment")
         self.resolve_local(expr, expr.name)
+    
+    def visit_assign_expr(self, expr):
+        self.resolve_expr(expr.value)
+        self.resolve_local(expr, expr.name)
+    
+    def visit_call_expr(self, expr):
+        self.resolve_expr(expr.callee)
+        for arg in expr.arguments:
+            self.resolve_expr(arg)
+    
+    # Not yet implemented
+    def visit_function_stmt(self, stmt):
+        pass
+    
+    def visit_class_stmt(self, stmt):
+        pass
+    
+    def visit_memberaccess_expr(self, expr):
+        pass
+    
+    def visit_for_stmt(self, stmt):
+        pass
+    
+    def visit_try_stmt(self, stmt):
+        pass
+    
+    def visit_continue_stmt(self, stmt):
+        pass
+    
+    def visit_break_stmt(self, stmt):
+        pass

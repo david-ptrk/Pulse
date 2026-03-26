@@ -1,14 +1,15 @@
 """
 pulse.py
+
+Entry point for the Pulse programming language.
 """
 
 import sys
-
+from src.tokens import TokenType
 from src.lexer import Lexer
 from src.parser import Parser
 from src.interpreter import Interpreter
-# from src.resolver import Resolver
-from src.lexer import TokenType
+from src.resolver import Resolver
 from src.environment import Environment
 from src.error import PulseRuntimeError, report_error
 
@@ -16,16 +17,12 @@ from src.error import PulseRuntimeError, report_error
 had_error = False
 had_runtime_error = False
 
-interpreter = Interpreter(Environment())
-
+# Run file / REPL
 def run_file(path):
-    global had_error, had_runtime_error
-
     with open(path, 'r', encoding='utf-8') as f:
         source = f.read()
-    
     run(source)
-
+    
     if had_error:
         sys.exit(65)
     if had_runtime_error:
@@ -33,39 +30,50 @@ def run_file(path):
 
 def run_prompt():
     global had_error
-
     while True:
         try:
             line = input("pulse> ")
         except EOFError:
             break
-
+        
         run(line)
         had_error = False
 
+# Core pipeline
 def run(source):
-    global had_error, had_runtime_error, interpreter
-
+    global had_error, had_runtime_error
+    
+    had_error = False
+    had_runtime_error = False
+    
+    interpreter = Interpreter(Environment())
+    
     try:
-        # 1. Lex
+        # 1. Lexing
         lexer = Lexer(source)
         tokens = lexer.scan_tokens()
-
-        # 2. Parse
+        
+        if had_error: return
+        
+        # 2. Parsing
         parser = Parser(tokens, source)
         statements = parser.parse()
-
-        if had_error:
+        
+        if had_error: return
+        
+        # 3. Resolving (static analysis)
+        resolver = Resolver(interpreter)
+        
+        try:
+            resolver.resolve(statements)
+        except Exception as e:
+            report_error(e)
+            had_error = True
             return
         
-        # 3. Resolve (static analysis)
-        # resolver = Resolver(interpreter)
-        # resolver.resolve(statements)
-
-        if had_error:
-            return
+        if had_error: return
         
-        # 4. Interpret
+        # 4. Interpretation
         interpreter.interpret(statements, source)
     except PulseRuntimeError as e:
         report_error(e)
