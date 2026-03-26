@@ -1,2 +1,7 @@
-res = input("Enter a number: ")
-print(res)
+name = "daud"
+if 1 == 1:
+    name = "ahmad"
+    print("hello")
+    print(name)
+print("bye")
+print(name)
