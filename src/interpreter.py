@@ -307,7 +307,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         raise PulseRuntimeError("for loop not implemented yet")
     
     def visit_function_stmt(self, stmt):
-        raise PulseRuntimeError("function not implemented yet")
+        func = PulseFunction(stmt, self.environment)
+        self.environment.define(stmt.name.lexeme, func)
+        return None
     
     def visit_class_stmt(self, stmt):
         raise PulseRuntimeError("class not implemented yet")

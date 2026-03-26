@@ -28,7 +28,7 @@ class PulseFunction:
         interpreter.environment = environment
         
         try:
-            for stmt in self.declaration.body:
+            for stmt in self.declaration.body.statements:
                 interpreter.execute(stmt)
         except ReturnException as e:
             return e.value
