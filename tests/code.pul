@@ -1,7 +1,7 @@
-a = 7
-
 def add(x, y):
     return x + y
 
-print(add(2, 3))
-print(a)
+a = 4
+b = 3
+result = add(a, b)
+print(result)

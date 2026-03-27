@@ -19,6 +19,8 @@ class Resolver(ExprVisitor, StmtVisitor):
     def __init__(self, interpreter):
         self.interpreter = interpreter
         self.scopes = []
+        self.current_class = None
+        self.current_function = None
     
     # Entry Point
     def resolve(self, statements):
@@ -42,7 +44,7 @@ class Resolver(ExprVisitor, StmtVisitor):
         if not self.scopes:
             return
         scope = self.scopes[-1]
-        if name in scope:
+        if name.lexeme in scope:
             raise Exception(f"Variable '{name.lexeme}' already declared in this scope")
         scope[name.lexeme] = False
     
@@ -59,6 +61,16 @@ class Resolver(ExprVisitor, StmtVisitor):
                 self.interpreter.resolve(expr, distance)
                 return
         # Not Found -> Global
+    
+    def resolve_function(self, func):
+        self.begin_scope()
+        
+        for param in func.params:
+            self.declare(param)
+            self.define(param)
+        
+        self.resolve(func.body.statements)
+        self.end_scope()
     
     # Statements
     def visit_block_stmt(self, stmt):
@@ -85,6 +97,9 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_stmt(stmt.body)
     
     def visit_return_stmt(self, stmt):
+        if self.current_function is None:
+            raise Exception("Cannot return from top-level code")
+        
         if stmt.value:
             self.resolve_expr(stmt.value)
     
@@ -118,6 +133,13 @@ class Resolver(ExprVisitor, StmtVisitor):
     
     def visit_assign_expr(self, expr):
         self.resolve_expr(expr.value)
+        
+        if self.scopes:
+            scope = self.scopes[-1]
+            # If variable doesn't exist in current scope, declare it
+            if expr.name.lexeme not in scope:
+                scope[expr.name.lexeme] = True
+        
         self.resolve_local(expr, expr.name)
     
     def visit_call_expr(self, expr):
@@ -125,12 +147,30 @@ class Resolver(ExprVisitor, StmtVisitor):
         for arg in expr.arguments:
             self.resolve_expr(arg)
     
-    # Not yet implemented
     def visit_function_stmt(self, stmt):
-        pass
+        self.declare(stmt.name)
+        self.define(stmt.name)
+        
+        enclosing_function = self.current_function
+        self.current_function = "METHOD" if self.current_class else "FUNCTION"
+        
+        self.resolve_function(stmt)
+        self.current_function = enclosing_function
     
     def visit_class_stmt(self, stmt):
-        pass
+        # No inheritance yet
+        self.declare(stmt.name)
+        self.define(stmt.name)
+        
+        enclosing_class = self.current_class
+        self.current_class = "CLASS"
+        
+        self.begin_scope()
+        for statement in stmt.body:
+            self.resolve_stmt(statement)
+        
+        self.end_scope()
+        self.current_class = enclosing_class
     
     def visit_memberaccess_expr(self, expr):
         pass
