@@ -14,6 +14,7 @@ It also detects errors such as:
 
 from src.expressions import ExprVisitor
 from src.statements import StmtVisitor
+from src.error import PulseSemanticError
 
 class Resolver(ExprVisitor, StmtVisitor):
     def __init__(self, interpreter):
@@ -222,4 +223,4 @@ class Resolver(ExprVisitor, StmtVisitor):
     
     def visit_break_stmt(self, stmt):
         if self.loop_depth == 0:
-            raise Exception("Cannot use 'break' outside loop")
+            raise PulseSemanticError("Cannot use 'break' outside loop")
