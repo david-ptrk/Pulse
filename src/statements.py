@@ -101,15 +101,15 @@ class For(Stmt):
         return visitor.visit_for_stmt(self)
 
 class Break(Stmt):
-    def __init__(self, ) -> None:
-        pass
+    def __init__(self, keyword: Token) -> None:
+        self.keyword = keyword
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_break_stmt(self)
 
 class Continue(Stmt):
-    def __init__(self, ) -> None:
-        pass
+    def __init__(self, keyword: Token) -> None:
+        self.keyword = keyword
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_continue_stmt(self)

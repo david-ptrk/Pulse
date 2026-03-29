@@ -47,7 +47,11 @@ class Resolver(ExprVisitor, StmtVisitor):
             return
         scope = self.scopes[-1]
         if name.lexeme in scope:
-            raise Exception(f"Variable '{name.lexeme}' already declared in this scope")
+            raise PulseSemanticError(
+                f"Variable '{name.lexeme}' already declared in this scope",
+                line=getattr(name, "line", None),
+                column=getattr(name, "column", None)
+            )
         scope[name.lexeme] = False
     
     def define(self, name):
@@ -65,14 +69,16 @@ class Resolver(ExprVisitor, StmtVisitor):
         # Not Found -> Global
     
     def resolve_function(self, func, func_type):
+        enclosing_function = self.current_function
+        self.current_function = func_type
         self.begin_scope()
         
         for param in func.params:
-            self.declare(param)
-            self.define(param)
+            self.scopes[-1][param.lexeme] = True
         
         self.resolve(func.body.statements)
         self.end_scope()
+        self.current_function = enclosing_function
     
     # Statements
     def visit_block_stmt(self, stmt):
@@ -102,7 +108,9 @@ class Resolver(ExprVisitor, StmtVisitor):
     
     def visit_return_stmt(self, stmt):
         if self.current_function is None:
-            raise Exception("Cannot return from top-level code")
+            raise PulseSemanticError(
+                "Cannot return from top-level code",
+            )
         
         if stmt.value:
             self.resolve_expr(stmt.value)
@@ -129,30 +137,32 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_expr(expr.right)
     
     def visit_variable_expr(self, expr):
-        if self.scopes:
-            scope = self.scopes[-1]
-            if expr.name.lexeme in scope and scope[expr.name.lexeme] is False:
-                raise Exception(f"Cannot read local variable '{expr.name.lexeme}' before assignment")
+        for i in range(len(self.scopes) - 1, -1, -1):
+            scope = self.scopes[i]
+            if expr.name.lexeme in scope:
+                if scope[expr.name.lexeme] is False:
+                    raise PulseSemanticError(
+                        f"Cannot read local variable '{expr.name.lexeme}' before assignment",
+                        token=expr.name
+                    )
+                break
+        else:
+            pass
+        
         self.resolve_local(expr, expr.name)
     
     def visit_assign_expr(self, expr):
-        if self.scopes:
-            self.ensure_declared(expr.name)
-        
         self.resolve_expr(expr.value)
         
         if self.scopes:
-            self.mark_initialized(expr.name)
+            scope = self.scopes[-1]
+            
+            if expr.name.lexeme not in scope:
+                scope[expr.name.lexeme] = True
+            else:
+                scope[expr.name.lexeme] = True
         
         self.resolve_local(expr, expr.name)
-    
-    def ensure_declared(self, name):
-        scope = self.scopes[-1]
-        if name.lexeme not in scope:
-            scope[name.lexeme] = False
-    
-    def mark_initialized(self, name):
-        self.scopes[-1][name.lexeme] = True
     
     def visit_call_expr(self, expr):
         self.resolve_expr(expr.callee)
@@ -192,10 +202,7 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_expr(stmt.iterable)
         self.begin_scope()
         
-        # self.scopes[-1][stmt.var.lexeme] = True
-        self.declare(stmt.var)
-        self.define(stmt.var)
-        
+        self.scopes[-1][stmt.var.lexeme] = True
         self.loop_depth += 1
         self.resolve_stmt(stmt.body)
         self.loop_depth -= 1
@@ -219,8 +226,14 @@ class Resolver(ExprVisitor, StmtVisitor):
     
     def visit_continue_stmt(self, stmt):
         if self.loop_depth == 0:
-            raise Exception("Cannot use 'continue' outside loop")
+            raise PulseSemanticError(
+                "Cannot use 'continue' outside loop",
+                token=stmt.keyword
+            )
     
     def visit_break_stmt(self, stmt):
         if self.loop_depth == 0:
-            raise PulseSemanticError("Cannot use 'break' outside loop")
+            raise PulseSemanticError(
+                "Cannot use 'break' outside loop",
+                token=stmt.keyword
+            )

@@ -111,9 +111,9 @@ class Parser:
             return self.parse_try_stmt()
         
         if self.match(TokenType.BREAK):
-            return stmt.Break()
+            return stmt.Break(self.previous())
         if self.match(TokenType.CONTINUE):
-            return stmt.Continue()
+            return stmt.Continue(self.previous())
         if self.match(TokenType.RETURN):
             return self.parse_return_stmt()
         if self.match(TokenType.PASS):
