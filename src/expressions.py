@@ -93,7 +93,7 @@ class Grouping(Expr):
         return visitor.visit_grouping_expr(self)
 
 class Call(Expr):
-    def __init__(self, callee: Expr, paren: Token, arguments: list[Expr]) -> None:
+    def __init__(self, callee: Expr, paren: Token, arguments: List[Expr]) -> None:
         self.callee = callee
         self.paren = paren
         self.arguments = arguments
@@ -102,7 +102,7 @@ class Call(Expr):
         return visitor.visit_call_expr(self)
 
 class MemberAccess(Expr):
-    def __init__(self, object: Expr, name: str) -> None:
+    def __init__(self, object: Expr, name: Token) -> None:
         self.object = object
         self.name = name
 

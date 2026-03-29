@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, List, Tuple
 from src.expressions import Expr
 from src.tokens import Token
 
@@ -67,14 +67,14 @@ class Expression(Stmt):
         return visitor.visit_expression_stmt(self)
 
 class Block(Stmt):
-    def __init__(self, statements: list[Stmt]) -> None:
+    def __init__(self, statements: List[Stmt]) -> None:
         self.statements = statements
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_block_stmt(self)
 
 class If(Stmt):
-    def __init__(self, condition: Expr, then_branch: Stmt, elif_branches: list[tuple[Expr, Stmt]], else_branch: Stmt | None) -> None:
+    def __init__(self, condition: Expr, then_branch: Stmt, elif_branches: List[Tuple[Expr, Stmt]], else_branch: Optional[Stmt]) -> None:
         self.condition = condition
         self.then_branch = then_branch
         self.elif_branches = elif_branches
@@ -115,14 +115,15 @@ class Continue(Stmt):
         return visitor.visit_continue_stmt(self)
 
 class Return(Stmt):
-    def __init__(self, value: Expr | None) -> None:
+    def __init__(self, keyword: Token, value: Optional[Expr]) -> None:
+        self.keyword = keyword
         self.value = value
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_return_stmt(self)
 
 class Function(Stmt):
-    def __init__(self, name: Token, params: list[Token], body: list[Stmt]) -> None:
+    def __init__(self, name: Token, params: List[Token], body: List[Stmt]) -> None:
         self.name = name
         self.params = params
         self.body = body
@@ -131,7 +132,7 @@ class Function(Stmt):
         return visitor.visit_function_stmt(self)
 
 class Class(Stmt):
-    def __init__(self, name: Token, body: list[Stmt]) -> None:
+    def __init__(self, name: Token, body: List[Stmt]) -> None:
         self.name = name
         self.body = body
 
@@ -139,7 +140,7 @@ class Class(Stmt):
         return visitor.visit_class_stmt(self)
 
 class Try(Stmt):
-    def __init__(self, try_block: Stmt, except_blocks: list[tuple[Optional[Token], Stmt]], finally_block: Stmt | None) -> None:
+    def __init__(self, try_block: Stmt, except_blocks: List[Tuple[Optional[Token], Stmt]], finally_block: Optional[Stmt]) -> None:
         self.try_block = try_block
         self.except_blocks = except_blocks
         self.finally_block = finally_block

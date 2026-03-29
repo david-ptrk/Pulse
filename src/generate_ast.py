@@ -47,7 +47,7 @@ EXPRESSIONS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
 )
 
 STATEMENTS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
-    "from typing import Any, Optional",
+    "from typing import Any, Optional, List, Tuple",
     "from src.expressions import Expr",
     "from src.tokens import Token"
 )
@@ -60,24 +60,24 @@ EXPRESSIONS: ASTDict = {
     "Literal":  ("value: Any",),
     "Variable": ("name: Token",),
     "Grouping": ("expression: Expr",),
-    "Call":     ("callee: Expr", "paren: Token", "arguments: list[Expr]"),
-    "MemberAccess": ("object: Expr", "name: str"),
+    "Call":     ("callee: Expr", "paren: Token", "arguments: List[Expr]"),
+    "MemberAccess": ("object: Expr", "name: Token"),
     "Logical":      ("left: Expr", "operator: Token", "right: Expr"),
 }
 
 # Statements
 STATEMENTS: ASTDict = {
     "Expression": ("expression: Expr",),
-    "Block": ("statements: list[Stmt]",),
-    "If": ("condition: Expr", "then_branch: Stmt", "elif_branches: list[tuple[Expr, Stmt]]", "else_branch: Stmt | None"),
+    "Block": ("statements: List[Stmt]",),
+    "If": ("condition: Expr", "then_branch: Stmt", "elif_branches: List[Tuple[Expr, Stmt]]", "else_branch: Optional[Stmt]"),
     "While": ("condition: Expr", "body: Stmt"),
     "For": ("var: Token", "iterable: Expr", "body: Stmt"),
     "Break": ("keyword: Token",),
     "Continue": ("keyword: Token",),
-    "Return": ("value: Expr | None",),
-    "Function": ("name: Token", "params: list[Token]", "body: list[Stmt]",),
-    "Class": ("name: Token", "body: list[Stmt]",),
-    "Try": ("try_block: Stmt", "except_blocks: list[tuple[Optional[Token], Stmt]]", "finally_block: Stmt | None"),
+    "Return": ("keyword: Token", "value: Optional[Expr]",),
+    "Function": ("name: Token", "params: List[Token]", "body: List[Stmt]",),
+    "Class": ("name: Token", "body: List[Stmt]",),
+    "Try": ("try_block: Stmt", "except_blocks: List[Tuple[Optional[Token], Stmt]]", "finally_block: Optional[Stmt]"),
     "Pass": (),
 }
 

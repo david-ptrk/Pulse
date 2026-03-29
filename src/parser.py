@@ -25,7 +25,7 @@ The resulting AST is later used by the interpreter or compiler to
 execute or further process the Pulse program.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from src import expressions as expr
 from src import statements as stmt
 from src.tokens import Token, TokenType
@@ -184,7 +184,7 @@ class Parser:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name.")
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after function name.")
         
-        params: list[Token] = []
+        params: List[Token] = []
         if not self.check(TokenType.RIGHT_PAREN):
             params.append(
                 self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
@@ -230,7 +230,7 @@ class Parser:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")
         try_block = self.statement()
         
-        except_blocks: list[tuple[Optional[Token], stmt.Stmt]] = []
+        except_blocks: List[Tuple[Optional[Token], stmt.Stmt]] = []
         
         while self.match(TokenType.EXCEPT):
             exc_type : Optional[Token] = None
@@ -248,13 +248,14 @@ class Parser:
         return stmt.Try(try_block, except_blocks, finally_block)
     
     def parse_return_stmt(self) -> stmt.Stmt:
+        keyword = self.previous()
+        
         value = None        
         if not (self.check(TokenType.NEWLINE) or self.check(TokenType.DEDENT) or self.is_at_end()):
             value = self.expression()
         
         self.match(TokenType.NEWLINE)
-        return stmt.Return(value)
-    
+        return stmt.Return(keyword, value)
     
     def expression(self) -> expr.Expr:
         return self.assignment()
