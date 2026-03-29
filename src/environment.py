@@ -35,7 +35,7 @@ class Environment:
     
     def define(self, name, value):
         if name in self.values:
-            raise RuntimeError(f"Variable '{name}' already defined.")
+            raise PulseRuntimeError(f"Variable '{name}' already defined.")
         self.values[name] = value
     
     def define_many(self, funcs):
@@ -60,8 +60,8 @@ class Environment:
             self.enclosing.assign(name, value)
             return
         
-        self.define(name, value)
-        return
+        # self.define(name, value)
+        raise PulseRuntimeError(f"Undefined variable '{name}'")
     
     def ancestor(self, distance):
         env = self
