@@ -19,11 +19,15 @@ loops and function execution blocks.
 """
 
 class BreakException(Exception):
-    pass
+    def __init__(self):
+        super().__init__("break")
 
 class ContinueException(Exception):
-    pass
+    def __init__(self):
+        super().__init__("continue")
 
 class ReturnException(Exception):
-    def __init__(self, value):
+    def __init__(self, value=None, token=None):
+        super().__init__(value)
         self.value = value
+        self.token = token
