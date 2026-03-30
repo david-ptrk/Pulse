@@ -87,11 +87,6 @@ class PulseRuntimeError(PulseError):
             return f"{base}\nStack trace:\n{stack_trace}"
         return base
 
-class ReturnException(PulseRuntimeError):
-    def __init__(self, value):
-        super().__init__("Return", None, None)
-        self.value = value
-
 class PulseSemanticError(PulseError):
     def __init__(self, message, token=None, context_source=None):
         line = getattr(token, "line", None) if token else None

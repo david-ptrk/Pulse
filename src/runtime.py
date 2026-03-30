@@ -18,6 +18,8 @@ and must be handled appropriately within control-flow constructs such as
 loops and function execution blocks.
 """
 
+from src.error import PulseRuntimeError
+
 class BreakException(Exception):
     def __init__(self):
         super().__init__("break")
@@ -31,3 +33,16 @@ class ReturnException(Exception):
         super().__init__(value)
         self.value = value
         self.token = token
+
+class PulseClass:
+    def __init__(self, name, fields):
+        self.name = name
+        self.fields = fields
+    
+    def get(self, name):
+        if name in self.fields:
+            return self.fields[name]
+        raise PulseRuntimeError(f"Undefined property '{name}'")
+    
+    def __repr__(self):
+        return f"<class {self.name}>"

@@ -123,7 +123,7 @@ class Return(Stmt):
         return visitor.visit_return_stmt(self)
 
 class Function(Stmt):
-    def __init__(self, name: Token, params: List[Token], body: List[Stmt]) -> None:
+    def __init__(self, name: Token, params: List[Token], body: Block) -> None:
         self.name = name
         self.params = params
         self.body = body

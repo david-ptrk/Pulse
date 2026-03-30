@@ -41,11 +41,12 @@ semantics.
 from src.expressions import ExprVisitor
 from src.statements import StmtVisitor
 from src.environment import Environment
-from src.error import ReturnException, PulseRuntimeError
+from src.error import PulseRuntimeError
 import src.runtime as runtime
 from src.tokens import Token
 from src.function import PulseFunction, PulseNativeFunction
 import math
+from src.runtime import PulseClass
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment):
@@ -287,7 +288,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         value = None
         if stmt.value:
             value = self.evaluate(stmt.value)
-        raise ReturnException(value)
+        raise runtime.ReturnException(value)
     
     def is_truthy(self, value):
         if value is None:
@@ -329,10 +330,29 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return None
     
     def visit_class_stmt(self, stmt):
-        raise PulseRuntimeError("class not implemented yet")
+        self.environment.define(stmt.name, None)
+        class_env = Environment(enclosing=self.environment)
+        previous = self.environment
+        self.environment = class_env
+        
+        try:
+            for statement in stmt.body:
+                self.execute(statement)
+        finally:
+            self.environment = previous
+        
+        class_object = PulseClass(stmt.name.lexeme, class_env.values.copy())
+        self.environment.assign(stmt.name, class_object)
     
     def visit_memberaccess_expr(self, expr):
-        raise PulseRuntimeError("member access not implemented yet")
+        obj = self.evaluate(expr.object)
+        if obj is None:
+            raise PulseRuntimeError("Cannot access member of null")
+        
+        if isinstance(obj, PulseClass):
+            return obj.get(expr.name.lexeme)
+        
+        raise PulseRuntimeError("Only class objects support member access")
     
     def visit_pass_stmt(self, stmt):
         return None

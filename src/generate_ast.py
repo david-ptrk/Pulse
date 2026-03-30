@@ -75,7 +75,7 @@ STATEMENTS: ASTDict = {
     "Break": ("keyword: Token",),
     "Continue": ("keyword: Token",),
     "Return": ("keyword: Token", "value: Optional[Expr]",),
-    "Function": ("name: Token", "params: List[Token]", "body: List[Stmt]",),
+    "Function": ("name: Token", "params: List[Token]", "body: Block",),
     "Class": ("name: Token", "body: List[Stmt]",),
     "Try": ("try_block: Stmt", "except_blocks: List[Tuple[Optional[Token], Stmt]]", "finally_block: Optional[Stmt]"),
     "Pass": (),

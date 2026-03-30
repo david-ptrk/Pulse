@@ -3,7 +3,8 @@ function.py
 """
 
 from src.environment import Environment
-from src.error import ReturnException, PulseRuntimeError
+from src.error import PulseRuntimeError
+import src.runtime as runtime
 
 class PulseFunction:
     def __init__(self, declaration, closure):
@@ -30,7 +31,7 @@ class PulseFunction:
         try:
             for stmt in self.declaration.body.statements:
                 interpreter.execute(stmt)
-        except ReturnException as e:
+        except runtime.ReturnException as e:
             return e.value
         finally:
             interpreter.environment = previous
