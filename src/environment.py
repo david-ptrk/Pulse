@@ -34,34 +34,39 @@ class Environment:
         self.enclosing = enclosing
     
     def define(self, name, value):
-        if name in self.values:
-            raise PulseRuntimeError(f"Variable '{name}' already defined.")
-        self.values[name] = value
+        key = name.lexeme if hasattr(name, "lexeme") else name
+        
+        if key in self.values:
+            raise PulseRuntimeError(f"Variable '{key}' already defined.")
+        self.values[key] = value
     
     def define_many(self, funcs):
         for name, value in funcs:
             self.define(name, value)
     
     def get(self, name):
-        if name in self.values:
-            return self.values[name]
+        key = name.lexeme if hasattr(name, "lexeme") else name
+        
+        if key in self.values:
+            return self.values[key]
         
         if self.enclosing:
             return self.enclosing.get(name)
         
-        raise PulseRuntimeError(f"Undefined variable '{name}'")
+        raise PulseRuntimeError(f"Undefined variable '{key}'")
     
     def assign(self, name, value):
-        if name in self.values:
-            self.values[name] = value
+        key = name.lexeme if hasattr(name, "lexeme") else name
+        
+        if key in self.values:
+            self.values[key] = value
             return
         
         if self.enclosing:
             self.enclosing.assign(name, value)
             return
         
-        # self.define(name, value)
-        raise PulseRuntimeError(f"Undefined variable '{name}'")
+        raise PulseRuntimeError(f"Undefined variable '{key}'")
     
     def ancestor(self, distance):
         env = self
@@ -70,7 +75,9 @@ class Environment:
         return env
     
     def get_at(self, distance, name):
-        return self.ancestor(distance).values[name]
+        key = name.lexeme if hasattr(name, "lexeme") else name
+        return self.ancestor(distance).values[key]
     
     def assign_at(self, distance, name, value):
-        self.ancestor(distance).values[name] = value
+        key = name.lexeme if hasattr(name, "lexeme") else name
+        self.ancestor(distance).values[key] = value

@@ -17,6 +17,9 @@ from src.error import PulseRuntimeError, report_error
 had_error = False
 had_runtime_error = False
 
+global_env = Environment()
+interpreter = Interpreter(global_env)
+
 # Run file / REPL
 def run_file(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -45,8 +48,6 @@ def run(source):
     
     had_error = False
     had_runtime_error = False
-    
-    interpreter = Interpreter(Environment())
     
     try:
         # 1. Lexing

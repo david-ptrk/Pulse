@@ -42,8 +42,9 @@ from src.expressions import ExprVisitor
 from src.statements import StmtVisitor
 from src.environment import Environment
 from src.error import ReturnException, PulseRuntimeError
-from src.function import PulseFunction, PulseNativeFunction
+import src.runtime as runtime
 from src.tokens import Token
+from src.function import PulseFunction, PulseNativeFunction
 import math
 
 class Interpreter(ExprVisitor, StmtVisitor):
@@ -150,7 +151,6 @@ class Interpreter(ExprVisitor, StmtVisitor):
     # Visit Functions
     def visit_expression_stmt(self, stmt):
         self.evaluate(stmt.expression)
-        return None
     
     def visit_literal_expr(self, expr):
         return expr.value
@@ -167,8 +167,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
         distance = self.locals.get(expr)
         if distance is not None:
             self.environment.assign_at(distance, expr.name.lexeme, value)
-        else:
+            return value
+        
+        try:
             self.environment.assign(expr.name.lexeme, value)
+        except PulseRuntimeError:
+            self.environment.define(expr.name.lexeme, value)
         
         return value
     
@@ -272,8 +276,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def visit_while_stmt(self, stmt):
         while self.is_truthy(self.evaluate(stmt.condition)):
-            self.execute(stmt.body)
-        return None
+            try:
+                self.execute(stmt.body)
+            except runtime.BreakException:
+                break
+            except runtime.ContinueException:
+                continue
     
     def visit_return_stmt(self, stmt):
         value = None
@@ -298,13 +306,22 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return callee.call(self, arguments)
     
     def visit_break_stmt(self, stmt):
-        raise PulseRuntimeError("break not implemented yet")
+        raise runtime.BreakException()
     
     def visit_continue_stmt(self, stmt):
-        raise PulseRuntimeError("continue not implemented yet")
+        raise runtime.ContinueException()
     
     def visit_for_stmt(self, stmt):
-        raise PulseRuntimeError("for loop not implemented yet")
+        iterable = self.evaluate(stmt.iterable)
+        
+        for value in iterable:
+            self.environment.define(stmt.var.lexeme, value)
+            try:
+                self.execute(stmt.body)
+            except runtime.BreakException:
+                break
+            except runtime.ContinueException:
+                continue
     
     def visit_function_stmt(self, stmt):
         func = PulseFunction(stmt, self.environment)

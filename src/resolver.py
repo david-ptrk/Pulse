@@ -153,15 +153,6 @@ class Resolver(ExprVisitor, StmtVisitor):
     
     def visit_assign_expr(self, expr):
         self.resolve_expr(expr.value)
-        
-        if self.scopes:
-            scope = self.scopes[-1]
-            
-            if expr.name.lexeme not in scope:
-                scope[expr.name.lexeme] = True
-            else:
-                scope[expr.name.lexeme] = True
-        
         self.resolve_local(expr, expr.name)
     
     def visit_call_expr(self, expr):

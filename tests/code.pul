@@ -1,1 +1,8 @@
-class
+i = 0
+while i < 3:
+    i = i + 1
+    j = i
+    while j > 0:
+        print(j)
+        j = j - 1
+print(i)
