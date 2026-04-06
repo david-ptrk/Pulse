@@ -97,8 +97,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def resolve(self, expr, depth):
         self.locals[expr] = depth
     
-    def runtime_error(self, token: Token, message: str):
-        raise PulseRuntimeError(message, token=token, context_source=self.source)
+    def runtime_error(self, token=None, message=None):
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError(message, token=token, context_source=self.source)
+        )
     
     # Native Functions
     def native_print(self, *args):
@@ -116,13 +118,17 @@ class Interpreter(ExprVisitor, StmtVisitor):
         try:
             return int(x)
         except:
-            raise PulseRuntimeError("Invalid conversion to int")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Invalid conversion to int")
+            )
     
     def native_float(self, x):
         try:
             return float(x)
         except:
-            raise PulseRuntimeError("Invalid conversion to float")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Invalid conversion to float")
+            )
     
     def native_type(self, obj):
         if isinstance(obj, int):
@@ -145,7 +151,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         try:
             return math.sqrt(x)
         except:
-            raise PulseRuntimeError("Cannot take square root of negative values")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Cannot take square root of negative values")
+            )
     
     def native_min(self, *args):
         return min(args)
@@ -194,11 +202,15 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if operator == '-':
             if isinstance(right, (int, float)):
                 return -right
-            raise PulseRuntimeError("Unary '-' requires a number")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Unary '-' requires a number")
+            )
         if operator == '!':
             return not self.is_truthy(right)
         
-        raise PulseRuntimeError(f"Unknown unary operator: {operator}")
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError(f"Unknown unary operator: {operator}")
+        )
     
     def visit_binary_expr(self, expr):
         left = self.evaluate(expr.left)
@@ -210,7 +222,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return left + right
             if isinstance(left, str) and isinstance(right, str):
                 return left + right
-            raise PulseRuntimeError("Operands must be two numbers or two strings")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Operands must be two numbers or two strings")
+            )
         elif operator == '-':
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return left - right
@@ -218,13 +232,19 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif operator == '*':
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return left * right
-            raise PulseRuntimeError("Operands must be two numbers")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Operands must be two numbers")
+            )
         elif operator == '/':
             if right == 0:
-                raise PulseRuntimeError("Division by zero. Divisor cannot be zero")
+                raise runtime.PulseRuntimeException(
+                    PulseRuntimeError("Division by zero. Divisor cannot be zero")
+                )
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return left / right
-            raise PulseRuntimeError("Operands must be two numbers")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Operands must be two numbers")
+            )
         
         elif operator == '==':
             return left == right
@@ -239,7 +259,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif operator == '>=':
             return left >= right
         
-        raise PulseRuntimeError(f"Unknown binary operator: {operator}")
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError(f"Unknown binary operator: {operator}")
+        )
     
     def visit_logical_expr(self, expr):
         left = self.evaluate(expr.left)
@@ -255,7 +277,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return left
             return self.evaluate(expr.right)
         
-        raise PulseRuntimeError(f"Unknown logical operator: {operator}")
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError(f"Unknown logical operator: {operator}")
+        )
     
     def visit_block_stmt(self, stmt):
         previous = self.environment
@@ -309,7 +333,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         arguments = [self.evaluate(arg) for arg in expr.arguments]
         
         if not callable(getattr(callee, "call", None)):
-            raise PulseRuntimeError("Attempted to call a non-function")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Attempted to call a non-function")
+            )
         
         return callee.call(self, arguments)
     
@@ -354,12 +380,16 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_memberaccess_expr(self, expr):
         obj = self.evaluate(expr.object)
         if obj is None:
-            raise PulseRuntimeError("Cannot access member of null")
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Cannot access member of null")
+            )
         
         if isinstance(obj, PulseClass):
             return obj.get(expr.name.lexeme)
         
-        raise PulseRuntimeError("Only class objects support member access")
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError("Only class objects support member access")
+        )
     
     def visit_pass_stmt(self, stmt):
         return None
@@ -374,6 +404,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     match = True
                 else:
                     exc_type = self.evaluate(exc_type_expr)
+                    if not isinstance(exc_type, type):
+                        self.runtime_error(message="Exception type must be a class")
                     match = isinstance(e, exc_type)
                 
                 if match:

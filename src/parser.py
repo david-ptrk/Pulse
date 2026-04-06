@@ -240,7 +240,7 @@ class Parser:
                     exc_name = self.consume(TokenType.IDENTIFIER, "Expected variable after 'as'")
             self.consume(TokenType.COLON, "Expected ':' after 'except'")
             block = self.statement()
-            except_blocks.append((exc_type, exc_name, self.block))
+            except_blocks.append((exc_type, exc_name, block))
         
         else_block = None
         if self.match(TokenType.ELSE):

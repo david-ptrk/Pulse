@@ -1,4 +1,4 @@
 try:
-    print("inside try")
-except e:
-    print(e)
+    x = 10 / 0
+except:
+    print("caught error")
