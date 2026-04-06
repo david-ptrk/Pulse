@@ -20,6 +20,25 @@ loops and function execution blocks.
 
 from src.error import PulseRuntimeError
 
+class PulseException(Exception):
+    def __init__(self, message=""):
+        super().__init__(message)
+        self.message = message
+    
+    def __str__(self):
+        return self.message
+
+class PulseRuntimeException(PulseException):
+    def __init__(self, error: PulseRuntimeError):
+        super().__init__(str(error))
+        self.error = error
+
+class PulseValueError(PulseRuntimeException):
+    pass
+
+class PulseTypeError(PulseRuntimeException):
+    pass
+
 class BreakException(Exception):
     def __init__(self):
         super().__init__("break")
@@ -42,7 +61,9 @@ class PulseClass:
     def get(self, name):
         if name in self.fields:
             return self.fields[name]
-        raise PulseRuntimeError(f"Undefined property '{name}'")
+        raise PulseRuntimeException(
+            PulseRuntimeError(f"Undefined property '{name}'")
+        )
     
     def __repr__(self):
         return f"<class {self.name}>"

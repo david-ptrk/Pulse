@@ -230,22 +230,29 @@ class Parser:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")
         try_block = self.statement()
         
-        except_blocks: List[Tuple[Optional[Token], stmt.Stmt]] = []
-        
+        except_blocks = []
         while self.match(TokenType.EXCEPT):
-            exc_type : Optional[Token] = None
-            if self.check(TokenType.IDENTIFIER):
-                exc_type = self.advance()
-            self.consume(TokenType.COLON, "Excepted ':' after 'except'")
+            exc_type = None
+            exc_name = None
+            if not self.check(TokenType.COLON):
+                exc_type = self.expression()
+                if self.match(TokenType.AS):
+                    exc_name = self.consume(TokenType.IDENTIFIER, "Expected variable after 'as'")
+            self.consume(TokenType.COLON, "Expected ':' after 'except'")
             block = self.statement()
-            except_blocks.append((exc_type, block))
+            except_blocks.append((exc_type, exc_name, self.block))
         
-        finally_block: Optional[stmt.Stmt] = None
+        else_block = None
+        if self.match(TokenType.ELSE):
+            self.consume(TokenType.COLON, "Expected ':' after 'else'")
+            else_block = self.statement()
+        
+        finally_block = None
         if self.match(TokenType.FINALLY):
             self.consume(TokenType.COLON, "Expected ':' after 'finally'")
             finally_block = self.statement()
         
-        return stmt.Try(try_block, except_blocks, finally_block)
+        return stmt.Try(try_block, except_blocks, finally_block, else_block)
     
     def parse_return_stmt(self) -> stmt.Stmt:
         keyword = self.previous()

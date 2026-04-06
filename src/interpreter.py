@@ -68,6 +68,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("max", PulseNativeFunction("max", self.native_max)),
             ("len", PulseNativeFunction("len", self.native_len)),
         ])
+        
+        self.environment.define_many([
+            ("Exception", runtime.PulseException),
+            ("RuntimeError", runtime.PulseRuntimeException),
+            ("ValueError", runtime.PulseValueError),
+            ("TypeError", runtime.PulseTypeError),
+        ])
     
     def interpret(self, statements, source):
         """
@@ -358,4 +365,32 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return None
     
     def visit_try_stmt(self, stmt):
-        raise PulseRuntimeError("try/catch not implemented yet")
+        try:
+            self.execute(stmt.try_block)
+        except runtime.PulseException as e:
+            handled = False
+            for exc_type_expr, var_token, block in stmt.except_blocks:
+                if exc_type_expr is None:
+                    match = True
+                else:
+                    exc_type = self.evaluate(exc_type_expr)
+                    match = isinstance(e, exc_type)
+                
+                if match:
+                    handled = True
+                    if var_token is not None:
+                        self.environment.define(var_token.lexeme, e)
+                    self.execute(block)
+                    break
+            if not handled:
+                raise
+        except (runtime.BreakException,
+                runtime.ContinueException,
+                runtime.ReturnException):
+            raise
+        else:
+            if stmt.else_block is not None:
+                self.execute(stmt.else_block)
+        finally:
+            if stmt.finally_block is not None:
+                self.execute(stmt.finally_block)

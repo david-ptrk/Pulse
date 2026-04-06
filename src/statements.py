@@ -140,10 +140,11 @@ class Class(Stmt):
         return visitor.visit_class_stmt(self)
 
 class Try(Stmt):
-    def __init__(self, try_block: Stmt, except_blocks: List[Tuple[Optional[Token], Stmt]], finally_block: Optional[Stmt]) -> None:
+    def __init__(self, try_block: Stmt, except_blocks: List[Tuple[Optional[Expr], Optional[Token], Stmt]], finally_block: Optional[Stmt], else_block: Optional[Stmt]) -> None:
         self.try_block = try_block
         self.except_blocks = except_blocks
         self.finally_block = finally_block
+        self.else_block = else_block
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_try_stmt(self)
