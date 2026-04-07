@@ -203,11 +203,14 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_try_stmt(self, stmt):
         self.resolve_stmt(stmt.try_block)
         
-        for exception_var, block in stmt.except_blocks:
+        for exc_type_expr, exception_var, block in stmt.except_blocks:
             self.begin_scope()
             
             if exception_var is not None:
                 self.scopes[-1][exception_var.lexeme] = True
+            
+            if exc_type_expr is not None:
+                self.resolve_expr(exc_type_expr)
             
             self.resolve_stmt(block)
             self.end_scope()

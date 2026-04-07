@@ -87,7 +87,9 @@ class Parser:
         statements: List[stmt.Stmt] = []
         
         while not self.is_at_end():
-            statements.append(self.statement())
+            s = self.statement()
+            if s is not None:
+                statements.append(s)
         
         return statements
     
@@ -229,6 +231,8 @@ class Parser:
     def parse_try_stmt(self) -> stmt.Stmt:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")
         try_block = self.statement()
+        if try_block is None:
+            raise ParseError(self.peek(), "Expected block after 'try'", self.source)
         
         except_blocks = []
         while self.match(TokenType.EXCEPT):
