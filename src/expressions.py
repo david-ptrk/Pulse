@@ -39,6 +39,10 @@ class ExprVisitor(ABC):
     def visit_logical_expr(self, expr: 'Logical') -> Any:
         pass
 
+    @abstractmethod
+    def visit_list_expr(self, expr: 'List') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -117,4 +121,11 @@ class Logical(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_logical_expr(self)
+
+class List(Expr):
+    def __init__(self, elements: List[Expr]) -> None:
+        self.elements = elements
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_list_expr(self)
 

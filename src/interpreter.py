@@ -281,6 +281,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
             PulseRuntimeError(f"Unknown logical operator: {operator}")
         )
     
+    def visit_list_expr(self, expr):
+        return [self.evaluate(e) for e in expr.elements]
+    
     def visit_block_stmt(self, stmt):
         previous = self.environment
         self.environment = Environment(enclosing=previous)
@@ -348,14 +351,27 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_for_stmt(self, stmt):
         iterable = self.evaluate(stmt.iterable)
         
+        try:
+            iterable = iter(iterable)
+        except TypeError:
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Object is not iterable")
+            )
+        
         for value in iterable:
-            self.environment.define(stmt.var.lexeme, value)
+            loop_env = Environment(enclosing=self.environment)
+            previous = self.environment
+            self.environment = loop_env
+            
             try:
+                loop_env.define(stmt.var.lexeme, value)
                 self.execute(stmt.body)
             except runtime.BreakException:
                 break
             except runtime.ContinueException:
                 continue
+            finally:
+                self.environment = previous
     
     def visit_function_stmt(self, stmt):
         func = PulseFunction(stmt, self.environment)

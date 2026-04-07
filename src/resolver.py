@@ -160,6 +160,10 @@ class Resolver(ExprVisitor, StmtVisitor):
         for arg in expr.arguments:
             self.resolve_expr(arg)
     
+    def visit_list_expr(self, expr):
+        for element in expr.elements:
+            self.resolve_expr(element)
+    
     def visit_function_stmt(self, stmt):
         self.declare(stmt.name)
         self.define(stmt.name)

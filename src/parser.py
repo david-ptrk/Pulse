@@ -350,6 +350,20 @@ class Parser:
     
     # Primary / callOrMember
     def primary(self) -> expr.Expr:
+        # List
+        if self.match(TokenType.LEFT_BRACKET):
+            elements: List[expr.Expr] = []
+            
+            if not self.check(TokenType.RIGHT_BRACKET):
+                elements.append(self.expression())
+                while self.match(TokenType.COMMA):
+                    if self.check(TokenType.RIGHT_BRACKET):
+                        break
+                    elements.append(self.expression())
+            
+            self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after list")
+            return expr.List(elements)
+        
         # Base expressions
         if self.match(TokenType.NUMBER, TokenType.STRING, TokenType.BOOL):
             return expr.Literal(self.previous().literal)

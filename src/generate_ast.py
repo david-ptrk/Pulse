@@ -54,15 +54,16 @@ STATEMENTS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
 
 # Expressions
 EXPRESSIONS: ASTDict = {
-    "Assign":   ("name: Token", "value: Expr"),
-    "Binary":   ("left: Expr", "operator: Token", "right: Expr"),
-    "Unary":    ("operator: Token", "right: Expr"),
-    "Literal":  ("value: Any",),
+    "Assign": ("name: Token", "value: Expr"),
+    "Binary": ("left: Expr", "operator: Token", "right: Expr"),
+    "Unary": ("operator: Token", "right: Expr"),
+    "Literal": ("value: Any",),
     "Variable": ("name: Token",),
     "Grouping": ("expression: Expr",),
-    "Call":     ("callee: Expr", "paren: Token", "arguments: List[Expr]"),
+    "Call": ("callee: Expr", "paren: Token", "arguments: List[Expr]"),
     "MemberAccess": ("object: Expr", "name: Token"),
-    "Logical":      ("left: Expr", "operator: Token", "right: Expr"),
+    "Logical": ("left: Expr", "operator: Token", "right: Expr"),
+    "List": ("elements: List[Expr]",),
 }
 
 # Statements
