@@ -284,6 +284,27 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_list_expr(self, expr):
         return [self.evaluate(e) for e in expr.elements]
     
+    def visit_index_expr(self, expr):
+        obj = self.evaluate(expr.object)
+        index = self.evaluate(expr.index)
+        
+        if not isinstance(index, int):
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Index must be an integer", expr.index)
+            )
+        
+        if isinstance(obj, (list, str)):
+            try:
+                return obj[index]
+            except IndexError:
+                raise runtime.PulseRuntimeException(
+                    PulseRuntimeError("Index out of bounds", expr.index)
+                )
+        
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError("Object is not indexable", expr.object)
+        )
+    
     def visit_block_stmt(self, stmt):
         previous = self.environment
         self.environment = Environment(enclosing=previous)

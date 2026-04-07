@@ -346,11 +346,37 @@ class Parser:
             right = self.unary()
             return expr.Unary(op, right)
         
-        return self.primary()
+        return self.call()
     
-    # Primary / callOrMember
+    def call(self) -> expr.Expr:
+        expr_node = self.primary()
+        
+        while True:
+            if self.match(TokenType.LEFT_PAREN):
+                arguments = []
+                if not self.check(TokenType.RIGHT_PAREN):
+                    while True:
+                        arguments.append(self.expression())
+                        if not self.match(TokenType.COMMA):
+                            break
+                paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
+                expr_node = expr.Call(expr_node, paren, arguments)
+            
+            elif self.match(TokenType.DOT):
+                name = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'")
+                expr_node = expr.MemberAccess(expr_node, name)
+            
+            elif self.match(TokenType.LEFT_BRACKET):
+                index = self.expression()
+                self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index")
+                expr_node = expr.Index(expr_node, index)
+            
+            else:
+                break
+        
+        return expr_node
+    
     def primary(self) -> expr.Expr:
-        # List
         if self.match(TokenType.LEFT_BRACKET):
             elements: List[expr.Expr] = []
             
@@ -367,30 +393,13 @@ class Parser:
         # Base expressions
         if self.match(TokenType.NUMBER, TokenType.STRING, TokenType.BOOL):
             return expr.Literal(self.previous().literal)
-        elif self.match(TokenType.IDENTIFIER):
-            expr_node: expr.Expr = expr.Variable(self.previous())
-        elif self.match(TokenType.LEFT_PAREN):
+        
+        if self.match(TokenType.IDENTIFIER):
+            return expr.Variable(self.previous())
+        
+        if self.match(TokenType.LEFT_PAREN):
             expr_node = self.expression()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression")
-        else:
-            raise ParseError(self.peek(), "Expect expression", self.source)
+            return expr_node
         
-        # Postfix loop for member access and method calls
-        while True:
-            if self.match(TokenType.DOT):
-                name_token = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'")
-                # expr_node = expr.MemberAccess(expr_node, name_token.lexeme)
-                expr_node = expr.MemberAccess(expr_node, name_token)
-            elif self.match(TokenType.LEFT_PAREN):
-                arguments: List[expr.Expr] = []
-                if not self.check(TokenType.RIGHT_PAREN):
-                    while True:
-                        arguments.append(self.expression())
-                        if not self.match(TokenType.COMMA):
-                            break
-                paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-                expr_node = expr.Call(expr_node, paren, arguments)
-            else:
-                break
-        
-        return expr_node
+        raise ParseError(self.peek(), "Expect expression", self.source)

@@ -43,6 +43,10 @@ class ExprVisitor(ABC):
     def visit_list_expr(self, expr: 'List') -> Any:
         pass
 
+    @abstractmethod
+    def visit_index_expr(self, expr: 'Index') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -128,4 +132,12 @@ class List(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_list_expr(self)
+
+class Index(Expr):
+    def __init__(self, object: Expr, index: Expr) -> None:
+        self.object = object
+        self.index = index
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_index_expr(self)
 

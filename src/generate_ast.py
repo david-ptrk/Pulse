@@ -64,6 +64,7 @@ EXPRESSIONS: ASTDict = {
     "MemberAccess": ("object: Expr", "name: Token"),
     "Logical": ("left: Expr", "operator: Token", "right: Expr"),
     "List": ("elements: List[Expr]",),
+    "Index": ("object: Expr", "index: Expr"),
 }
 
 # Statements
