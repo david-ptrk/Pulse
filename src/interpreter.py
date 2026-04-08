@@ -305,6 +305,51 @@ class Interpreter(ExprVisitor, StmtVisitor):
             PulseRuntimeError("Object is not indexable", expr.object)
         )
     
+    def visit_setindex_expr(self, expr):
+        obj = self.evaluate(expr.object)
+        index = self.evaluate(expr.index)
+        value = self.evaluate(expr.value)
+        
+        if not isinstance(index, int):
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Index must be an integer", expr.index)
+            )
+        
+        if isinstance(obj, list):
+            try:
+                obj[index] = value
+                return value
+            except IndexError:
+                raise runtime.PulseRuntimeException(
+                    PulseRuntimeError("Index out of bounds", expr.index)
+                )
+        
+        if isinstance(obj, str):
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Strings are immutable", expr.object)
+            )
+        
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError("Object does not support indexed assignment", expr.object)
+        )
+    
+    def visit_setmember_expr(self, expr):
+        obj = self.evaluate(expr.object)
+        value = self.evaluate(expr.value)
+        
+        if obj is None:
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError("Cannot set member on null", expr.object)
+            )
+        
+        if isinstance(obj, PulseClass):
+            obj.set(expr.name.lexeme, value)
+            return value
+        
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError("Only class objects support member assignment", expr.object)
+        )
+    
     def visit_block_stmt(self, stmt):
         previous = self.environment
         self.environment = Environment(enclosing=previous)

@@ -65,6 +65,8 @@ EXPRESSIONS: ASTDict = {
     "Logical": ("left: Expr", "operator: Token", "right: Expr"),
     "List": ("elements: List[Expr]",),
     "Index": ("object: Expr", "index: Expr"),
+    "SetIndex": ("object: Expr", "index: Expr", "value: Expr"),
+    "SetMember": ("object: Expr", "name: Token", "value: Expr"),
 }
 
 # Statements

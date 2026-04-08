@@ -278,8 +278,17 @@ class Parser:
             equals = self.previous()
             value = self.assignment()
             
-            if isinstance(left, (expr.Variable, expr.MemberAccess)):
+            # a = 5
+            if isinstance(left, expr.Variable):
                 return expr.Assign(left.name, value)
+            
+            # obj.x = 5
+            if isinstance(left, expr.MemberAccess):
+                return expr.SetMember(left.object, left.name, value)
+            
+            # a[0] = 5
+            if isinstance(left, expr.Index):
+                return expr.SetIndex(left.object, left.index, value)
             
             raise ParseError(self.previous(), "Invalid assignment target", self.source)
         

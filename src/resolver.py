@@ -168,6 +168,15 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_expr(expr.object)
         self.resolve_expr(expr.index)
     
+    def visit_setindex_expr(self, expr):
+        self.resolve_expr(expr.object)
+        self.resolve_expr(expr.index)
+        self.resolve_expr(expr.value)
+    
+    def visit_setmember_expr(self, expr):
+        self.resolve_expr(expr.object)
+        self.resolve_expr(expr.value)
+    
     def visit_function_stmt(self, stmt):
         self.declare(stmt.name)
         self.define(stmt.name)

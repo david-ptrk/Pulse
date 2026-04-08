@@ -47,6 +47,14 @@ class ExprVisitor(ABC):
     def visit_index_expr(self, expr: 'Index') -> Any:
         pass
 
+    @abstractmethod
+    def visit_setindex_expr(self, expr: 'SetIndex') -> Any:
+        pass
+
+    @abstractmethod
+    def visit_setmember_expr(self, expr: 'SetMember') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -140,4 +148,22 @@ class Index(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_index_expr(self)
+
+class SetIndex(Expr):
+    def __init__(self, object: Expr, index: Expr, value: Expr) -> None:
+        self.object = object
+        self.index = index
+        self.value = value
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_setindex_expr(self)
+
+class SetMember(Expr):
+    def __init__(self, object: Expr, name: Token, value: Expr) -> None:
+        self.object = object
+        self.name = name
+        self.value = value
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_setmember_expr(self)
 
