@@ -47,6 +47,7 @@ from src.tokens import Token
 from src.function import PulseFunction, PulseNativeFunction
 import math
 from src.runtime import PulseClass
+from src.values import PulseNumber, PulseString, PulseNull, PulseList, PulseBoolean
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment):
@@ -82,7 +83,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         'program' is a list of statements or a root node.
         """
         self.source = source
-
+        
         result = None
         for stmt in statements:
             result = self.execute(stmt)
@@ -107,7 +108,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         sep = kwargs.get("sep", " ")
         end = kwargs.get("end", "\n")
         
-        output = sep.join(str(arg) for arg in args)
+        output = sep.join(repr(arg) for arg in args)
         print(output, end=end)
         return None
     
@@ -115,64 +116,89 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return input(prompt)
     
     def native_str(self, x):
-        return str(x)
+        return PulseString(repr(x))
     
     def native_int(self, x):
-        try:
-            return int(x)
-        except:
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Invalid conversion to int")
-            )
+        if isinstance(x, PulseNumber):
+            return x
+        
+        if isinstance(x, PulseString):
+            try:
+                return PulseNumber(int(x.value))
+            except:
+                self.runtime_error(message="Invalid conversion to int")
+        
+        self.runtime_error(message="Invalid type for int()")
     
     def native_float(self, x):
-        try:
-            return float(x)
-        except:
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Invalid conversion to float")
-            )
+        if isinstance(x, PulseNumber):
+            return x
+        
+        if isinstance(x, PulseString):
+            try:
+                return PulseNumber(float(x.value))
+            except:
+                self.runtime_error(message="Invalid conversion to float")
+        
+        self.runtime_error(message="Invalid type for float()")
     
     def native_type(self, obj):
-        if isinstance(obj, int):
-            return "int"
-        if isinstance(obj, float):
-            return "float"
-        if isinstance(obj, str):
-            return "string"
-        if obj is None:
-            return "null"
-        return "object"
+        return PulseString(obj.type_name())
     
     def native_abs(self, x):
-        return abs(x)
+        if isinstance(x, PulseNumber):
+            return PulseNumber(abs(x.value))
+        self.runtime_error(message="abs() expects number")
     
     def native_pow(self, base, exp):
-        return pow(base, exp)
+        if isinstance(base, PulseNumber) and isinstance(exp, PulseNumber):
+            return PulseNumber(pow(base.value, exp.value))
+        self.runtime_error(message="pow() expects numbers")
     
     def native_sqrt(self, x):
-        try:
-            return math.sqrt(x)
-        except:
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Cannot take square root of negative values")
-            )
+        if isinstance(x, PulseNumber):
+            if x.value < 0:
+                self.runtime_error(message="Cannot take square root of negative values")
+            return PulseNumber(math.sqrt(x.value))
+        
+        self.runtime_error(message="sqrt() expects number")
     
     def native_min(self, *args):
-        return min(args)
+        if not all(isinstance(a, PulseNumber) for a in args):
+            self.runtime_error(message="min() expects numbers")
+        return PulseNumber(min(a.value for a in args))
     
     def native_max(self, *args):
-        return max(args)
+        if not all(isinstance(a, PulseNumber) for a in args):
+            self.runtime_error(message="max() expects numbers")
+        return PulseNumber(max(a.value for a in args))
     
     def native_len(self, x):
-        return len(x)
+        if isinstance(x, PulseList):
+            return PulseNumber(len(x.elements))
+        
+        if isinstance(x, PulseString):
+            return PulseNumber(len(x.value))
+        
+        self.runtime_error(message="Object has no length")
     
     # Visit Functions
     def visit_expression_stmt(self, stmt):
         self.evaluate(stmt.expression)
     
     def visit_literal_expr(self, expr):
-        return expr.value
+        value = expr.value
+        
+        if isinstance(value, (int, float)):
+            return PulseNumber(value)
+        if isinstance(value, str):
+            return PulseString(value)
+        if isinstance(value, bool):
+            PulseBoolean(value)
+        if value is None:
+            return PulseNull()
+        
+        return value
     
     def visit_variable_expr(self, expr):
         distance = self.locals.get(expr)
@@ -203,17 +229,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
         operator = expr.operator.lexeme
         
         if operator == '-':
-            if isinstance(right, (int, float)):
-                return -right
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Unary '-' requires a number")
-            )
-        if operator == '!':
-            return not self.is_truthy(right)
+            if isinstance(right, PulseNumber):
+                return PulseNumber(-right.value)
+            self.runtime_error(expr.operator, "Unary '-' requires a number")
         
-        raise runtime.PulseRuntimeException(
-            PulseRuntimeError(f"Unknown unary operator: {operator}")
-        )
+        if operator == '!':
+            return PulseBoolean(not right.is_truthy())
+        
+        self.runtime_error(expr.operator, f"Unknown unary operator: {operator}")
     
     def visit_binary_expr(self, expr):
         left = self.evaluate(expr.left)
@@ -221,50 +244,49 @@ class Interpreter(ExprVisitor, StmtVisitor):
         operator = expr.operator.lexeme
         
         if operator == '+':
-            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
-                return left + right
-            if isinstance(left, str) and isinstance(right, str):
-                return left + right
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Operands must be two numbers or two strings")
-            )
+            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
+                return PulseNumber(left.value + right.value)
+            
+            if isinstance(left, PulseString) and isinstance(right, PulseString):
+                return PulseString(left.value + right.value)
+            
+            self.runtime_error(expr.operator, "Operands must be two numbers or two strings")
         elif operator == '-':
-            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
-                return left - right
+            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
+                return PulseNumber(left.value - right.value)
+            
             self.runtime_error(expr.operator, "Operands must be two numbers")
         elif operator == '*':
-            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
-                return left * right
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Operands must be two numbers")
-            )
+            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
+                return PulseNumber(left.value * right.value)
+            
+            self.runtime_error(expr.operator, "Operands must be two numbers")
         elif operator == '/':
-            if right == 0:
-                raise runtime.PulseRuntimeException(
-                    PulseRuntimeError("Division by zero. Divisor cannot be zero")
-                )
-            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
-                return left / right
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Operands must be two numbers")
-            )
+            if right.value == 0:
+                self.runtime_error(expr.operator, "Division by zero. Divisor cannot be zero")
+            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
+                return PulseNumber(left.value / right.value)
+            
+            self.runtime_error(expr.operator, "Operands must be two numbers")
         
-        elif operator == '==':
-            return left == right
-        elif operator == '!=':
-            return left != right
-        elif operator == '<':
-            return left < right
-        elif operator == '<=':
-            return left <= right
-        elif operator == '>':
-            return left > right
-        elif operator == '>=':
-            return left >= right
+        if operator == "==":
+            return PulseBoolean(self.is_equal(left, right))
         
-        raise runtime.PulseRuntimeException(
-            PulseRuntimeError(f"Unknown binary operator: {operator}")
-        )
+        if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
+            if operator == '!=':
+                return PulseBoolean(left.value != right.value)
+            if operator == '<':
+                return PulseBoolean(left.value < right.value)
+            if operator == '<=':
+                return PulseBoolean(left.value <= right.value)
+            if operator == '>':
+                return PulseBoolean(left.value > right.value)
+            if operator == '>=':
+                return PulseBoolean(left.value >= right.value)
+        else:
+            self.runtime_error(expr.operator, "Operands must be numbers")
+        
+        self.runtime_error(expr.operator, f"Unknown binary operator: {operator}")
     
     def visit_logical_expr(self, expr):
         left = self.evaluate(expr.left)
@@ -285,20 +307,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
         )
     
     def visit_list_expr(self, expr):
-        return [self.evaluate(e) for e in expr.elements]
+        return PulseList([self.evaluate(e) for e in expr.elements])
     
     def visit_index_expr(self, expr):
         obj = self.evaluate(expr.object)
         index = self.evaluate(expr.index)
         
-        if not isinstance(index, int):
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Index must be an integer", expr.index)
-            )
+        if not isinstance(index, PulseNumber):
+            self.runtime_error(expr.index, "Index must be a number")
         
-        if isinstance(obj, (list, str)):
+        if isinstance(obj, PulseList):
             try:
-                return obj[index]
+                return obj.elements[index.value]
             except IndexError:
                 raise runtime.PulseRuntimeException(
                     PulseRuntimeError("Index out of bounds", expr.index)
@@ -313,45 +333,33 @@ class Interpreter(ExprVisitor, StmtVisitor):
         index = self.evaluate(expr.index)
         value = self.evaluate(expr.value)
         
-        if not isinstance(index, int):
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Index must be an integer", expr.index)
-            )
+        if not isinstance(index, PulseNumber):
+            self.runtime_error(expr.index, "Index must be a number")
         
-        if isinstance(obj, list):
+        if isinstance(obj, PulseList):
             try:
-                obj[index] = value
+                obj.elements[index.value] = value
                 return value
             except IndexError:
-                raise runtime.PulseRuntimeException(
-                    PulseRuntimeError("Index out of bounds", expr.index)
-                )
+                self.runtime_error(expr.index, "Index out of bounds")
         
-        if isinstance(obj, str):
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Strings are immutable", expr.object)
-            )
+        if isinstance(obj, PulseString):
+            self.runtime_error(expr.object, "Strings are immutable")
         
-        raise runtime.PulseRuntimeException(
-            PulseRuntimeError("Object does not support indexed assignment", expr.object)
-        )
+        self.runtime_error(expr.object, "Object does not support indexed assignment")
     
     def visit_setmember_expr(self, expr):
         obj = self.evaluate(expr.object)
         value = self.evaluate(expr.value)
         
-        if obj is None:
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Cannot set member on null", expr.object)
-            )
+        if isinstance(obj, PulseNull):
+            self.runtime_error(expr.object, "Cannot set member on null")
         
         if isinstance(obj, PulseClass):
             obj.set(expr.name.lexeme, value)
             return value
         
-        raise runtime.PulseRuntimeException(
-            PulseRuntimeError("Only class objects support member assignment", expr.object)
-        )
+        self.runtime_error(expr.object, "Only class objects support member assignment")
     
     def visit_block_stmt(self, stmt):
         previous = self.environment
@@ -394,11 +402,25 @@ class Interpreter(ExprVisitor, StmtVisitor):
         raise runtime.ReturnException(value)
     
     def is_truthy(self, value):
-        if value is None:
+        return value.is_truthy()
+    
+    def is_equal(self, a, b):
+        if type(a) != type(b):
             return False
-        if isinstance(value, bool):
-            return value
-        return True
+        
+        if isinstance(a, PulseNumber):
+            return a.value == b.value
+        
+        if isinstance(a, PulseString):
+            return a.value == b.value
+        
+        if isinstance(a, PulseList):
+            return a.elements == b.elements
+    
+    def num(self, value):
+        if not isinstance(value, PulseNumber):
+            self.runtime_error(message="Expected number")
+        return value.value
     
     def visit_call_expr(self, expr):
         callee = self.evaluate(expr.callee)
@@ -425,14 +447,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_for_stmt(self, stmt):
         iterable = self.evaluate(stmt.iterable)
         
-        try:
-            iterable = iter(iterable)
-        except TypeError:
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Object is not iterable")
-            )
+        if isinstance(iterable, PulseList):
+            iterable_values = iterable.elements
+        else:
+            self.runtime_error(message="Object is not iterable")
         
-        for value in iterable:
+        for value in iterable_values:
             loop_env = Environment(enclosing=self.environment)
             previous = self.environment
             self.environment = loop_env
@@ -469,17 +489,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def visit_memberaccess_expr(self, expr):
         obj = self.evaluate(expr.object)
-        if obj is None:
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Cannot access member of null")
-            )
+        if isinstance(obj, PulseNull):
+            self.runtime_error(message="Cannot access member of null")
         
         if isinstance(obj, PulseClass):
             return obj.get(expr.name.lexeme)
         
-        raise runtime.PulseRuntimeException(
-            PulseRuntimeError("Only class objects support member access")
-        )
+        self.runtime_error(message="Only class objects support member access")
     
     def visit_pass_stmt(self, stmt):
         return None
