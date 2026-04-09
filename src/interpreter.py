@@ -103,9 +103,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
         )
     
     # Native Functions
-    def native_print(self, *args):
-        output = " ".join(str(arg) for arg in args)
-        print(output)
+    def native_print(self, *args, **kwargs):
+        sep = kwargs.get("sep", " ")
+        end = kwargs.get("end", "\n")
+        
+        output = sep.join(str(arg) for arg in args)
+        print(output, end=end)
         return None
     
     def native_input(self, prompt=""):
@@ -401,12 +404,17 @@ class Interpreter(ExprVisitor, StmtVisitor):
         callee = self.evaluate(expr.callee)
         arguments = [self.evaluate(arg) for arg in expr.arguments]
         
+        keyword_arguments = {
+            name.lexeme: self.evaluate(value)
+            for name, value in expr.keyword_arguments
+        }
+        
         if not callable(getattr(callee, "call", None)):
             raise runtime.PulseRuntimeException(
                 PulseRuntimeError("Attempted to call a non-function")
             )
         
-        return callee.call(self, arguments)
+        return callee.call(self, arguments, keyword_arguments)
     
     def visit_break_stmt(self, stmt):
         raise runtime.BreakException()

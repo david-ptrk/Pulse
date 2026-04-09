@@ -42,7 +42,7 @@ DEFAULT_IMPORTS: Tuple[str, ...] = (
 )
 
 EXPRESSIONS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
-    "from typing import Any, List",
+    "from typing import Any, List, Tuple",
     "from src.tokens import Token",
 )
 
@@ -60,7 +60,7 @@ EXPRESSIONS: ASTDict = {
     "Literal": ("value: Any",),
     "Variable": ("name: Token",),
     "Grouping": ("expression: Expr",),
-    "Call": ("callee: Expr", "paren: Token", "arguments: List[Expr]"),
+    "Call": ("callee: Expr", "paren: Token", "arguments: List[Expr]", "keyword_arguments: List[Tuple[Token, Expr]]"),
     "MemberAccess": ("object: Expr", "name: Token"),
     "Logical": ("left: Expr", "operator: Token", "right: Expr"),
     "List": ("elements: List[Expr]",),

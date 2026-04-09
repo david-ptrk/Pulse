@@ -14,16 +14,47 @@ class PulseFunction:
     def arity(self):
         return len(self.declaration.params)
     
-    def call(self, interpreter, arguments):
-        if len(arguments) != self.arity():
-            raise PulseRuntimeError(f"Expected {self.arity()} arguments but got {len(arguments)}")
+    def call(self, interpreter, arguments, keyword_arguments=None):
+        if keyword_arguments is None:
+            keyword_arguments = {}
+        
+        params = self.declaration.params
+        if len(arguments) > len(params):
+            raise runtime.PulseRuntimeException(
+                PulseRuntimeError(f"Expected {len(params)} arguments but got {len(arguments)}")
+            )
+        
+        bound = {}
+        for i, param in enumerate(params):
+            if i < len(arguments):
+                bound[param.lexeme] = arguments[i]
+        
+        params_names = {p.lexeme for p in self.declaration.params}
+        for key, value in keyword_arguments.items():
+            if key not in params_names:
+                raise runtime.PulseRuntimeException(
+                    PulseRuntimeError(f"Unexpected keyword argument '{key}'")
+                )
+            
+            if key in bound:
+                raise runtime.PulseRuntimeException(
+                    PulseRuntimeError(f"Multiple values for argument '{key}'")
+                )
+            
+            bound[key] = value
+        
+        for param in params:
+            if param.lexeme not in bound:
+                raise runtime.PulseRuntimeException(
+                    PulseRuntimeError(f"Missing required argument '{param.lexeme}'")
+                )
         
         # Create a new environment for the function
         environment = Environment(enclosing=self.closure)
         
         # Bind parameters
-        for param, arg in zip(self.declaration.params, arguments):
-            environment.define(param.lexeme, arg)
+        for name, value in bound.items():
+            environment.define(name, value)
         
         previous = interpreter.environment
         interpreter.environment = environment
@@ -49,8 +80,10 @@ class PulseNativeFunction:
     def arity(self):
         return 0
     
-    def call(self, interpreter, arguments):
-        return self.func(*arguments)
+    def call(self, interpreter, arguments, keyword_arguments=None):
+        if keyword_arguments is None:
+            keyword_arguments = {}
+        return self.func(*arguments, **keyword_arguments)
     
     def __repr__(self):
         return f"<native fn {self.name}>"

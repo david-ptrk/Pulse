@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Tuple
 from src.tokens import Token
 
 class ExprVisitor(ABC):
@@ -109,10 +109,11 @@ class Grouping(Expr):
         return visitor.visit_grouping_expr(self)
 
 class Call(Expr):
-    def __init__(self, callee: Expr, paren: Token, arguments: List[Expr]) -> None:
+    def __init__(self, callee: Expr, paren: Token, arguments: List[Expr], keyword_arguments: List[Tuple[Token, Expr]]) -> None:
         self.callee = callee
         self.paren = paren
         self.arguments = arguments
+        self.keyword_arguments = keyword_arguments
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_call_expr(self)

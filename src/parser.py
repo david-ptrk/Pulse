@@ -54,6 +54,11 @@ class Parser:
     def peek(self) -> Token:
         return self.tokens[self.current]
     
+    def peek_next(self) -> Token:
+        if self.current + 1 >= len(self.tokens):
+            return self.tokens[-1]
+        return self.tokens[self.current + 1]
+    
     def previous(self) -> Token:
         return self.tokens[self.current - 1]
     
@@ -363,13 +368,22 @@ class Parser:
         while True:
             if self.match(TokenType.LEFT_PAREN):
                 arguments = []
+                keyword_arguments = []
+                
                 if not self.check(TokenType.RIGHT_PAREN):
                     while True:
-                        arguments.append(self.expression())
+                        if self.check(TokenType.IDENTIFIER) and self.peek_next().type == TokenType.ASSIGN:
+                            name = self.advance()
+                            self.consume(TokenType.ASSIGN, "Expect '=' after keyword name")
+                            value = self.expression()
+                            keyword_arguments.append((name, value))
+                        else:
+                            arguments.append(self.expression())
                         if not self.match(TokenType.COMMA):
                             break
+                
                 paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-                expr_node = expr.Call(expr_node, paren, arguments)
+                expr_node = expr.Call(expr_node, paren, arguments, keyword_arguments)
             
             elif self.match(TokenType.DOT):
                 name = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'")

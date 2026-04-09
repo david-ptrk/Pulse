@@ -159,6 +159,8 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_expr(expr.callee)
         for arg in expr.arguments:
             self.resolve_expr(arg)
+        for _, value in expr.keyword_arguments:
+            self.resolve_expr(value)
     
     def visit_list_expr(self, expr):
         for element in expr.elements:

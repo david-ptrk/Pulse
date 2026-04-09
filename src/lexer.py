@@ -249,7 +249,14 @@ class Lexer:
             )
         
         self.advance()
-        value = self.source[self.start+1 : self.current-1]
+        raw = self.source[self.start+1 : self.current-1]
+        value = (
+            raw.replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace("\\r", "\r")
+            .replace("\\\\", "\\")
+            .replace('\\"', '"')
+        )
         self.add_token(TokenType.STRING, value)
     
     def number(self):
