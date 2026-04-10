@@ -114,8 +114,8 @@ class Lexer:
             return
 
         # Strings literal
-        if c == '"':
-            self.string()
+        if c in ('"', "'"):
+            self.string(c)
             return
         
         # Numbers literal
@@ -233,31 +233,67 @@ class Lexer:
         # Move current pointer past indentation
         self.current = pos
     
-    def string(self):
-        """Handles string literals enclosed in double quotes"""
-        while not self.is_at_end() and self.peek() != '"':
-            if self.peek() == '\n':
-                self.line += 1
-            self.advance()
-
-        if self.is_at_end():
+    def string(self, quote_type):
+        # """Handles string literals enclosed in double and single quotes"""
+        # while not self.is_at_end() and self.peek() != quote_type:
+        #     if self.peek() == '\n':
+        #         self.line += 1
+        #     self.advance()
+        
+        # if self.is_at_end():
+        #     raise PulseLexError(
+        #         message="Unterminated string",
+        #         line=self.line,
+        #         column=self.column(),
+        #         context=self.source.splitlines()[self.line-2]
+        #     )
+        
+        # self.advance()
+        # raw = self.source[self.start+1 : self.current-1]
+        
+        # value = (
+        #     raw.replace("\\n", "\n")
+        #     .replace("\\t", "\t")
+        #     .replace("\\r", "\r")
+        #     .replace("\\\\", "\\")
+        #     .replace(f'\\{quote_type}', quote_type)
+        # )
+        
+        # self.add_token(TokenType.STRING, value)
+        value_chars = []
+        
+        while not self.is_at_end():
+            c = self.advance()
+            
+            if c == quote_type:
+                break
+            
+            if c == "\\":
+                if self.is_at_end():
+                    break
+                nxt = self.advance()
+                escape_map = {
+                    "n": "\n",
+                    "t": "\t",
+                    "r": "\r",
+                    "\\": "\\",
+                    "\"": "\"",
+                    "'": "'",
+                }
+                value_chars.append(escape_map.get(nxt, nxt))
+            else:
+                if c == "\n":
+                    self.line += 1
+                value_chars.append(c)
+        else:
             raise PulseLexError(
                 message="Unterminated string",
                 line=self.line,
                 column=self.column(),
-                context=self.source.splitlines()[self.line-2]
+                context=self.source.splitlines()[self.line-1]
             )
         
-        self.advance()
-        raw = self.source[self.start+1 : self.current-1]
-        value = (
-            raw.replace("\\n", "\n")
-            .replace("\\t", "\t")
-            .replace("\\r", "\r")
-            .replace("\\\\", "\\")
-            .replace('\\"', '"')
-        )
-        self.add_token(TokenType.STRING, value)
+        self.add_token(TokenType.STRING, "".join(value_chars))
     
     def number(self):
         """Handles integer and floating-point number literals."""
