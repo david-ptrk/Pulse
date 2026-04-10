@@ -1,5 +1,9 @@
+*{
+  outline: 1px dotted red;
+}
 body {
   margin: 0px;
+  background-color: #e6f1ed
 }
 
 @import "compass/css3";
@@ -8,15 +12,17 @@ body {
 
 .landin {
   height: 480px;
-  background: linear-gradient(90deg, #5f93ff, #71aaff, #2b55a8dc, #7a96cf, #6690c7);
+  background: #546B41
 }
 
 /*Logo*/
 .logo {
-  margin-left: 65px;
-  font-size: 50px;
-  padding: 30px;
-  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  height: 100px;
+}
+.logo img{
+     height: 130px;
+    width: 100px;
+    margin-left: 56px;
 }
 
 .title {
@@ -31,7 +37,7 @@ body {
   width: 90%;
   margin: 0 auto;
   border-radius: 10px;
-  box-shadow: 4px 9px 13px -1px rgb(55 104 120);
+  box-shadow: 0px 0px 17px -4px #e6f1ed;
   margin-top: 8px;
 }
 
@@ -47,7 +53,7 @@ body {
   width: 25%;
   text-align: center;
   border-right: 1px solid #19405d;
-  background: linear-gradient(45deg, #2b5b84, #1f3c73);
+  background: #e6f1ed;
 }
 
 .four-nav ul li:last-child {
@@ -58,7 +64,7 @@ body {
   display: block;
   padding: 15px 0;
   text-decoration: none;
-  color: white;
+  color: #546B41;
   font-weight: 600;
   transition: 0.2s;
   font-size: 20px;
@@ -71,11 +77,13 @@ body {
 
 .four-nav ul li:last-child {
   border-radius: 0px 10px 10px 0px;
+  
 }
 
 .four-nav ul li a:hover {
-  background: linear-gradient(45deg, #2b5b8498, #1f3c73c8);
+  background: #e6f1ed;
   transform: translateY(-10px);
+  box-shadow: 1px 1px 2px 1px #a2aca8;
 }
 
 .four-nav ul li:first-child a:hover {
@@ -87,9 +95,10 @@ body {
 }
 
 /*Hero Section*/
-.title {
+.white_head{
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-}
+  color: #e6f1ed;
+} 
 
 .section {
   width: 80%;
@@ -100,12 +109,14 @@ body {
   margin-top: 20px;
   padding: 5px;
   font-size: 22px;
+
 }
 
 #hero-subtitle {
   margin-left: 40px;
   margin-top: -7px;
   font-size: 20px;
+  color: #e6f1ed;
 }
 
 .container {
@@ -113,7 +124,7 @@ body {
   height: 70px;
   position: absolute;
   left: 22%;
-  top: 75%;
+  top: 43%;
   transform: translate(-50%, -50%);
   display: flex;
   justify-content: center;
@@ -131,45 +142,31 @@ body {
   width: 180px;
   height: 60px;
   cursor: pointer;
-  background: #285581e0;
-  border: 1px solid #91C9FF;
+  background: #e6f1ed;
+  border: 1px solid #ffffff;
+  border-radius: 50px;
   outline: none;
-  transition: 1s ease-in-out;
-}
-
-svg {
-  position: absolute;
-  left: 0;
-  top: 0;
-  fill: none;
-  stroke: #fff;
-  stroke-dasharray: 150 480;
-  stroke-dashoffset: 150;
-  transition: 1s ease-in-out;
+  transition: 0.5s ease-in-out;
 }
 
 .btn:hover {
   transition: 1s ease-in-out;
-  background: #15497c;
+  background: #becbab;
   font-weight: bold;
-  transform: translateY(-10px);
-}
-
-.btn:hover svg {
-  stroke-dashoffset: -480;
+  transform: scale(1.1);
+  border: 2px solid white ;
 }
 
 .btn span {
-  color: white;
+  color: #546B41;
   font-size: 18px;
-  font-weight: 100;
-  transition: 0.2s ease-in-out;
+  font-weight: bold;
 }
 
 .hr-infinity {
   border: 0;
   height: 11px;
-  background: #15497c;
+  background: #546B41;
   position: relative;
   margin: 30px 0;
   width: 90%;
@@ -183,8 +180,8 @@ svg {
   top: -10px; /* center vertically */
   left: 50%;
   transform: translateX(-50%);
-  background: white;
-  color: #15497c;
+  background: #e6f1ed;
+  color: #546B41;
   padding: 0px 43px 0px 40px;
   font-size: 24px;
 }
@@ -197,13 +194,14 @@ svg {
 
 .title {
   font-size: 20px;
+  color: #546B41 ;
 }
 
 .pulse-code {
   height: 270px;
   width: 400px;
-  background: #1e1e1e;
-  color: #dcdcdc;
+  background: #546B41;
+  color: #e6f1ed;
   padding: 15px;
   border-radius: 10px;
   font-family: "Consolas", monospace;
@@ -250,14 +248,14 @@ svg {
 .olcards li {
   counter-increment: cardCount;
   display: flex;
-  color: white;
+  color: #e6f1ed;
   margin-top: -7px;
 }
 
 .olcards li::before {
   content: counter(cardCount, decimal-leading-zero);
-  background: #819fc0;
-  color: var(--cardColor);
+  background: #becbab;
+  color: #546B41;;
   font-size: 1.8em;
   font-weight: 700;
   transform: translateY(-1rem);
@@ -271,7 +269,7 @@ svg {
 }
 
 .olcards li .content {
-  background-color: var(--cardColor);
+  background-color: #546B41;
   display: grid;
   padding: 1rem 1.5rem;
   grid-template-areas:
@@ -300,7 +298,7 @@ svg {
   position: absolute;
   width: 1rem;
   height: 1rem;
-  background: var(--cardColor);
+  background: #546B41;
   left: 0;
   bottom: 0;
   clip-path: polygon(0 0, 100% 0, 0 100%);
@@ -348,9 +346,9 @@ svg {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: linear-gradient(45deg, #2b5b84, #1f3c73);
+  background: linear-gradient(45deg, #546B41, #99AD7A);
   border-radius: 15px;
-  box-shadow: 10px 10px 20px rgba(50, 93, 140);
+  box-shadow: 10px 10px 20px #99AD7A;
   padding: 30px 20px;
   width: 200px;
   text-align: center;
@@ -359,13 +357,13 @@ svg {
 
 .card h3 {
   margin: 10px 10px;
-  color: #ffffff;
+  color: #e6f1ed;
   font-size: 25px
 }
 
 .card:hover {
   transform: translateY(-10px);
-  box-shadow: 0 15px 25px rgb(43, 81, 122);
+  box-shadow: 0 15px 25px 99AD7A;
 }
 
 .pipeline {
@@ -381,15 +379,15 @@ svg {
 .block {
   position: relative;
   display: inline-block;
-  background: #274f7e;
-  color: white;
+  background: #546B41;
+  color: #e6f1ed;
   padding: 15px 25px;
   font-size: 18px;
   border-radius: 10px 0px 2px 10px;
   margin: 20px 10px;
   width: 200px;
   height: 40px;
-  box-shadow: 10px 10px 20px rgba(50, 93, 140);
+  box-shadow: 10px 10px 20px #546B41;
 }
 
 .block::after {
@@ -401,7 +399,7 @@ svg {
   height: 0;
   border-top: 37px solid transparent;
   border-bottom: 34px solid transparent;
-  border-left: 20px solid #274f7e;
+  border-left: 20px solid #546B41;
 }
 
 #AST::before,
@@ -439,7 +437,7 @@ svg {
 }
 
 .footer {
-  background: #274f7e;
+  background: #546B41;
   padding: 30px 0px;
   font-family: 'Play', sans-serif;
   text-align: center;
