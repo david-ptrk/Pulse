@@ -17,81 +17,83 @@
 
 <body>
     <div class="landin">
-        <div class="logo"><img src="/graphics/logo.png" alt=""></div>
-        <nav class="four-nav">
+
+        <div class="logo-wrapper">
+            <div class="logo">
+                <img src="/graphics/logo.png" alt="pulse logo">
+            </div>
+            <h1 class="logo-title">Pulse</h1>
+        </div>
+
+        <nav class="navbar">
             <ul>
-                <li><a href="#">Home</a></li>
+                <li><a href="#" class="active">Home</a></li>
                 <li><a href="#">Document</a></li>
                 <li><a href="#">Project Architecture</a></li>
                 <li><a href="#">About</a></li>
                 <li><a href="#">Contact</a></li>
             </ul>
         </nav>
+
         <div class="section" id="hero-section">
             <div class="white_head" id="hero-tittle">
-                <h1>Pulse: The AI-Native Programming Language</h1>
+                <h2>The AI-Native Programming Language</h2>
             </div>
             <div class="subtitle" id="hero-subtitle">
                 <h3>Built, train and run AI with language-native speed</h3>
             </div>
-            <a href="#" class="animated-button1">
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                Learn Pulse
-            </a>
             <div class="container">
                 <div class="center">
                     <button class="btn">
-                        <span>Try Demo Editor</span>
+                        <span>Learn Pulse</span>
+                    </button>
+                    <button class="btn">
+                        <span>Online Editor</span>
                     </button>
                 </div>
             </div>
         </div>  
     </div>
-    <hr class="hr-infinity">
+    <hr class="line-divider">
+
     <div class="code-pre">
-        <div class="title" id="code-pre-title">
-            <h1>
-                Pulse:Code Example Preview
-            </h1>
+        <div class="section-title" id="code-pre-title">
+            <h3>Pulse: Code Example</h3>
         </div>
         <div class="pulse-code">
             <pre id="typewriter"></pre>
         </div>
     </div>
+
     <hr class="after-section-hr">
+    
     <div class="section" id="section3">
-        <div class="title" id="why-pulse-title">
-            <h1>Why Pulse Exist</h1>
+        <div class="section-title" id="why-pulse-title">
+            <h3>Why Pulse Exist</h3>
         </div>
         <section class="why-pulse-card">
             <ol class="olcards">
                 <li style="--cardColor:#214276">
                     <div class="content">
                         <div class="bullet-title">Designed specifically for AI & ML</div>
-                        <div class="text">PULSE is tailored to efficiently handle AI and Machine Learning workflows
-                        </div>
+                        <div class="text">Pulse is tailored to efficiently handle AI and Machine Learning workflows.</div>
                 </li>
                 <li style="--cardColor:#214276">
                     <div class="content">
                         <div class="bullet-title">Native tensor and matrix operations</div>
-                        <div class="text">The language provides built-in support for tensors and matrix operations for
-                            numerical computing.</div>
+                        <div class="text">The language provides built-in support for tensors and matrix operations for numerical computing.</div>
                     </div>
                 </li>
                 <li style="--cardColor:#214276">
                     <div class="content">
                         <div class="bullet-title">Python-like syntax</div>
-                        <div class="text">Offers simple and readable Python-like syntax, making it easy to learn and
-                            use.</div>
+                        <div class="text">Offers simple and readable Python-like syntax, making it easy to learn and use.</div>
                     </div>
                 </li>
                 <li style="--cardColor:#214276">
                     <div class="content">
                         <div class="bullet-title">C++/Rust-like speed through optimized backend</div>
-                        <div class="text">Optimized backend ensures high performance comparable to C++ or Rust.</div>
+                        <div class="text">Optimized backend ensures high performance comparable to C++ or Rust.</div> 
                     </div>
                 </li>
                 <li style="--cardColor:#214276">
@@ -103,43 +105,48 @@
             </ol>
         </section>
     </div>
+
     <hr class="after-section-hr">
+
     <div class="section" id="section4">
-        <div class="title" id="feature-title">
-            <h1>Key Feature</h1>
+        <div class="section-title" id="">
+            <h3>Key Feature</h3>
         </div>
         <section class="card-container">
             <div class="card">
-                <h3>Tensor-Native Syntax</h3>
+                <h4>Tensor-Native Syntax</h4>
             </div>
             <div class="card">
-                <h3>Built-In AI Ops</h3>
+                <h4>Built-In AI Ops</h4>
             </div>
             <div class="card">
-                <h3>Lightweight Interpreter</h3>
+                <h4>Lightweight Interpreter</h4>
             </div>
             <div class="card">
-                <h3>Static + Dynamic Typing Hybrid</h3>
+                <h4>Static + Dynamic Typing Hybrid</h4>
             </div>
         </section>
     </div>
+
     <hr class="after-section-hr">
-    <div class="section" id="architecture-diagram">
-        <div class="title" id="why-pulse-title">
-            <h1>Architecture Overview</h1>
+
+    <div class="section" id="section5">
+        <div class="section-title" id="why-pulse-title">
+            <h3>Architecture Overview</h3>
         </div>
         <div class="pipeline">
             <div class="block" id="Interpreter">
-                <h2>Interpreter</h2>
+                <h4>Interpreter</h4>
             </div>
             <div class="block" id="AST">
-                <h2>AST</h2>
+                <h4>AST</h4>
             </div>
             <div class="block" id="python-bend">
-                <h2>Python Backend</h2>
+                <h4>Python Backend</h4>
             </div>
         </div>
     </div>
+
     <footer>
         <div class="footer">
             <div class="row">
@@ -152,10 +159,8 @@
             <div class="row">
                 <ul>
                     <li><a href="#">links to Docs</a></li>
-                    <li><a href="#">GitHub</a></li>
-                    <li><a href="#">About</a></li>
+                    <li><a href="https://github.com/david-ptrk/Pulse">GitHub</a></li>
                     <li><a href="#">Terms & Conditions</a></li>
-                    <li><a href="#">Contact</a></li>
                 </ul>
             </div>
 

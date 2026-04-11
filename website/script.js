@@ -1,11 +1,15 @@
-const code = `// PULSE Example Program
-start:
-    let message = "Welcome to PULSE"
-    func show(msg) {
-        print(msg)
-    }
-    show(message)
-end;`;
+const code = `# PULSE Example Program
+X = @[[1, 2],[3, 4]]
+Y = @[0, 1]
+
+model = LinearModel()
+data = X
+labels = Y
+model.train(data, labels)
+
+prediction = model.predict(@[5, 6])
+print(prediction)
+`;
 
 let index = 0;
 const speed = 25;
