@@ -10,6 +10,8 @@ class PulseFunction:
     def __init__(self, declaration, closure):
         self.declaration = declaration
         self.closure = closure
+        self.is_bound = False
+        self.bound_instance = None
     
     def arity(self):
         return len(self.declaration.params)
@@ -63,11 +65,19 @@ class PulseFunction:
             for stmt in self.declaration.body.statements:
                 interpreter.execute(stmt)
         except runtime.ReturnException as e:
+            if self.declaration.is_method and self.declaration.name.lexeme == "init":
+                return self.closure.get("this")
             return e.value
         finally:
             interpreter.environment = previous
         
         return None
+    
+    def bind(self, instance):
+        bound = PulseFunction(self.declaration, self.closure)
+        bound.is_bound = True
+        self.bound_instance = instance
+        return bound
     
     def __repr__(self):
         return "<function>"

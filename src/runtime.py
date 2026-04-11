@@ -54,16 +54,69 @@ class ReturnException(Exception):
         self.token = token
 
 class PulseClass:
-    def __init__(self, name, fields):
+    def __init__(self, name, methods, class_vars, bases=None):
         self.name = name
-        self.fields = fields
+        self.methods = methods
+        self.class_vars = class_vars
+        self.bases = bases or []
+    
+    def call(self, interpreter, arguments, kwargs):
+        instance = PulseInstance(self)
+        
+        init = self.find_method("__init__")
+        if init:
+            init.bind(instance).call(interpreter, arguments, kwargs)
+        
+        return instance
+    
+    def find_method(self, name):
+        if name in self.methods:
+            return self.methods[name]
+        
+        for base in self.bases:
+            method = base.find_method(name)
+            if method:
+                return method
+        
+        return None
     
     def get(self, name):
-        if name in self.fields:
-            return self.fields[name]
+        if name in self.class_vars:
+            return self.class_vars[name]
+        
+        method = self.find_method(name)
+        if method:
+            return method
+        
         raise PulseRuntimeException(
-            PulseRuntimeError(f"Undefined property '{name}'")
+            PulseRuntimeError(f"Undefined class member '{name}'")
         )
     
     def __repr__(self):
         return f"<class {self.name}>"
+
+class PulseInstance:
+    def __init__(self, klass):
+        self.klass = klass
+        self.fields = {}
+    
+    def get(self, name):
+        if name in self.fields:
+            return self.fields[name]
+        
+        if name in self.klass.class_vars:
+            return self.klass.class_vars[name]
+        
+        method = self.klass.find_method(name)
+        if method:
+            return method.bind(self)
+        
+        raise PulseRuntimeException(
+            PulseRuntimeError(f"Undefined property '{name}'")
+        )
+    
+    def set(self, name, value):
+        self.fields[name] = value
+    
+    def __repr__(self):
+        return f"<instance of {self.klass.name}"

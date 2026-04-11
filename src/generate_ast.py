@@ -54,34 +54,34 @@ STATEMENTS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
 
 # Expressions
 EXPRESSIONS: ASTDict = {
-    "Assign": ("name: Token", "value: Expr"),
-    "Binary": ("left: Expr", "operator: Token", "right: Expr"),
-    "Unary": ("operator: Token", "right: Expr"),
+    "Assign": ("name: Token", "value: Expr",),
+    "Binary": ("left: Expr", "operator: Token", "right: Expr",),
+    "Unary": ("operator: Token", "right: Expr",),
     "Literal": ("value: Any",),
     "Variable": ("name: Token",),
     "Grouping": ("expression: Expr",),
-    "Call": ("callee: Expr", "paren: Token", "arguments: List[Expr]", "keyword_arguments: List[Tuple[Token, Expr]]"),
-    "MemberAccess": ("object: Expr", "name: Token"),
-    "Logical": ("left: Expr", "operator: Token", "right: Expr"),
+    "Call": ("callee: Expr", "paren: Token", "arguments: List[Expr]", "keyword_arguments: List[Tuple[Token, Expr]]",),
+    "MemberAccess": ("object: Expr", "name: Token",),
+    "Logical": ("left: Expr", "operator: Token", "right: Expr",),
     "List": ("elements: List[Expr]",),
-    "Index": ("object: Expr", "index: Expr"),
-    "SetIndex": ("object: Expr", "index: Expr", "value: Expr"),
-    "SetMember": ("object: Expr", "name: Token", "value: Expr"),
+    "Index": ("object: Expr", "index: Expr",),
+    "SetIndex": ("object: Expr", "index: Expr", "value: Expr",),
+    "SetMember": ("object: Expr", "name: Token", "value: Expr",),
 }
 
 # Statements
 STATEMENTS: ASTDict = {
     "Expression": ("expression: Expr",),
     "Block": ("statements: List[Stmt]",),
-    "If": ("condition: Expr", "then_branch: Stmt", "elif_branches: List[Tuple[Expr, Stmt]]", "else_branch: Optional[Stmt]"),
-    "While": ("condition: Expr", "body: Stmt"),
-    "For": ("var: Token", "iterable: Expr", "body: Stmt"),
+    "If": ("condition: Expr", "then_branch: Stmt", "elif_branches: List[Tuple[Expr, Stmt]]", "else_branch: Optional[Stmt]",),
+    "While": ("condition: Expr", "body: Stmt",),
+    "For": ("var: Token", "iterable: Expr", "body: Stmt",),
     "Break": ("keyword: Token",),
     "Continue": ("keyword: Token",),
     "Return": ("keyword: Token", "value: Optional[Expr]",),
-    "Function": ("name: Token", "params: List[Token]", "body: Block",),
-    "Class": ("name: Token", "body: List[Stmt]",),
-    "Try": ("try_block: Stmt", "except_blocks: List[Tuple[Optional[Expr], Optional[Token], Stmt]]", "finally_block: Optional[Stmt]", "else_block: Optional[Stmt]"),
+    "Function": ("name: Token", "params: List[Token]", "body: Block", "is_method: bool",),
+    "Class": ("name: Token", "bases: List[Token]", "methods: List[Function]", "class_vars: List[Tuple[Token, Expr]]",),
+    "Try": ("try_block: Stmt", "except_blocks: List[Tuple[Optional[Expr], Optional[Token], Stmt]]", "finally_block: Optional[Stmt]", "else_block: Optional[Stmt]",),
     "Pass": (),
 }
 

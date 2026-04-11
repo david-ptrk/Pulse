@@ -92,6 +92,7 @@ class TokenType(Enum):
     CLASS = auto()
     IN = auto()
     DEL = auto()
+    SELF = auto()
 
 # Mapping of string keywords to TokenType for easy lookup
 KEYWORDS = {

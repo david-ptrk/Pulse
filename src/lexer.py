@@ -321,6 +321,10 @@ class Lexer:
             self.add_token(TokenType.BOOL, literal=(text=="true"))
             return
         
+        if text == "self":
+            self.add_token(TokenType.SELF)
+            return
+        
         token_type = KEYWORDS.get(text, TokenType.IDENTIFIER)
         self.add_token(token_type)
 

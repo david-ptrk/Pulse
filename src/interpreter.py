@@ -473,19 +473,25 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return None
     
     def visit_class_stmt(self, stmt):
-        self.environment.define(stmt.name, None)
-        class_env = Environment(enclosing=self.environment)
-        previous = self.environment
-        self.environment = class_env
+        self.environment.define(stmt.name.lexeme, None)
         
-        try:
-            for statement in stmt.body:
-                self.execute(statement)
-        finally:
-            self.environment = previous
+        bases = []
+        for base in stmt.bases:
+            base_class = self.environment.get(base)
+            bases.append(base_class)
         
-        class_object = PulseClass(stmt.name.lexeme, class_env.values.copy())
-        self.environment.assign(stmt.name, class_object)
+        class_vars = {}
+        for name_tok, value_expr in stmt.class_vars:
+            value = self.evaluate(value_expr)
+            class_vars[name_tok.lexeme] = value
+        
+        methods = {}
+        for method in stmt.methods:
+            function = PulseFunction(method, self.environment)
+            methods[method.name.lexeme] = function
+        
+        class_object = PulseClass(stmt.name.lexeme, methods, class_vars, bases)
+        self.environment.assign(stmt.name.lexeme, class_object)
     
     def visit_memberaccess_expr(self, expr):
         obj = self.evaluate(expr.object)

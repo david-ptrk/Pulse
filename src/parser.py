@@ -187,7 +187,7 @@ class Parser:
         
         return stmt.For(var_token, iterable, body)
     
-    def parse_func_stmt(self) -> stmt.Stmt:
+    def parse_func_stmt(self, is_method: bool = False) -> stmt.Stmt:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name.")
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after function name.")
         
@@ -208,30 +208,48 @@ class Parser:
         
         self.consume(TokenType.INDENT, "Expect block indentation")
         body = self.block()
-        return stmt.Function(name, params, body)
+        return stmt.Function(name, params, body, is_method)
     
     def parse_class_stmt(self) -> stmt.Stmt:
-        name = self.consume(TokenType.IDENTIFIER, "Expect class name.")
-        self.consume(TokenType.COLON, "Expect ':' after class name.")
+        name = self.consume(TokenType.IDENTIFIER, "Expect class name")
         
+        bases = []
+        if self.match(TokenType.LEFT_PAREN):
+            if not self.check(TokenType.RIGHT_PAREN):
+                bases.append(self.consume(TokenType.IDENTIFIER, "Expect base class name"))
+                while self.match(TokenType.COMMA):
+                    if self.check(TokenType.RIGHT_PAREN):
+                        break
+                    bases.append(self.consume(TokenType.IDENTIFIER, "Expect base class name"))
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after base classes")
+        
+        self.consume(TokenType.COLON, "Expect ':' after class declaration")
         self.consume(TokenType.INDENT, "Expect class body indentation")
         
-        body: list[stmt.Stmt] = []
+        methods = []
+        class_vars = []
         while not self.check(TokenType.DEDENT) and not self.is_at_end():
-            # Skip empty lines
             if self.match(TokenType.NEWLINE):
                 continue
-            # Methods
+            
             if self.match(TokenType.DEF):
-                body.append(self.parse_func_stmt())
-            # Assignments at class level
-            else:
-                expr_stmt = self.expression()
+                method = self.parse_func_stmt(is_method=True)
+                methods.append(method)
+                continue
+            
+            if self.check(TokenType.IDENTIFIER):
+                name_tok = self.consume(TokenType.IDENTIFIER, "Expect variable name")
+                self.consume(TokenType.ASSIGN, "Expect '=' after variable name")
+                
+                value = self.expression()
                 self.match(TokenType.NEWLINE)
-                body.append(stmt.Expression(expr_stmt))
+                class_vars.append((name_tok, value))
+                continue
+            
+            raise ParseError(self.peek(), "Invalid class body statement", self.source)
         
         self.consume(TokenType.DEDENT, "Class body not closed")
-        return stmt.Class(name, body)
+        return stmt.Class(name, bases, methods, class_vars)
     
     def parse_try_stmt(self) -> stmt.Stmt:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")

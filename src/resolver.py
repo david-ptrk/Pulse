@@ -190,17 +190,23 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.current_function = enclosing_function
     
     def visit_class_stmt(self, stmt):
-        # No inheritance yet
         self.declare(stmt.name)
         self.define(stmt.name)
         
         enclosing_class = self.current_class
         self.current_class = "CLASS"
         
+        for base in stmt.bases:
+            self.resolve_local(stmt, base)
+        
         self.begin_scope()
         self.scopes[-1]["this"] = True
-        for statement in stmt.body:
-            self.resolve_stmt(statement)
+        for name_tok, value in stmt.class_vars:
+            self.resolve_expr(value)
+            self.scopes[-1][name_tok.lexeme] = True
+        
+        for method in stmt.methods:
+            self.resolve_function(method, "METHOD")
         
         self.end_scope()
         self.current_class = enclosing_class
