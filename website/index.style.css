@@ -50,7 +50,7 @@ body {
 
 /* -------------------- NAVBAR -------------------- */
 .navbar {
-  width: 90%;
+  width: 77%;
   margin: 15px auto;
   padding: 10px 20px;
   background: rgba(230, 241, 237, 0.75);
@@ -414,8 +414,7 @@ body {
   border-left: 20px solid var(--blue-color);
 }
 
-#AST::before,
-#python-bend::before {
+.seconds::before {
   content: "";
   position: absolute;
   top: 0;
@@ -427,8 +426,7 @@ body {
   border-left: 20px solid var(--white-color);
 }
 
-#AST,
-#python-bend {
+.seconds {
   border-radius: 0px;
 }
 

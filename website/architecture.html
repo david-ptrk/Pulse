@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture</title>
+    <link rel="stylesheet" href="./architecture.style.css">
+</head>
+<body>
+    <div class="arch-wrap">
+        <p class="arch-title">Pulse - Language Architecture</p>
+        <div class="pipeline-wrap">
+            <div class="pipeline" id="pipeline"></div>
+        </div>
+        <div class="controls">
+            <button class="btn primary" id="playBtn" onclick="startPipeline()">▶ Run Pipeline</button>
+            <button class="btn" onclick="resetPipeline()">↺ Reset</button>
+        </div>
+        <div class="detail-panel" id="detailPanel" style="display:none;">
+            <div class="detail-inner" id="detailInner"></div>
+        </div>
+    </div>
+    <script src="./architecture.script.js"></script>
+</body>
+</html>
