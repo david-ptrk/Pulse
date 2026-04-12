@@ -190,12 +190,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_literal_expr(self, expr):
         value = expr.value
         
+        if isinstance(value, bool):
+            return PulseBoolean(value)
         if isinstance(value, (int, float)):
             return PulseNumber(value)
         if isinstance(value, str):
             return PulseString(value)
-        if isinstance(value, bool):
-            PulseBoolean(value)
         if value is None:
             return PulseNull()
         
