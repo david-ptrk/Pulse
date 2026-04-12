@@ -26,7 +26,13 @@ The environment system will be used by the interpreter to manage state
 during execution of a Pulse program.
 """
 
+from typing import Any, Union
+from src.tokens import Token
 from src.error import PulseRuntimeError
+
+_NameArg = Union[str, Token]
+def _key(name) -> str:
+    return name.lexeme if isinstance(name, Token) else name
 
 class Environment:
     def __init__(self, enclosing=None):
@@ -34,7 +40,7 @@ class Environment:
         self.enclosing = enclosing
     
     def define(self, name, value):
-        key = name.lexeme if hasattr(name, "lexeme") else name
+        key = _key(name)
         
         if key in self.values:
             raise PulseRuntimeError(f"Variable '{key}' already defined.")
@@ -45,24 +51,24 @@ class Environment:
             self.define(name, value)
     
     def get(self, name):
-        key = name.lexeme if hasattr(name, "lexeme") else name
+        key = _key(name)
         
         if key in self.values:
             return self.values[key]
         
-        if self.enclosing:
+        if self.enclosing is not None:
             return self.enclosing.get(name)
         
         raise PulseRuntimeError(f"Undefined variable '{key}'")
     
     def assign(self, name, value):
-        key = name.lexeme if hasattr(name, "lexeme") else name
+        key = _key(name)
         
         if key in self.values:
             self.values[key] = value
             return
         
-        if self.enclosing:
+        if self.enclosing is not None:
             self.enclosing.assign(name, value)
             return
         
@@ -76,8 +82,8 @@ class Environment:
     
     def get_at(self, distance, name):
         key = name.lexeme if hasattr(name, "lexeme") else name
-        return self.ancestor(distance).values[key]
+        return self.ancestor(distance).values[_key(name)]
     
     def assign_at(self, distance, name, value):
         key = name.lexeme if hasattr(name, "lexeme") else name
-        self.ancestor(distance).values[key] = value
+        self.ancestor(distance).values[_key(name)] = value

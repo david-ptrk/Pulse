@@ -18,6 +18,8 @@ and must be handled appropriately within control-flow constructs such as
 loops and function execution blocks.
 """
 
+from __future__ import annotations
+from typing import Any, Optional
 from src.error import PulseRuntimeError
 
 class PulseException(Exception):
@@ -60,11 +62,11 @@ class PulseClass:
         self.class_vars = class_vars
         self.bases = bases or []
     
-    def call(self, interpreter, arguments, kwargs):
+    def call(self, interpreter, arguments, kwargs) -> PulseInstance:
         instance = PulseInstance(self)
         
         init = self.find_method("__init__")
-        if init:
+        if init is not None:
             init.bind(instance).call(interpreter, arguments, kwargs)
         
         return instance
@@ -75,7 +77,7 @@ class PulseClass:
         
         for base in self.bases:
             method = base.find_method(name)
-            if method:
+            if method is not None:
                 return method
         
         return None
@@ -85,18 +87,18 @@ class PulseClass:
             return self.class_vars[name]
         
         method = self.find_method(name)
-        if method:
+        if method is not None:
             return method
         
         raise PulseRuntimeException(
             PulseRuntimeError(f"Undefined class member '{name}'")
         )
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<class {self.name}>"
 
 class PulseInstance:
-    def __init__(self, klass):
+    def __init__(self, klass: PulseClass) -> None:
         self.klass = klass
         self.fields = {}
     
@@ -108,7 +110,7 @@ class PulseInstance:
             return self.klass.class_vars[name]
         
         method = self.klass.find_method(name)
-        if method:
+        if method is not None:
             return method.bind(self)
         
         raise PulseRuntimeException(

@@ -46,13 +46,14 @@ import src.runtime as runtime
 from src.tokens import Token
 from src.function import PulseFunction, PulseNativeFunction
 import math
-from src.runtime import PulseClass
+from src.runtime import PulseClass, PulseInstance
 from src.values import PulseNumber, PulseString, PulseNull, PulseList, PulseBoolean
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment):
         self.environment = global_environment
         self.locals = {}
+        self.source = ""
         
         # Native Functions
         self.environment.define_many([
@@ -105,8 +106,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     # Native Functions
     def native_print(self, *args, **kwargs):
-        sep = kwargs.get("sep", " ")
-        end = kwargs.get("end", "\n")
+        sep = str(kwargs.get("sep", " "))
+        end = str(kwargs.get("end", "\n"))
         
         output = sep.join(repr(arg) for arg in args)
         print(output, end=end)
@@ -201,11 +202,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return value
     
     def visit_variable_expr(self, expr):
+        if expr.name.lexeme == "self":
+            return self.environment.get("self")
+        
         distance = self.locals.get(expr)
         if distance is not None:
             return self.environment.get_at(distance, expr.name.lexeme)
-        else:
-            return self.environment.get(expr.name.lexeme)
+        return self.environment.get(expr.name.lexeme)
     
     def visit_assign_expr(self, expr):
         value = self.evaluate(expr.value)
@@ -355,8 +358,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if isinstance(obj, PulseNull):
             self.runtime_error(expr.object, "Cannot set member on null")
         
-        if isinstance(obj, PulseClass):
+        if isinstance(obj, PulseInstance):
             obj.set(expr.name.lexeme, value)
+            return value
+        
+        if isinstance(obj, PulseClass):
+            obj.class_vars[expr.name.lexeme] = value
             return value
         
         self.runtime_error(expr.object, "Only class objects support member assignment")
@@ -475,10 +482,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_class_stmt(self, stmt):
         self.environment.define(stmt.name.lexeme, None)
         
-        bases = []
-        for base in stmt.bases:
-            base_class = self.environment.get(base)
-            bases.append(base_class)
+        bases = [self.environment.get(base) for base in stmt.bases]
         
         class_vars = {}
         for name_tok, value_expr in stmt.class_vars:
@@ -497,6 +501,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         obj = self.evaluate(expr.object)
         if isinstance(obj, PulseNull):
             self.runtime_error(message="Cannot access member of null")
+        
+        if isinstance(obj, PulseInstance):
+            return obj.get(expr.name.lexeme)
         
         if isinstance(obj, PulseClass):
             return obj.get(expr.name.lexeme)

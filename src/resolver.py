@@ -12,16 +12,29 @@ It also detects errors such as:
 - Using a variable before it is defined in the same scope
 """
 
+from __future__ import annotations
+from enum import Enum, auto
+from typing import Any, Optional
 from src.expressions import ExprVisitor
 from src.statements import StmtVisitor
+from src.tokens import Token
 from src.error import PulseSemanticError
+
+class FunctionType(Enum):
+    NONE = auto()
+    FUNCTION = auto()
+    METHOD = auto()
+
+class ClassType(Enum):
+    NONE = auto()
+    CLASS = auto()
 
 class Resolver(ExprVisitor, StmtVisitor):
     def __init__(self, interpreter):
         self.interpreter = interpreter
         self.scopes = [{}]
-        self.current_class = None
-        self.current_function = None
+        self.current_class = ClassType.NONE
+        self.current_function = FunctionType.NONE
         self.loop_depth = 0
     
     # Entry Point
@@ -73,6 +86,9 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.current_function = func_type
         self.begin_scope()
         
+        if func_type == FunctionType.METHOD:
+            self.scopes[-1]["self"] = True
+        
         for param in func.params:
             self.scopes[-1][param.lexeme] = True
         
@@ -97,7 +113,7 @@ class Resolver(ExprVisitor, StmtVisitor):
             self.resolve_expr(cond)
             self.resolve_stmt(branch)
         
-        if stmt.else_branch:
+        if stmt.else_branch is not None:
             self.resolve_stmt(stmt.else_branch)
     
     def visit_while_stmt(self, stmt):
@@ -107,112 +123,47 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.loop_depth -= 1
     
     def visit_return_stmt(self, stmt):
-        if self.current_function is None:
+        if self.current_function is FunctionType.NONE:
             raise PulseSemanticError(
                 "Cannot return from top-level code",
             )
         
-        if stmt.value:
+        if stmt.value is not None:
             self.resolve_expr(stmt.value)
     
     def visit_pass_stmt(self, stmt):
         pass
     
-    # Expressions
-    def visit_literal_expr(self, expr):
-        pass
-    
-    def visit_grouping_expr(self, expr):
-        self.resolve_expr(expr.expression)
-    
-    def visit_unary_expr(self, expr):
-        self.resolve_expr(expr.right)
-    
-    def visit_binary_expr(self, expr):
-        self.resolve_expr(expr.left)
-        self.resolve_expr(expr.right)
-    
-    def visit_logical_expr(self, expr):
-        self.resolve_expr(expr.left)
-        self.resolve_expr(expr.right)
-    
-    def visit_variable_expr(self, expr):
-        for i in range(len(self.scopes) - 1, -1, -1):
-            scope = self.scopes[i]
-            if expr.name.lexeme in scope:
-                if scope[expr.name.lexeme] is False:
-                    raise PulseSemanticError(
-                        f"Cannot read local variable '{expr.name.lexeme}' before assignment",
-                        token=expr.name
-                    )
-                break
-        else:
-            pass
-        
-        self.resolve_local(expr, expr.name)
-    
-    def visit_assign_expr(self, expr):
-        self.resolve_expr(expr.value)
-        self.resolve_local(expr, expr.name)
-    
-    def visit_call_expr(self, expr):
-        self.resolve_expr(expr.callee)
-        for arg in expr.arguments:
-            self.resolve_expr(arg)
-        for _, value in expr.keyword_arguments:
-            self.resolve_expr(value)
-    
-    def visit_list_expr(self, expr):
-        for element in expr.elements:
-            self.resolve_expr(element)
-    
-    def visit_index_expr(self, expr):
-        self.resolve_expr(expr.object)
-        self.resolve_expr(expr.index)
-    
-    def visit_setindex_expr(self, expr):
-        self.resolve_expr(expr.object)
-        self.resolve_expr(expr.index)
-        self.resolve_expr(expr.value)
-    
-    def visit_setmember_expr(self, expr):
-        self.resolve_expr(expr.object)
-        self.resolve_expr(expr.value)
-    
     def visit_function_stmt(self, stmt):
         self.declare(stmt.name)
         self.define(stmt.name)
         
-        enclosing_function = self.current_function
-        self.current_function = "METHOD" if self.current_class else "FUNCTION"
+        # enclosing_function = self.current_function
+        func_type = FunctionType.METHOD if self.current_class is not ClassType.NONE else FunctionType.FUNCTION
         
-        self.resolve_function(stmt, self.current_function)
-        self.current_function = enclosing_function
+        self.resolve_function(stmt, func_type)
+        # self.current_function = enclosing_function
     
     def visit_class_stmt(self, stmt):
         self.declare(stmt.name)
         self.define(stmt.name)
         
         enclosing_class = self.current_class
-        self.current_class = "CLASS"
+        self.current_class = ClassType.CLASS
         
         for base in stmt.bases:
             self.resolve_local(stmt, base)
         
         self.begin_scope()
-        self.scopes[-1]["this"] = True
         for name_tok, value in stmt.class_vars:
             self.resolve_expr(value)
             self.scopes[-1][name_tok.lexeme] = True
         
         for method in stmt.methods:
-            self.resolve_function(method, "METHOD")
+            self.resolve_function(method, FunctionType.METHOD)
         
         self.end_scope()
         self.current_class = enclosing_class
-    
-    def visit_memberaccess_expr(self, expr):
-        self.resolve_expr(expr.object)
     
     def visit_for_stmt(self, stmt):
         self.resolve_expr(stmt.iterable)
@@ -256,3 +207,70 @@ class Resolver(ExprVisitor, StmtVisitor):
                 "Cannot use 'break' outside loop",
                 token=stmt.keyword
             )
+    
+    # Expressions
+    def visit_literal_expr(self, expr):
+        pass
+    
+    def visit_grouping_expr(self, expr):
+        self.resolve_expr(expr.expression)
+    
+    def visit_unary_expr(self, expr):
+        self.resolve_expr(expr.right)
+    
+    def visit_binary_expr(self, expr):
+        self.resolve_expr(expr.left)
+        self.resolve_expr(expr.right)
+    
+    def visit_logical_expr(self, expr):
+        self.resolve_expr(expr.left)
+        self.resolve_expr(expr.right)
+    
+    def visit_variable_expr(self, expr) -> None:
+        name_lexeme = expr.name.lexeme
+        
+        if name_lexeme == "self":
+            return
+        
+        for i in range(len(self.scopes) - 1, -1, -1):
+            scope = self.scopes[i]
+            if name_lexeme in scope:
+                if scope[name_lexeme] is False:
+                    raise PulseSemanticError(
+                        f"Cannot read local variable '{name_lexeme}' before assignment",
+                        token=expr.name
+                    )
+                break
+        
+        self.resolve_local(expr, expr.name)
+    
+    def visit_assign_expr(self, expr):
+        self.resolve_expr(expr.value)
+        self.resolve_local(expr, expr.name)
+    
+    def visit_call_expr(self, expr):
+        self.resolve_expr(expr.callee)
+        for arg in expr.arguments:
+            self.resolve_expr(arg)
+        for _, value in expr.keyword_arguments:
+            self.resolve_expr(value)
+    
+    def visit_list_expr(self, expr):
+        for element in expr.elements:
+            self.resolve_expr(element)
+    
+    def visit_index_expr(self, expr):
+        self.resolve_expr(expr.object)
+        self.resolve_expr(expr.index)
+    
+    def visit_setindex_expr(self, expr):
+        self.resolve_expr(expr.object)
+        self.resolve_expr(expr.index)
+        self.resolve_expr(expr.value)
+    
+    def visit_setmember_expr(self, expr):
+        self.resolve_expr(expr.object)
+        self.resolve_expr(expr.value)
+    
+    def visit_memberaccess_expr(self, expr):
+        self.resolve_expr(expr.object)

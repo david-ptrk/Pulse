@@ -19,7 +19,9 @@ These tokens are later consumed by the parser to construct the Abstract
 Syntax Tree (AST), which represents the structural syntax of a Pulse program.
 """
 
+from __future__ import annotations
 from enum import Enum, auto
+from typing import Any
 
 # -------------------------------------------------------
 # TokenType Enum
@@ -134,12 +136,26 @@ class Token:
         literal (object): Parsed value of token
         line (int): Line number in source file
     """
-    def __init__(self, type: TokenType, lexeme: str, literal: object, line: int, column):
+    __slots__ = ("type", "lexeme", "literal", "line", "column")
+    
+    def __init__(self, type: TokenType, lexeme: str, literal: Any, line: int, column: int) -> None:
         self.type = type
         self.lexeme = lexeme
         self.literal = literal
         self.line = line
         self.column = column
     
-    def __repr__(self):
-        return f"Token({self.type}, '{self.lexeme}', {self.literal}, line={self.line}, columns={self.column})"
+    def __repr__(self) -> str:
+        return f"Token({self.type}, '{self.lexeme}', {self.literal}, line={self.line}, column={self.column})"
+    
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Token):
+            return NotImplemented
+        return (
+            self.type == other.type
+            and self.lexeme == other.lexeme
+            and self.literal == other.literal
+        )
+    
+    def __hash__(self) -> int:
+        return hash((self.type, self.lexeme, self.literal))

@@ -25,6 +25,7 @@ The resulting AST is later used by the interpreter or compiler to
 execute or further process the Pulse program.
 """
 
+from __future__ import annotations
 from typing import List, Optional, Tuple
 from src import expressions as expr
 from src import statements as stmt
@@ -32,11 +33,10 @@ from src.tokens import Token, TokenType
 from src.error import PulseSyntaxError
 
 class ParseError(PulseSyntaxError):
-    def __init__(self, token: Token, message: str, source: str):
-        line = token.line
-        # column = getattr(token, "column", None)
-        
+    def __init__(self, token: Token, message: str, source: str) -> None:
+        line = token.line        
         context = None
+
         if line is not None:
             lines = source.splitlines()
             if 0 < line <= len(lines):
@@ -47,8 +47,8 @@ class ParseError(PulseSyntaxError):
 class Parser:
     def __init__(self, tokens: List[Token], source: str) -> None:
         self.tokens = tokens
-        self.current = 0
         self.source = source
+        self.current = 0
     
     # Core helper functions
     def peek(self) -> Token:
@@ -137,7 +137,7 @@ class Parser:
         self.match(TokenType.NEWLINE)
         return stmt.Expression(expr_stmt)
 
-    def block(self) -> stmt.Stmt:
+    def block(self) -> stmt.Block:
         statements: List[stmt.Stmt] = []
         
         while not self.check(TokenType.DEDENT) and not self.is_at_end():
@@ -148,7 +148,7 @@ class Parser:
         self.consume(TokenType.DEDENT, "Block not closed")
         return stmt.Block(statements)
     
-    def parse_if_stmt(self) -> stmt.Stmt:
+    def parse_if_stmt(self) -> stmt.If:
         condition = self.expression()
         self.consume(TokenType.COLON, "Expect ':' after condition")
         
@@ -168,13 +168,13 @@ class Parser:
         
         return stmt.If(condition, then_branch, elif_branches, else_branch)
     
-    def parse_while_stmt(self) -> stmt.Stmt:
+    def parse_while_stmt(self) -> stmt.While:
         condition = self.expression()
         self.consume(TokenType.COLON, "Expected ':' after while condition")
-        body = self.statement()  # single statement for now
+        body = self.statement()
         return stmt.While(condition, body)
     
-    def parse_for_stmt(self) -> stmt.Stmt:
+    def parse_for_stmt(self) -> stmt.For:
         var_token = self.consume(TokenType.IDENTIFIER, "Expected loop variable after 'for'")
         self.consume(TokenType.IN, "Expected 'in' after loop variable")
         iterable = self.expression()
@@ -187,21 +187,17 @@ class Parser:
         
         return stmt.For(var_token, iterable, body)
     
-    def parse_func_stmt(self, is_method: bool = False) -> stmt.Stmt:
+    def parse_func_stmt(self, is_method: bool = False) -> stmt.Function:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name.")
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after function name.")
         
         params: List[Token] = []
         if not self.check(TokenType.RIGHT_PAREN):
-            params.append(
-                self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
-            )
+            params.append(self._consume_param())
             while self.match(TokenType.COMMA):
                 if self.check(TokenType.RIGHT_PAREN):
                     break
-                params.append(
-                    self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
-                )
+                params.append(self._consume_param())
         
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.")
         self.consume(TokenType.COLON, "Expect ':' before function body.")
@@ -210,7 +206,12 @@ class Parser:
         body = self.block()
         return stmt.Function(name, params, body, is_method)
     
-    def parse_class_stmt(self) -> stmt.Stmt:
+    def _consume_param(self):
+        if self.check(TokenType.SELF):
+            return self.advance()
+        return self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
+    
+    def parse_class_stmt(self) -> stmt.Class:
         name = self.consume(TokenType.IDENTIFIER, "Expect class name")
         
         bases = []
@@ -226,8 +227,8 @@ class Parser:
         self.consume(TokenType.COLON, "Expect ':' after class declaration")
         self.consume(TokenType.INDENT, "Expect class body indentation")
         
-        methods = []
-        class_vars = []
+        methods: List[stmt.Function] = []
+        class_vars: List[Tuple[Token, expr.Expr]] = []
         while not self.check(TokenType.DEDENT) and not self.is_at_end():
             if self.match(TokenType.NEWLINE):
                 continue
@@ -251,7 +252,7 @@ class Parser:
         self.consume(TokenType.DEDENT, "Class body not closed")
         return stmt.Class(name, bases, methods, class_vars)
     
-    def parse_try_stmt(self) -> stmt.Stmt:
+    def parse_try_stmt(self) -> stmt.Try:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")
         try_block = self.statement()
         if try_block is None:
@@ -281,7 +282,7 @@ class Parser:
         
         return stmt.Try(try_block, except_blocks, finally_block, else_block)
     
-    def parse_return_stmt(self) -> stmt.Stmt:
+    def parse_return_stmt(self) -> stmt.Return:
         keyword = self.previous()
         
         value = None        
@@ -298,7 +299,6 @@ class Parser:
         left = self.logic()
         
         if self.match(TokenType.ASSIGN):
-            equals = self.previous()
             value = self.assignment()
             
             # a = 5
@@ -344,7 +344,7 @@ class Parser:
             TokenType.GREATER,
             TokenType.GREATER_EQUAL,
             TokenType.LESS,
-            TokenType.LESS_EQUAL
+            TokenType.LESS_EQUAL,
         ):
             op = self.previous()
             right = self.addition()
@@ -430,6 +430,9 @@ class Parser:
             
             self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after list")
             return expr.List(elements)
+        
+        if self.match(TokenType.SELF):
+            return expr.Variable(self.previous())
         
         # Base expressions
         if self.match(TokenType.NUMBER, TokenType.STRING, TokenType.BOOL):

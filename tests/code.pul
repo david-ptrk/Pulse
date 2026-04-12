@@ -1,3 +1,21 @@
-x = "hello"
-x = x + " world"
-print(x)
+class Builder:
+    def __init__(self):
+        self.title = "untitled"
+        self.count = 0
+
+    def set_title(self, t):
+        self.title = t
+
+    def add(self):
+        self.count = self.count + 1
+
+    def build(self):
+        print(self.title)
+        print(self.count)
+
+b = Builder()
+b.set_title("MyList")
+b.add()
+b.add()
+b.add()
+b.build()
