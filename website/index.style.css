@@ -5,7 +5,7 @@
 :root {
   --blue-color: #0f2854;
   --white-color: #f5e9d8;
-  --green-color: #546b41;
+  --green-color: #0f2854;
 }
 
 body {
@@ -51,7 +51,7 @@ body {
 /* -------------------- NAVBAR -------------------- */
 .navbar {
   width: 77%;
-  margin: 15px auto;
+  margin: 30px auto;
   padding: 10px 20px;
   background: rgba(230, 241, 237, 0.75);
   backdrop-filter: blur(10px);
@@ -68,7 +68,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin: 0;
-  padding: 0;
+  padding: 5px 50px;
   gap: 10px;
 }
 
@@ -156,7 +156,7 @@ body {
 }
 
 .btn:hover {
-  background: #2967ed;
+  background: var(--blue-color);
   color: white;
   border: 2px solid var(--white-color);
   transform: translateY(-3px);
@@ -352,9 +352,9 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: linear-gradient(45deg, var(--blue-color), #0f28a4);
+  background: var(--blue-color);
   border-radius: 15px;
-  box-shadow: 7px 7px 20px #0f28a4;
+  box-shadow: 7px 7px 20px var(--blue-color);
   padding: 30px 20px;
   width: 200px;
   text-align: center;
@@ -371,7 +371,7 @@ body {
 
 .card:hover {
   transform: translateY(-10px);
-  box-shadow: 0 15px 25px #2bb3ff;
+  box-shadow: 0 15px 25px #242b30;
 }
 
 /* -------------------- ARCHITECTURE -------------------- */
