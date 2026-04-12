@@ -349,7 +349,7 @@ eval CallExpr "print"
     leftLabel: 'Example output',
     leftContent: `<div class="code-block"><span class="fn">$ </span> py .\\pulse.py .\\tests\\code.pul<br>
   <span class="cm">Pulse v1.0 — AI-native language</span>
-  <span class="str">Compiling forward.pulse … done</span><br>
+  <span class="str">Interpreting pulse</span><br>
   <span class="kw">Output:</span> Tensor([
     [<span class="num">0.72</span>]
   ])<br>
