@@ -1,4 +1,13 @@
-my_dict = {"a": 1, "b": 2, "c": 3}
+d = {"a": 1, "b": 2, "c": 3}
 
-for key in my_dict:
-    print(key)
+for k in d.keys():
+    print(k)        # a, b, c
+
+for v in d.values():
+    print(v)        # 1, 2, 3
+
+for pair in d.items():
+    print(pair)     # ["a", 1], ["b", 2], ["c", 3]
+
+print(d.has("a"))   # true
+print(d.has("z"))   # false

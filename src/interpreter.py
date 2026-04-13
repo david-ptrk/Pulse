@@ -176,10 +176,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def native_len(self, x):
         if isinstance(x, PulseList):
-            return PulseNumber(len(x.elements))
-        
+            return PulseNumber(len(x.elements))        
         if isinstance(x, PulseString):
             return PulseNumber(len(x.value))
+        if isinstance(x, PulseDict):
+            return PulseNumber(len(x.entries))
         
         self.runtime_error(message="Object has no length")
     
@@ -481,6 +482,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         if isinstance(iterable, PulseList):
             iterable_values = iterable.elements
+        elif isinstance(iterable, PulseDict):
+            iterable_values = list(iterable.entries.keys())
         else:
             self.runtime_error(message="Object is not iterable")
         
@@ -524,14 +527,29 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def visit_memberaccess_expr(self, expr):
         obj = self.evaluate(expr.object)
+        name = expr.name.lexeme
+
         if isinstance(obj, PulseNull):
             self.runtime_error(message="Cannot access member of null")
         
+        if isinstance(obj, PulseDict):
+            if name == "keys":
+                return PulseNativeFunction("keys", lambda: PulseList(list(obj.entries.keys())))
+            if name == "values":
+                return PulseNativeFunction("values", lambda: PulseList(list(obj.entries.values())))
+            if name == "items":
+                return PulseNativeFunction("items", lambda: PulseList([
+                    PulseList([k, v]) for k, v in obj.entries.items()
+                ]))
+            if name == "has":
+                return PulseNativeFunction("has", lambda key: PulseBoolean(obj.has(key)))
+            self.runtime_error(message=f"Dict has no method '{name}'")
+        
         if isinstance(obj, PulseInstance):
-            return obj.get(expr.name.lexeme)
+            return obj.get(name)
         
         if isinstance(obj, PulseClass):
-            return obj.get(expr.name.lexeme)
+            return obj.get(name)
         
         self.runtime_error(message="Only class objects support member access")
     
