@@ -44,14 +44,15 @@ class TokenType(Enum):
     SEMICOLON = auto()
     DOT = auto()
     TRANSPOSE = auto()
-
+    
     # Literals
     IDENTIFIER = auto()
     NUMBER = auto()
     STRING = auto()
     BOOL = auto()
+    NULL = auto()
     TENSOR_LITERAL = auto()
-
+    
     # One or Two Characters operators
     ASSIGN = auto()
     EQUALITY = auto()
@@ -64,13 +65,13 @@ class TokenType(Enum):
     GREATER = auto()
     LESS_EQUAL = auto()
     GREATER_EQUAL = auto()
-
+    
     # Special tokens
     INDENT = auto()
     DEDENT = auto()
     NEWLINE = auto()
     EOF = auto()
-
+    
     # Keywords
     IF = auto()
     ELSE = auto()
@@ -122,6 +123,7 @@ KEYWORDS = {
     "del": TokenType.DEL,
     "dot": TokenType.DOT,
     "transpose": TokenType.TRANSPOSE,
+    "null": TokenType.NULL,
 }
 
 # -------------------------------------------------------

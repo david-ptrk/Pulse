@@ -418,6 +418,9 @@ class Parser:
         return expr_node
     
     def primary(self) -> expr.Expr:
+        if self.match(TokenType.LEFT_BRACE):
+            return self.parse_dict_literal()
+        
         if self.match(TokenType.LEFT_BRACKET):
             elements: List[expr.Expr] = []
             
@@ -434,7 +437,9 @@ class Parser:
         if self.match(TokenType.SELF):
             return expr.Variable(self.previous())
         
-        # Base expressions
+        if self.match(TokenType.NULL):
+            return expr.Literal(None)
+        
         if self.match(TokenType.NUMBER, TokenType.STRING, TokenType.BOOL):
             return expr.Literal(self.previous().literal)
         
@@ -447,3 +452,22 @@ class Parser:
             return expr_node
         
         raise ParseError(self.peek(), "Expect expression", self.source)
+    
+    def parse_dict_literal(self) -> expr.Dict:
+        keys: List[expr.Expr] = []
+        values: List[expr.Expr] = []
+        
+        if not self.check(TokenType.RIGHT_BRACE):
+            while True:
+                key = self.expression()
+                self.consume(TokenType.COLON, "Expect ':' after dict key")
+                value = self.expression()
+                keys.append(key)
+                values.append(value)
+                if not self.match(TokenType.COMMA):
+                    break
+                if self.check(TokenType.RIGHT_BRACE):
+                    break
+        
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after dict entries")
+        return expr.Dict(keys, values)

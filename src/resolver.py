@@ -259,6 +259,11 @@ class Resolver(ExprVisitor, StmtVisitor):
         for element in expr.elements:
             self.resolve_expr(element)
     
+    def visit_dict_expr(self, expr):
+        for key, value in zip(expr.keys, expr.values):
+            self.resolve_expr(key)
+            self.resolve_expr(value)
+    
     def visit_index_expr(self, expr):
         self.resolve_expr(expr.object)
         self.resolve_expr(expr.index)

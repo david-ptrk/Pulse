@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 from src.tokens import Token
@@ -41,6 +42,10 @@ class ExprVisitor(ABC):
 
     @abstractmethod
     def visit_list_expr(self, expr: 'List') -> Any:
+        pass
+
+    @abstractmethod
+    def visit_dict_expr(self, expr: 'Dict') -> Any:
         pass
 
     @abstractmethod
@@ -141,6 +146,14 @@ class List(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_list_expr(self)
+
+class Dict(Expr):
+    def __init__(self, keys: List[Expr], values: List[Expr]) -> None:
+        self.keys = keys
+        self.values = values
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_dict_expr(self)
 
 class Index(Expr):
     def __init__(self, object: Expr, index: Expr) -> None:

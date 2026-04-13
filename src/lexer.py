@@ -286,9 +286,13 @@ class Lexer:
             self.advance()
         
         text = self.source[self.start : self.current]
-
+        
         if text in ("true", "false"):
             self.add_token(TokenType.BOOL, literal=(text=="true"))
+            return
+        
+        if text == "null":
+            self.add_token(TokenType.NULL, literal=None)
             return
         
         if text == "self":

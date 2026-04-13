@@ -38,6 +38,7 @@ ASTDict = Dict[str, Tuple[str]]
 INDENT = "    "
 
 DEFAULT_IMPORTS: Tuple[str, ...] = (
+    "from __future__ import annotations",
     "from abc import ABC, abstractmethod",
 )
 
@@ -64,6 +65,7 @@ EXPRESSIONS: ASTDict = {
     "MemberAccess": ("object: Expr", "name: Token",),
     "Logical": ("left: Expr", "operator: Token", "right: Expr",),
     "List": ("elements: List[Expr]",),
+    "Dict": ("keys: List[Expr]", "values: List[Expr]",),
     "Index": ("object: Expr", "index: Expr",),
     "SetIndex": ("object: Expr", "index: Expr", "value: Expr",),
     "SetMember": ("object: Expr", "name: Token", "value: Expr",),

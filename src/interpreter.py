@@ -47,7 +47,7 @@ from src.tokens import Token
 from src.function import PulseFunction, PulseNativeFunction
 import math
 from src.runtime import PulseClass, PulseInstance
-from src.values import PulseNumber, PulseString, PulseNull, PulseList, PulseBoolean
+from src.values import PulseNumber, PulseString, PulseNull, PulseList, PulseBoolean, PulseDict
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment):
@@ -312,44 +312,69 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_list_expr(self, expr):
         return PulseList([self.evaluate(e) for e in expr.elements])
     
+    def visit_dict_expr(self, expr):
+        entries = {}
+        for key_expr, val_expr in zip(expr.keys, expr.values):
+            key = self.evaluate(key_expr)
+            value = self.evaluate(val_expr)
+            entries[key] = value
+        return PulseDict(entries)
+    
     def visit_index_expr(self, expr):
         obj = self.evaluate(expr.object)
         index = self.evaluate(expr.index)
         
-        if not isinstance(index, PulseNumber):
-            self.runtime_error(expr.index, "Index must be a number")
-        
         if isinstance(obj, PulseList):
+            if not isinstance(index, PulseNumber):
+                self.runtime_error(message="List index must be a number")
+            idx = int(index.value)
             try:
-                return obj.elements[index.value]
+                return obj.elements[idx]
             except IndexError:
                 raise runtime.PulseRuntimeException(
-                    PulseRuntimeError("Index out of bounds", expr.index)
+                    PulseRuntimeError("Index out of bounds")
                 )
         
-        raise runtime.PulseRuntimeException(
-            PulseRuntimeError("Object is not indexable", expr.object)
-        )
+        if isinstance(obj, PulseDict):
+            result = obj.get(index)
+            if isinstance(result, PulseNull) and not obj.has(index):
+                self.runtime_error(message=f"Key not found in dict")
+            return result
+        
+        if isinstance(obj, PulseString):
+            if not isinstance(index, PulseNumber):
+                self.runtime_error(message="String index must be a number")
+            idx = int(index.value)
+            try:
+                return PulseString(obj.value[idx])
+            except IndexError:
+                self.runtime_error(message="String index out of bounds")
+        
+        self.runtime_error(message="Object is not indexable")
     
     def visit_setindex_expr(self, expr):
         obj = self.evaluate(expr.object)
         index = self.evaluate(expr.index)
         value = self.evaluate(expr.value)
         
-        if not isinstance(index, PulseNumber):
-            self.runtime_error(expr.index, "Index must be a number")
-        
         if isinstance(obj, PulseList):
+            if not isinstance(index, PulseNumber):
+                self.runtime_error(message="List index must be a number")
+            idx = int(index.value)
             try:
-                obj.elements[index.value] = value
+                obj.elements[idx] = value
                 return value
             except IndexError:
-                self.runtime_error(expr.index, "Index out of bounds")
+                self.runtime_error(message="Index out of bounds")
+        
+        if isinstance(obj, PulseDict):
+            obj.set(index, value)
+            return value
         
         if isinstance(obj, PulseString):
-            self.runtime_error(expr.object, "Strings are immutable")
+            self.runtime_error(message="Strings are immutable")
         
-        self.runtime_error(expr.object, "Object does not support indexed assignment")
+        self.runtime_error(message="Object does not support indexed assignment")
     
     def visit_setmember_expr(self, expr):
         obj = self.evaluate(expr.object)
