@@ -127,7 +127,13 @@ class Lexer:
         # Skip Whitespace character
         if c in (" ", "\r", "\t"):
             return
-
+        
+        # f-strings
+        if c == 'f' and self.peek() in ('"', "'"):
+            quote = self.advance()
+            self.fstring(quote)
+            return
+        
         # Strings literal
         if c in ('"', "'"):
             self.string(c)
@@ -264,6 +270,48 @@ class Lexer:
             )
         
         self.add_token(TokenType.STRING, "".join(value_chars))
+    
+    def fstring(self, quote_type) -> None:
+        value_chars = []
+        brace_depth = 0
+        
+        while not self.is_at_end():
+            c = self.advance()
+            if c == quote_type and brace_depth == 0:
+                break
+            
+            if c == "{":
+                brace_depth += 1
+            elif c == "}" and brace_depth > 0:
+                brace_depth -= 1
+            
+            if c in ('"', "'") and c != quote_type and brace_depth > 0:
+                value_chars.append(c)
+                while not self.is_at_end():
+                    inner = self.advance()
+                    value_chars.append(inner)
+                    if inner == c:
+                        break
+                continue
+            
+            if c == "\\":
+                if self.is_at_end():
+                    break
+                nxt = self.advance()
+                value_chars.append(self._ESCAPE_MAP.get(nxt, nxt))
+            else:
+                if c == "\n":
+                    self.line += 1
+                value_chars.append(c)
+        else:
+            raise PulseLexError(
+                message="Unterminated f-string",
+                line=self.line,
+                column=self.column(),
+                context=self.source.splitlines()[self.line - 1]
+            )
+        
+        self.add_token(TokenType.FSTRING, "".join(value_chars))
     
     def number(self) -> None:
         """Handles integer and floating-point number literals."""

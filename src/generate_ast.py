@@ -69,6 +69,7 @@ EXPRESSIONS: ASTDict = {
     "Index": ("object: Expr", "index: Expr",),
     "SetIndex": ("object: Expr", "index: Expr", "value: Expr",),
     "SetMember": ("object: Expr", "name: Token", "value: Expr",),
+    "FString": ("parts: List[Expr]",),
 }
 
 # Statements

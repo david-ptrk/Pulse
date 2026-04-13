@@ -71,6 +71,7 @@ class TokenType(Enum):
     DEDENT = auto()
     NEWLINE = auto()
     EOF = auto()
+    FSTRING = auto()
     
     # Keywords
     IF = auto()

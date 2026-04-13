@@ -279,3 +279,7 @@ class Resolver(ExprVisitor, StmtVisitor):
     
     def visit_memberaccess_expr(self, expr):
         self.resolve_expr(expr.object)
+    
+    def visit_fstring_expr(self, expr):
+        for part in expr.parts:
+            self.resolve_expr(part)

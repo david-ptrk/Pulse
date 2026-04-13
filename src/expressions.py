@@ -60,6 +60,10 @@ class ExprVisitor(ABC):
     def visit_setmember_expr(self, expr: 'SetMember') -> Any:
         pass
 
+    @abstractmethod
+    def visit_fstring_expr(self, expr: 'FString') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -180,4 +184,11 @@ class SetMember(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_setmember_expr(self)
+
+class FString(Expr):
+    def __init__(self, parts: List[Expr]) -> None:
+        self.parts = parts
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_fstring_expr(self)
 

@@ -1,13 +1,10 @@
-d = {"a": 1, "b": 2, "c": 3}
+name = "Pulse"
+version = 2
+print(f"Hello from {name} v{version}!")  # Hello from Pulse v2!
 
-for k in d.keys():
-    print(k)        # a, b, c
+x = 10
+y = 3
+print(f"{x} + {y} = {x + y}")            # 10 + 3 = 13
 
-for v in d.values():
-    print(v)        # 1, 2, 3
-
-for pair in d.items():
-    print(pair)     # ["a", 1], ["b", 2], ["c", 3]
-
-print(d.has("a"))   # true
-print(d.has("z"))   # false
+items = {"lang": "Pulse"}
+print(f"Lang is {items["lang"]}")         # Lang is Pulse

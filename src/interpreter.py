@@ -588,3 +588,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
         finally:
             if stmt.finally_block is not None:
                 self.execute(stmt.finally_block)
+    
+    def visit_fstring_expr(self, expr):
+        result = []
+        for part in expr.parts:
+            value = self.evaluate(part)
+            result.append(repr(value))
+        return PulseString("".join(result))

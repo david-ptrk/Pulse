@@ -31,6 +31,7 @@ from src import expressions as expr
 from src import statements as stmt
 from src.tokens import Token, TokenType
 from src.error import PulseSyntaxError
+from src.lexer import Lexer
 
 class ParseError(PulseSyntaxError):
     def __init__(self, token: Token, message: str, source: str) -> None:
@@ -440,6 +441,9 @@ class Parser:
         if self.match(TokenType.NULL):
             return expr.Literal(None)
         
+        if self.match(TokenType.FSTRING):
+            return self.parse_fstring(self.previous())
+        
         if self.match(TokenType.NUMBER, TokenType.STRING, TokenType.BOOL):
             return expr.Literal(self.previous().literal)
         
@@ -471,3 +475,35 @@ class Parser:
         
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after dict entries")
         return expr.Dict(keys, values)
+    
+    def parse_fstring(self, token) -> expr.FString:
+        raw = token.literal
+        parts = []
+        i = 0
+        
+        while i < len(raw):
+            start = raw.find("{", i)
+            
+            if start == -1:
+                if i < len(raw):
+                    parts.append(expr.Literal(raw[i:]))
+                break
+            
+            if start > i :
+                parts.append(expr.Literal(raw[i:start]))
+            
+            end = raw.find("}", start)
+            if end == -1:
+                raise ParseError(token, "Unclosed '{' in f-string", self.source)
+            
+            fragment = raw[start + 1:end].strip()
+            if not fragment:
+                raise ParseError(token, "Empty expression in f-string", self.source)
+            
+            inner_tokens = Lexer(fragment).scan_tokens()
+            inner_parser = Parser(inner_tokens, fragment)
+            parts.append(inner_parser.expression())
+            
+            i = end + 1
+        
+        return expr.FString(parts)
