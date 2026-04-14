@@ -108,12 +108,21 @@ class Interpreter(ExprVisitor, StmtVisitor):
             PulseRuntimeError(message, token=token, context_source=self.source)
         )
     
+    def pulse_stringify(self, val) -> str:
+        if isinstance(val, PulseInstance):
+            for magic in ("__str__", "__repr__"):
+                method = val.klass.find_method(magic)
+                if method is not None:
+                    result = method.bind(val).call(self, [], {})
+                    return repr(result) if result is not None else "null"
+        return repr(val)
+    
     # Native Functions
     def native_print(self, *args, **kwargs):
         sep = str(kwargs.get("sep", " "))
         end = str(kwargs.get("end", "\n"))
         
-        output = sep.join(repr(arg) for arg in args)
+        output = sep.join(self.pulse_stringify(arg) for arg in args)
         print(output, end=end)
         return None
     

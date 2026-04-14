@@ -121,4 +121,4 @@ class PulseInstance:
         self.fields[name] = value
     
     def __repr__(self):
-        return f"<instance of {self.klass.name}"
+        return f"<instance of {self.klass.name}>"

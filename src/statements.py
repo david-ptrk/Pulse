@@ -124,20 +124,22 @@ class Return(Stmt):
         return visitor.visit_return_stmt(self)
 
 class Function(Stmt):
-    def __init__(self, name: Token, params: List[Token], body: Block, is_method: bool) -> None:
+    def __init__(self, name: Token, params: List[Token], body: Block, is_method: bool, is_static: bool) -> None:
         self.name = name
         self.params = params
         self.body = body
         self.is_method = is_method
+        self.is_static = is_static
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_function_stmt(self)
 
 class Class(Stmt):
-    def __init__(self, name: Token, bases: List[Token], methods: List[Function], class_vars: List[Tuple[Token, Expr]]) -> None:
+    def __init__(self, name: Token, bases: List[Token], methods: List[Function], static_methods: List[Function], class_vars: List[Tuple[Token, Expr]]) -> None:
         self.name = name
         self.bases = bases
         self.methods = methods
+        self.static_methods = static_methods
         self.class_vars = class_vars
 
     def accept(self, visitor: StmtVisitor) -> Any:

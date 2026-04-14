@@ -1,26 +1,23 @@
-# List methods
-nums = [3, 1, 4, 1, 5]
-nums.append(9)
-print(nums)                     # [3, 1, 4, 1, 5, 9]
-print(nums.pop())               # 9
-print(nums)                     # [3, 1, 4, 1, 5]
-print(nums.pop(0))              # 3
-print(nums.slice(1, 3))        # [4, 1]
-print(nums.contains(5))        # true
-print(nums.contains(99))       # false
-print(nums.length())           # 4
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    
+    def __str__(self):
+        return f"Person({self.name}, {self.age})"
 
-# String methods
-s = "  Hello Pulse  "
-print(s.trim())                 # Hello Pulse
-print(s.trim().upper())         # HELLO PULSE
-print(s.trim().lower())         # hello pulse
-print(s.trim().split(" "))     # [Hello, Pulse]
-print(s.trim().replace("Pulse", "World"))  # Hello World
-print(s.trim().starts_with("Hello"))       # true
-print(s.trim().ends_with("Pulse"))         # true
-print(s.trim().length())                   # 11
+p = Person("Pulse", 1)
+print(p)               # Person(Pulse, 1)
+print(p.name)          # Pulse
+print(p.age)           # 1
 
-# Join
-words = ["Pulse", "is", "great"]
-print(" ".join(words))          # Pulse is great
+p.age = 2
+print(p.age)           # 2
+
+class Animal:
+    def __init__(self, species):
+        self.species = species
+
+a = Animal("cat")
+print(a)               # <instance of Animal>  (no __str__, falls back to default)
+print(a.species)       # cat

@@ -78,9 +78,11 @@ class PulseFunction:
         try:
             for stmt in self.declaration.body.statements:
                 interpreter.execute(stmt)
+            if self.declaration.is_method and self.declaration.name.lexeme == "__init__":
+                return self.bound_instance
         except runtime.ReturnException as e:
-            if self.declaration.is_method and self.declaration.name.lexeme == "init":
-                return self.closure.get("self")
+            if self.declaration.is_method and self.declaration.name.lexeme == "__init__":
+                return self.bound_instance
             return e.value
         finally:
             interpreter.environment = previous

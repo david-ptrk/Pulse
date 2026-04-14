@@ -73,6 +73,7 @@ class TokenType(Enum):
     EOF = auto()
     FSTRING = auto()
     INT_DIVIDE = auto()
+    STATIC = auto()
     
     # Keywords
     IF = auto()
@@ -126,6 +127,7 @@ KEYWORDS = {
     "dot": TokenType.DOT,
     "transpose": TokenType.TRANSPOSE,
     "null": TokenType.NULL,
+    "static": TokenType.STATIC,
 }
 
 # -------------------------------------------------------

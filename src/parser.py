@@ -188,7 +188,7 @@ class Parser:
         
         return stmt.For(var_token, iterable, body)
     
-    def parse_func_stmt(self, is_method: bool = False) -> stmt.Function:
+    def parse_func_stmt(self, is_method: bool = False, is_static: bool = False) -> stmt.Function:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name.")
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after function name.")
         
@@ -202,6 +202,15 @@ class Parser:
         
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.")
         self.consume(TokenType.COLON, "Expect ':' before function body.")
+        
+        if is_static:
+            for p in params:
+                if p.type == TokenType.SELF:
+                    raise ParseError(p, "Static method cannot have 'self'", self.source)
+        
+        if is_method and not is_static:
+            if len(params) == 0 or params[0].type != TokenType.SELF:
+                raise ParseError(name, "Instance method must have 'self' as first parameter", self.source)
         
         self.consume(TokenType.INDENT, "Expect block indentation")
         body = self.block()
@@ -229,13 +238,21 @@ class Parser:
         self.consume(TokenType.INDENT, "Expect class body indentation")
         
         methods: List[stmt.Function] = []
+        static_methods: List[stmt.Function] = []
         class_vars: List[Tuple[Token, expr.Expr]] = []
+        
         while not self.check(TokenType.DEDENT) and not self.is_at_end():
             if self.match(TokenType.NEWLINE):
                 continue
             
+            if self.match(TokenType.STATIC):
+                self.consume(TokenType.DEF, "Expect 'def' after 'static'")
+                method = self.parse_func_stmt(is_method=True, is_static=True)
+                static_methods.append(method)
+                continue
+            
             if self.match(TokenType.DEF):
-                method = self.parse_func_stmt(is_method=True)
+                method = self.parse_func_stmt(is_method=True, is_static=False)
                 methods.append(method)
                 continue
             
@@ -251,7 +268,7 @@ class Parser:
             raise ParseError(self.peek(), "Invalid class body statement", self.source)
         
         self.consume(TokenType.DEDENT, "Class body not closed")
-        return stmt.Class(name, bases, methods, class_vars)
+        return stmt.Class(name, bases, methods, static_methods, class_vars)
     
     def parse_try_stmt(self) -> stmt.Try:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")
