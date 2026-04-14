@@ -1,5 +1,26 @@
-print(10 % 3)    # 1
-print(10 % 2)    # 0
-print(7 // 2)    # 3
-print(9 // 3)    # 3
-print(10 // 3)   # 3
+# List methods
+nums = [3, 1, 4, 1, 5]
+nums.append(9)
+print(nums)                     # [3, 1, 4, 1, 5, 9]
+print(nums.pop())               # 9
+print(nums)                     # [3, 1, 4, 1, 5]
+print(nums.pop(0))              # 3
+print(nums.slice(1, 3))        # [4, 1]
+print(nums.contains(5))        # true
+print(nums.contains(99))       # false
+print(nums.length())           # 4
+
+# String methods
+s = "  Hello Pulse  "
+print(s.trim())                 # Hello Pulse
+print(s.trim().upper())         # HELLO PULSE
+print(s.trim().lower())         # hello pulse
+print(s.trim().split(" "))     # [Hello, Pulse]
+print(s.trim().replace("Pulse", "World"))  # Hello World
+print(s.trim().starts_with("Hello"))       # true
+print(s.trim().ends_with("Pulse"))         # true
+print(s.trim().length())                   # 11
+
+# Join
+words = ["Pulse", "is", "great"]
+print(" ".join(words))          # Pulse is great

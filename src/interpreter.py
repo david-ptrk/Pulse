@@ -70,6 +70,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("max", PulseNativeFunction("max", self.native_max)),
             ("len", PulseNativeFunction("len", self.native_len)),
             ("range", PulseNativeFunction("range", self.native_range)),
+            ("round", PulseNativeFunction("round", self.native_round)),
+            ("floor", PulseNativeFunction("floor", self.native_floor)),
+            ("ceil", PulseNativeFunction("ceil", self.native_ceil)),
         ])
         
         self.environment.define_many([
@@ -204,6 +207,25 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseRange(int_args[0], int_args[1], int_args[2])
         
         self.runtime_error(message="range() expects 1, 2, or 3, arguments")
+    
+    def native_round(self, x, digits=None):
+        if not isinstance(x, PulseNumber):
+            self.runtime_error(message="round() expects a number")
+        if digits is None:
+            return PulseNumber(round(x.value))
+        if not isinstance(digits, PulseNumber):
+            self.runtime_error(message="round() digits must be a number")
+        return PulseNumber(round(x.value, int(digits.value)))
+    
+    def native_floor(self, x):
+        if not isinstance(x, PulseNumber):
+            self.runtime_error(message="floor() expects a number")
+        return PulseNumber(math.floor(x.value))
+    
+    def native_ceil(self, x):
+        if not isinstance(x, PulseNumber):
+            self.runtime_error(message="ceil() expects a number")
+        return PulseNumber(math.ceil(x.value))
     
     # Visit Functions
     def visit_expression_stmt(self, stmt):
@@ -565,9 +587,91 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_memberaccess_expr(self, expr):
         obj = self.evaluate(expr.object)
         name = expr.name.lexeme
-
+        
         if isinstance(obj, PulseNull):
             self.runtime_error(message="Cannot access member of null")
+        
+        if isinstance(obj, PulseList):
+            if name == "append":
+                return PulseNativeFunction("append", lambda val: (
+                    obj.elements.append(val), PulseNull()
+                )[-1])
+            if name == "pop":
+                def list_pop(index=None):
+                    if not obj.elements:
+                        self.runtime_error(message="pop() on empty list")
+                    if index is None:
+                        return obj.elements.pop()
+                    if not isinstance(index, PulseNumber):
+                        self.runtime_error(message="pop() index must be a number")
+                    idx = int(index.value)
+                    try:
+                        return obj.elements.pop(idx)
+                    except IndexError:
+                        self.runtime_error(message="pop() index out of range")
+                return PulseNativeFunction("pop", list_pop)
+            if name == "slice":
+                def list_slice(start, end):
+                    if not isinstance(start, PulseNumber) or not isinstance(end, PulseNumber):
+                        self.runtime_error(message="slice() expects numbers")
+                    return PulseList(obj.elements[int(start.value):int(end.value)])
+                return PulseNativeFunction("slice", list_slice)
+            if name == "contains":
+                def list_contains(val):
+                    for el in obj.elements:
+                        if self.is_equal(el, val):
+                            return PulseBoolean(True)
+                    return PulseBoolean(False)
+                return PulseNativeFunction("contains", list_contains)
+            if name == "length":
+                return PulseNativeFunction("length", lambda: PulseNumber(len(obj.elements)))
+            self.runtime_error(message=f"List has no method '{name}'")
+        
+        if isinstance(obj, PulseString):
+            if name == "upper":
+                return PulseNativeFunction("upper", lambda: PulseString(obj.value.upper()))
+            if name == "lower":
+                return PulseNativeFunction("lower", lambda: PulseString(obj.value.lower()))
+            if name == "trim":
+                return PulseNativeFunction("trim", lambda: PulseString(obj.value.strip()))
+            if name == "split":
+                def str_split(sep=None):
+                    if sep is None:
+                        return PulseList([PulseString(s) for s in obj.value.split()])
+                    if not isinstance(sep, PulseString):
+                        self.runtime_error(message="split() separator must be a string")
+                    return PulseList([PulseString(s) for s in obj.value.split(sep.value)])
+                return PulseNativeFunction("split", str_split)
+            if name == "join":
+                def str_join(lst):
+                    if not isinstance(lst, PulseList):
+                        self.runtime_error(message="join() expects a list")
+                    parts = []
+                    for el in lst.elements:
+                        if not isinstance(el, PulseString):
+                            self.runtime_error(message="join() list elements must be strings")
+                        parts.append(el.value)
+                    return PulseString(obj.value.join(parts))
+                return PulseNativeFunction("join", str_join)
+            if name == "replace":
+                def str_replace(old, new):
+                    if not isinstance(old, PulseString) or not isinstance(new, PulseString):
+                        self.runtime_error(message="replace() expects strings")
+                    return PulseString(obj.value.replace(old.value, new.value))
+                return PulseNativeFunction("replace", str_replace)
+            if name == "starts_with":
+                return PulseNativeFunction("starts_with", lambda s: PulseBoolean(
+                    obj.value.startswith(s.value) if isinstance(s, PulseString)
+                    else self.runtime_error(message="starts_with() expects a string")
+                ))
+            if name == "ends_with":
+                return PulseNativeFunction("ends_with", lambda s: PulseBoolean(
+                    obj.value.endswith(s.value) if isinstance(s, PulseString)
+                    else self.runtime_error(message="ends_with() expects a string")
+                ))
+            if name == "length":
+                return PulseNativeFunction("length", lambda: PulseNumber(len(obj.value)))
+            self.runtime_error(message=f"String has no method '{name}'")
         
         if isinstance(obj, PulseDict):
             if name == "keys":
