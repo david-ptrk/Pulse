@@ -366,7 +366,7 @@ class Parser:
     def multiplication(self) -> expr.Expr:
         node = self.unary()
         
-        while self.match(TokenType.STAR, TokenType.SLASH, TokenType.MODULUS):
+        while self.match(TokenType.STAR, TokenType.SLASH, TokenType.MODULUS, TokenType.INT_DIVIDE):
             op = self.previous()
             right = self.unary()
             node = expr.Binary(node, op, right)

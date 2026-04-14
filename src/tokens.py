@@ -72,6 +72,7 @@ class TokenType(Enum):
     NEWLINE = auto()
     EOF = auto()
     FSTRING = auto()
+    INT_DIVIDE = auto()
     
     # Keywords
     IF = auto()

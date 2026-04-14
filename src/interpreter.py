@@ -47,7 +47,7 @@ from src.tokens import Token
 from src.function import PulseFunction, PulseNativeFunction
 import math
 from src.runtime import PulseClass, PulseInstance
-from src.values import PulseNumber, PulseString, PulseNull, PulseList, PulseBoolean, PulseDict
+from src.values import PulseNumber, PulseString, PulseNull, PulseList, PulseBoolean, PulseDict, PulseRange
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment):
@@ -69,6 +69,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("min", PulseNativeFunction("min", self.native_min)),
             ("max", PulseNativeFunction("max", self.native_max)),
             ("len", PulseNativeFunction("len", self.native_len)),
+            ("range", PulseNativeFunction("range", self.native_range)),
         ])
         
         self.environment.define_many([
@@ -181,8 +182,28 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNumber(len(x.value))
         if isinstance(x, PulseDict):
             return PulseNumber(len(x.entries))
+        if isinstance(x, PulseRange):
+            return PulseNumber(len(x))
         
         self.runtime_error(message="Object has no length")
+    
+    def native_range(self, *args):
+        int_args = []
+        for a in args:
+            if not isinstance(a, PulseNumber):
+                self.runtime_error(message="range() expects numbers")
+            int_args.append(int(a.value))
+        
+        if len(int_args) == 1:
+            return PulseRange(0, int_args[0])
+        if len(int_args) == 2:
+            return PulseRange(int_args[0], int_args[1])
+        if len(int_args) == 3:
+            if int_args[2] == 0:
+                self.runtime_error(message="range() step cannot be zero")
+            return PulseRange(int_args[0], int_args[1], int_args[2])
+        
+        self.runtime_error(message="range() expects 1, 2, or 3, arguments")
     
     # Visit Functions
     def visit_expression_stmt(self, stmt):
@@ -271,6 +292,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
             if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
                 return PulseNumber(left.value / right.value)
             
+            self.runtime_error(expr.operator, "Operands must be two numbers")
+        elif operator == '%':
+            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
+                if right.value == 0:
+                    self.runtime_error(expr.operator, "Modulo by zero")
+                return PulseNumber(left.value % right.value)
+            self.runtime_error(expr.operator, "Operands must be two numbers")
+        elif operator == '//':
+            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
+                if right.value == 0:
+                    self.runtime_error(expr.operator, "Integer division by zero")
+                return PulseNumber(int(left.value // right.value))
             self.runtime_error(expr.operator, "Operands must be two numbers")
         
         if operator == "==":
@@ -484,6 +517,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
             iterable_values = iterable.elements
         elif isinstance(iterable, PulseDict):
             iterable_values = list(iterable.entries.keys())
+        elif isinstance(iterable, PulseRange):
+            iterable_values = iterable.to_list()
+        elif isinstance(iterable, PulseString):
+            iterable_values = [PulseString(c) for c in iterable.value]
         else:
             self.runtime_error(message="Object is not iterable")
         

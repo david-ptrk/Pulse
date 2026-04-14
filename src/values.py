@@ -122,3 +122,30 @@ class PulseDict(PulseValue):
             f"{repr(k)}: {repr(v)}" for k, v in self.entries.items()
         )
         return "{" + pairs + "}"
+
+class PulseRange(PulseValue):
+    def __init__(self, start: int, stop: int, step: int = 1) -> None:
+        if step == 0:
+            raise ValueError("Range step cannot be zero")
+        self.start = start
+        self.stop = stop
+        self.step = step
+    
+    def type_name(self) -> str:
+        return "range"
+    
+    def is_truthy(self) -> bool:
+        return len(self) > 0
+    
+    def to_list(self) -> list:
+        return [PulseNumber(i) for i in range(self.start, self.stop, self.step)]
+    
+    def __len__(self) -> int:
+        if self.step > 0:
+            return max(0, (self.stop - self.start + self.step - 1) // self.step)
+        return max(0, (self.start - self.stop - self.step - 1) // -self.step)
+    
+    def __repr__(self) -> str:
+        if self.step == 1:
+            return f"range({self.start, self.stop})"
+        return f"range({self.start}, {self.stop}, {self.step})"

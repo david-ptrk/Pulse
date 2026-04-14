@@ -56,7 +56,6 @@ class Lexer:
         '+': (TokenType.PLUS_EQUAL, TokenType.PLUS),
         '-': (TokenType.MINUS_EQUAL, TokenType.MINUS),
         '*': (TokenType.STAR_EQUAL, TokenType.STAR),
-        '/': (TokenType.SLASH_EQUAL, TokenType.SLASH),
     }
     
     _ESCAPE_MAP: dict[str, str] = {
@@ -160,6 +159,15 @@ class Lexer:
                     column=self.column(),
                     context=self.source.splitlines()[self.line-1]
                 )
+            return
+        
+        if c == "/":
+            if self.match("/"):
+                self.add_token(TokenType.INT_DIVIDE)
+            elif self.match("="):
+                self.add_token(TokenType.SLASH_EQUAL)
+            else:
+                self.add_token(TokenType.SLASH)
             return
         
         if c in self._COMPOUND_OPERATORS:
