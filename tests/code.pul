@@ -1,13 +1,1 @@
-class Test12:
-    static def add(a, b):
-        return a + b
-
-    def __init__(self, x):
-        self.x = x
-
-    def compute(self, y):
-        return Test12.add(self.x, y)
-
-t = Test12(10)
-print(t.compute(5))   # 15
-print(Test12.add(3,4)) # 7
+print("hello)
