@@ -88,7 +88,11 @@ class PulseClass:
         
         method = self.find_method(name)
         if method is not None:
-            return method
+            if method.declaration.is_static:
+                return method
+            raise PulseRuntimeException(
+                PulseRuntimeError(f"Cannot access non-static method '{name}' on class")
+            )
         
         raise PulseRuntimeException(
             PulseRuntimeError(f"Undefined class member '{name}'")
@@ -111,6 +115,8 @@ class PulseInstance:
         
         method = self.klass.find_method(name)
         if method is not None:
+            if method.declaration.is_static:
+                return method
             return method.bind(self)
         
         raise PulseRuntimeException(

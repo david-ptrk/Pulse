@@ -34,7 +34,7 @@ arg_parser.add_argument(
 args = arg_parser.parse_args()
 
 # Types
-ASTDict = Dict[str, Tuple[str]]
+ASTDict = Dict[str, Tuple[str, ...]]
 INDENT = "    "
 
 DEFAULT_IMPORTS: Tuple[str, ...] = (
@@ -83,7 +83,7 @@ STATEMENTS: ASTDict = {
     "Continue": ("keyword: Token",),
     "Return": ("keyword: Token", "value: Optional[Expr]",),
     "Function": ("name: Token", "params: List[Token]", "body: Block", "is_method: bool", "is_static: bool",),
-    "Class": ("name: Token", "bases: List[Token]", "methods: List[Function]", "static_methods: List[Function]", "class_vars: List[Tuple[Token, Expr]]",),
+    "Class": ("name: Token", "bases: List[Token]", "methods: List[Function]", "class_vars: List[Tuple[Token, Expr]]",),
     "Try": ("try_block: Stmt", "except_blocks: List[Tuple[Optional[Expr], Optional[Token], Stmt]]", "finally_block: Optional[Stmt]", "else_block: Optional[Stmt]",),
     "Pass": (),
 }

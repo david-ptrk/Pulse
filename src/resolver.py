@@ -74,19 +74,24 @@ class Resolver(ExprVisitor, StmtVisitor):
     
     # Resolution Logic
     def resolve_local(self, expr, name):
+        found = False
+        
         for i in range(len(self.scopes) - 1, -1, -1):
             if name.lexeme in self.scopes[i]:
                 distance = len(self.scopes) - 1 - i
                 self.interpreter.resolve(expr, distance)
+                found = True
                 return
-        # Not Found -> Global
+        
+        if not found:
+            self.interpreter.resolve(expr, None)
     
     def resolve_function(self, func, func_type):
         enclosing_function = self.current_function
         self.current_function = func_type
         self.begin_scope()
         
-        if func_type == FunctionType.METHOD:
+        if func_type == FunctionType.METHOD and not func.is_static:
             self.scopes[-1]["self"] = True
         
         for param in func.params:
@@ -138,11 +143,8 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.declare(stmt.name)
         self.define(stmt.name)
         
-        # enclosing_function = self.current_function
         func_type = FunctionType.METHOD if self.current_class is not ClassType.NONE else FunctionType.FUNCTION
-        
         self.resolve_function(stmt, func_type)
-        # self.current_function = enclosing_function
     
     def visit_class_stmt(self, stmt):
         self.declare(stmt.name)

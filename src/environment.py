@@ -77,6 +77,8 @@ class Environment:
     def ancestor(self, distance):
         env = self
         for _ in range(distance):
+            if env.enclosing is None:
+                raise RuntimeError("Invalid scope distance: walked past global environment")
             env = env.enclosing
         return env
     

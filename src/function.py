@@ -31,7 +31,7 @@ class PulseFunction:
         
         params = self.declaration.params
         callable_params = [p for p in params if p.lexeme != "self"]
-
+        
         if len(arguments) > len(callable_params):
             raise runtime.PulseRuntimeException(
                 PulseRuntimeError(f"Expected {len(callable_params)} arguments but got {len(arguments)}")
@@ -65,7 +65,7 @@ class PulseFunction:
         # Create a new environment for the function
         environment = Environment(enclosing=self.closure)
         
-        if self.bound_instance is not None:
+        if self.bound_instance is not None and not self.declaration.is_static:
             environment.define("self", self.bound_instance)
         
         # Bind parameters
@@ -90,6 +90,8 @@ class PulseFunction:
         return None
     
     def bind(self, instance):
+        if self.declaration.is_static:
+            return self
         bound = PulseFunction(self.declaration, self.closure)
         bound.is_bound = True
         bound.bound_instance = instance

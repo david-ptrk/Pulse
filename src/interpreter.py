@@ -259,8 +259,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return self.environment.get("self")
         
         distance = self.locals.get(expr)
-        if distance is not None:
-            return self.environment.get_at(distance, expr.name.lexeme)
+        if distance is None:
+            return self.environment.get(expr.name.lexeme)
         return self.environment.get(expr.name.lexeme)
     
     def visit_assign_expr(self, expr):

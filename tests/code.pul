@@ -1,23 +1,13 @@
-class Person:
-    def __init__(self, name, age):
-        self.name = name
-        self.age = age
-    
-    def __str__(self):
-        return f"Person({self.name}, {self.age})"
+class Test12:
+    static def add(a, b):
+        return a + b
 
-p = Person("Pulse", 1)
-print(p)               # Person(Pulse, 1)
-print(p.name)          # Pulse
-print(p.age)           # 1
+    def __init__(self, x):
+        self.x = x
 
-p.age = 2
-print(p.age)           # 2
+    def compute(self, y):
+        return Test12.add(self.x, y)
 
-class Animal:
-    def __init__(self, species):
-        self.species = species
-
-a = Animal("cat")
-print(a)               # <instance of Animal>  (no __str__, falls back to default)
-print(a.species)       # cat
+t = Test12(10)
+print(t.compute(5))   # 15
+print(Test12.add(3,4)) # 7
