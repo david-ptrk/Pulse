@@ -33,23 +33,28 @@ from src.tokens import Token, TokenType
 from src.error import PulseSyntaxError
 from src.lexer import Lexer
 
-class ParseError(PulseSyntaxError):
-    def __init__(self, token: Token, message: str, source: str) -> None:
-        line = token.line        
-        context = None
-
-        if line is not None:
-            lines = source.splitlines()
-            if 0 < line <= len(lines):
-                context = lines[line - 1]
-        
-        super().__init__(message, line=line, context=context)
-
 class Parser:
     def __init__(self, tokens: List[Token], source: str) -> None:
         self.tokens = tokens
         self.source = source
         self.current = 0
+    
+    def _context(self, line: int | None) -> str | None:
+        if not line:
+            return None
+        lines = self.source.splitlines()
+        if 1 <= line <= len(lines):
+            return lines[line - 1]
+        return None
+    
+    def _error(self, token: Token, message: str) -> None:
+        raise PulseSyntaxError(
+            message=message,
+            line=token.line,
+            column=getattr(token, "column", None),
+            context=self._context(token.line),
+            filename="<pulse>"
+        )
     
     # Core helper functions
     def peek(self) -> Token:
@@ -86,7 +91,8 @@ class Parser:
     def consume(self, type: TokenType, message: str) -> Token:
         if self.check(type):
             return self.advance()
-        raise ParseError(self.peek(), message, self.source)
+        self._error(self.peek(), message)
+        raise PulseSyntaxError()
     
     # Entry
     def parse(self) -> List[stmt.Stmt]:
@@ -129,9 +135,9 @@ class Parser:
         
         # Skip empty statements
         if self.match(TokenType.NEWLINE):
-            return None        
+            pass
         # Stop parsing expressions if we hit block end
-        if self.check(TokenType.DEDENT) or self.is_at_end():
+        if self.is_at_end():
             return None
         
         expr_stmt = self.expression()
@@ -142,6 +148,8 @@ class Parser:
         statements: List[stmt.Stmt] = []
         
         while not self.check(TokenType.DEDENT) and not self.is_at_end():
+            if self.check(TokenType.DEDENT):
+                break
             s = self.statement()
             if s is not None:
                 statements.append(s)
@@ -152,8 +160,8 @@ class Parser:
     def parse_if_stmt(self) -> stmt.If:
         condition = self.expression()
         self.consume(TokenType.COLON, "Expect ':' after condition")
-        
-        then_branch = self.statement()
+        self.consume(TokenType.INDENT, "Expect block after ':'")
+        then_branch = self.block()
         
         elif_branches = []
         while self.match(TokenType.ELIF):
@@ -243,7 +251,7 @@ class Parser:
                 continue
             
             if is_static:
-                raise ParseError(self.peek(), "'static' must be followed by 'def'", self.source)
+                self._error(self.peek(), "'static' must be followed by 'def'")
             
             if self.check(TokenType.IDENTIFIER):
                 name_tok = self.consume(TokenType.IDENTIFIER, "Expect variable name")
@@ -254,7 +262,7 @@ class Parser:
                 class_vars.append((name_tok, value))
                 continue
             
-            raise ParseError(self.peek(), "Invalid class body statement", self.source)
+            self._error(self.peek(), "Invalid class body statement")
         
         self.consume(TokenType.DEDENT, "Class body not closed")
         return stmt.Class(name, bases, methods, class_vars)
@@ -263,7 +271,7 @@ class Parser:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")
         try_block = self.statement()
         if try_block is None:
-            raise ParseError(self.peek(), "Expected block after 'try'", self.source)
+            self._error(self.peek(), "Expected block after 'try'")
         
         except_blocks = []
         while self.match(TokenType.EXCEPT):
@@ -320,7 +328,7 @@ class Parser:
             if isinstance(left, expr.Index):
                 return expr.SetIndex(left.object, left.index, value)
             
-            raise ParseError(self.previous(), "Invalid assignment target", self.source)
+            self._error(self.previous(), "Invalid assignment target")
         
         return left
     
@@ -461,7 +469,7 @@ class Parser:
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression")
             return expr_node
         
-        raise ParseError(self.peek(), "Expect expression", self.source)
+        self._error(self.peek(), "Expect expression")
     
     def parse_dict_literal(self) -> expr.Dict:
         keys: List[expr.Expr] = []
@@ -500,11 +508,11 @@ class Parser:
             
             end = raw.find("}", start)
             if end == -1:
-                raise ParseError(token, "Unclosed '{' in f-string", self.source)
+                self._error(token, "Unclosed '{' in f-string")
             
             fragment = raw[start + 1:end].strip()
             if not fragment:
-                raise ParseError(token, "Empty expression in f-string", self.source)
+                self._error(token, "Empty expression in f-string")
             
             inner_tokens = Lexer(fragment).scan_tokens()
             inner_parser = Parser(inner_tokens, fragment)
