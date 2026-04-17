@@ -194,7 +194,7 @@ class PulseRuntimeError(PulseError):
         if not self.stack:
             return base
         
-        trace_lines = [f"\n  {_C.YELLOW}{_C.BOLD}Traceback:{_C.RESEt}"]
+        trace_lines = [f"\n  {_C.YELLOW}{_C.BOLD}Traceback:{_C.RESET}"]
         for func_name, ln in self.stack:
             trace_lines.append(
                 f"    {_C.DIM}at{_C.RESET} "

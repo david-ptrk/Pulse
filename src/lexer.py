@@ -74,8 +74,23 @@ class Lexer:
         self.current = 0
         self.line = 1
         self.indent_stack = [0]
-
-
+    
+    def _context(self, line: int | None) -> str | None:
+        if line is None:
+            return None
+        lines = self.source.splitlines()
+        if 1 <= line <= len(lines):
+            return lines[line - 1]
+        return None
+    
+    def _error(self, message: str, line: int | None = None, column: int | None = None) -> None:
+        raise PulseLexError(
+            message=message,
+            line=self.line if line is None else line,
+            column=self.column() if column is None else column,
+            context=self._context(line or self.line)
+        )
+    
     # -------------------------------------------------------
     # Public Methods
     # -------------------------------------------------------
@@ -153,12 +168,7 @@ class Lexer:
             if self.match("="):
                 self.add_token(TokenType.BANG_EQUAL)
             else:
-                raise PulseLexError(
-                    message="Unexpected '!' without '='",
-                    line=self.line,
-                    column=self.column(),
-                    context=self.source.splitlines()[self.line-1]
-                )
+                self._error("Unexpectd '!' without '='")
             return
         
         if c == "/":
@@ -193,12 +203,7 @@ class Lexer:
             return
 
         # Unexpected character
-        raise PulseLexError(
-            message="Unexpected character", 
-            line=self.line, 
-            column=self.column(),
-            context=self.source.splitlines()[self.line-1]
-        )
+        self._error("Unexpected character")
     
     def handle_indentation(self) -> None:
         """
@@ -214,12 +219,7 @@ class Lexer:
             if ch == ' ':
                 spaces += 1
             elif ch == '\t':
-                raise PulseLexError(
-                    message="Tabs are not allowed for identation", 
-                    line=self.line,
-                    column=self.column(),
-                    context=self.source.splitlines()[self.line-1]
-                )
+                self._error("Tabs are not allowed for indentation")
             else:
                 break
             pos += 1
@@ -236,12 +236,7 @@ class Lexer:
             self.add_token(TokenType.INDENT)
         elif spaces < last_indent:
             if spaces not in self.indent_stack:
-                raise PulseLexError(
-                    message="Invalid indentation level", 
-                    line=self.line,
-                    column=self.column(),
-                    context=self.source.splitlines()[self.line-1]
-                )
+                self._error("Invalid indentation level")
             while self.indent_stack and spaces < self.indent_stack[-1]:
                 self.indent_stack.pop()
                 self.start = self.current
@@ -252,32 +247,31 @@ class Lexer:
     
     def string(self, quote_type) -> None:
         """Handles string literals enclosed in double and single quotes"""
+        start_line = self.line
+        start_column = self.column()
         value_chars = []
         
         while not self.is_at_end():
             c = self.advance()
             
             if c == quote_type:
-                break
+                self.add_token(TokenType.STRING, "".join(value_chars))
+                return
+            
+            if c == "\n":
+                self._error("Unterminated string", start_line, start_column)
             
             if c == "\\":
                 if self.is_at_end():
                     break
                 nxt = self.advance()
-                value_chars.append(self._ESCAPE_MAP.get(nxt, nxt))
+                if nxt not in self._ESCAPE_MAP:
+                    self._error(f"Invalid escape sequence '\\{nxt}'")
+                value_chars.append(self._ESCAPE_MAP[nxt])
             else:
-                if c == "\n":
-                    self.line += 1
                 value_chars.append(c)
-        else:
-            raise PulseLexError(
-                message="Unterminated string",
-                line=self.line,
-                column=self.column(),
-                context=self.source.splitlines()[self.line-1]
-            )
         
-        self.add_token(TokenType.STRING, "".join(value_chars))
+        self._error("Unterminated string", start_line, start_column)
     
     def fstring(self, quote_type) -> None:
         value_chars = []
@@ -312,12 +306,7 @@ class Lexer:
                     self.line += 1
                 value_chars.append(c)
         else:
-            raise PulseLexError(
-                message="Unterminated f-string",
-                line=self.line,
-                column=self.column(),
-                context=self.source.splitlines()[self.line - 1]
-            )
+            self._error("Unterminated f-string")
         
         self.add_token(TokenType.FSTRING, "".join(value_chars))
     
@@ -365,24 +354,14 @@ class Lexer:
         depth = 0
 
         if self.peek() != '[':
-            raise PulseLexError(
-                message="Expected '[' after '@'", 
-                line=self.line,
-                column=self.column(),
-                context=self.source.splitlines()[self.line-1]
-            )
+            self._error("Expected '[' after '@'")
         
         while not self.is_at_end():
             ch = self.advance()
 
             if ch == '"':
-                raise PulseLexError(
-                    message="Strings are not allowed inside tensor literals", 
-                    line=self.line,
-                    column=self.column(),
-                    context=self.source.splitlines()[self.line-1]
-                )
-
+                self._error("Strings are not allowed inside tensor literals")
+            
             if ch == "[":
                 depth += 1
             elif ch == "]":
@@ -391,12 +370,7 @@ class Lexer:
                     break
 
         if depth != 0:
-            raise PulseLexError(
-                message="Unterminated tensor literal", 
-                line=self.line, 
-                column=self.column(),
-                context=self.source.splitlines()[self.line-1]
-            )
+            self._error("Unterminated tensor literal")
 
         # Capture entire tensor WITHOUT @
         value = self.source[self.start+1 : self.current]
@@ -428,12 +402,7 @@ class Lexer:
     def add_token(self, type, literal=None) -> None:
         """Creates a token and appends it to the token list."""
         if type is None:
-            raise PulseLexError(
-                message="Invalid operator", 
-                line=self.line, 
-                column=self.column(),
-                context=self.source.splitlines()[self.line-1]
-            )
+            self._error("Invalid operator")
         lexeme = self.source[self.start:self.current]
         if type == TokenType.NEWLINE:
             lexeme = "\\n"
