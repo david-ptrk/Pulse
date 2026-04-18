@@ -40,7 +40,6 @@ def run_file(path: str) -> None:
         with open(path, "r", encoding="utf-8") as f:
             source = f.read()
         run(source)
-    
     except PulseError as e:
         print(e)
         sys.exit(1)

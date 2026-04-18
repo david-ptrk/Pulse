@@ -38,6 +38,9 @@ producing results or side effects in accordance with the language's
 semantics.
 """
 
+from __future__ import annotations
+import math
+from typing import Any, NoReturn
 from src.expressions import ExprVisitor
 from src.statements import StmtVisitor
 from src.environment import Environment
@@ -45,36 +48,39 @@ from src.error import PulseRuntimeError
 import src.runtime as runtime
 from src.tokens import Token
 from src.function import PulseFunction, PulseNativeFunction
-import math
 from src.runtime import PulseClass, PulseInstance
-from src.values import PulseNumber, PulseString, PulseNull, PulseList, PulseBoolean, PulseDict, PulseRange
+from src.values import (
+    PulseNumber, PulseString, PulseNull,
+    PulseList, PulseBoolean, PulseDict, PulseRange,
+)
 
 class Interpreter(ExprVisitor, StmtVisitor):
-    def __init__(self, global_environment):
+    def __init__(self, global_environment: Environment) -> None:
         self.environment = global_environment
-        self.locals = {}
-        self.source = ""
+        self.locals: dict[Any, int] = {}
+        self.source: str = ""
         
-        # Native Functions
+        # Built-in functions
         self.environment.define_many([
-            ("print", PulseNativeFunction("print", self.native_print)),
-            ("input", PulseNativeFunction("input", self.native_input)),
-            ("str", PulseNativeFunction("str", self.native_str)),
-            ("int", PulseNativeFunction("int", self.native_int)),
-            ("float", PulseNativeFunction("float", self.native_float)),
-            ("type", PulseNativeFunction("type", self.native_type)),
-            ("abs", PulseNativeFunction("abs", self.native_abs)),
-            ("pow", PulseNativeFunction("pow", self.native_pow)),
-            ("sqrt", PulseNativeFunction("sqrt", self.native_sqrt)),
-            ("min", PulseNativeFunction("min", self.native_min)),
-            ("max", PulseNativeFunction("max", self.native_max)),
-            ("len", PulseNativeFunction("len", self.native_len)),
-            ("range", PulseNativeFunction("range", self.native_range)),
-            ("round", PulseNativeFunction("round", self.native_round)),
-            ("floor", PulseNativeFunction("floor", self.native_floor)),
-            ("ceil", PulseNativeFunction("ceil", self.native_ceil)),
+            ("print", PulseNativeFunction("print", self._bi_print)),
+            ("input", PulseNativeFunction("input", self._bi_input)),
+            ("str", PulseNativeFunction("str", self._bi_str)),
+            ("int", PulseNativeFunction("int", self._bi_int)),
+            ("float", PulseNativeFunction("float", self._bi_float)),
+            ("type", PulseNativeFunction("type", self._bi_type)),
+            ("abs", PulseNativeFunction("abs", self._bi_abs)),
+            ("pow", PulseNativeFunction("pow", self._bi_pow)),
+            ("sqrt", PulseNativeFunction("sqrt", self._bi_sqrt)),
+            ("min", PulseNativeFunction("min", self._bi_min)),
+            ("max", PulseNativeFunction("max", self._bi_max)),
+            ("len", PulseNativeFunction("len", self._bi_len)),
+            ("range", PulseNativeFunction("range", self._bi_range)),
+            ("round", PulseNativeFunction("round", self._bi_round)),
+            ("floor", PulseNativeFunction("floor", self._bi_floor)),
+            ("ceil", PulseNativeFunction("ceil", self._bi_ceil)),
         ])
         
+        # Built-in exception classes
         self.environment.define_many([
             ("Exception", runtime.PulseException),
             ("RuntimeError", runtime.PulseRuntimeException),
@@ -82,11 +88,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("TypeError", runtime.PulseTypeError),
         ])
     
-    def interpret(self, statements, source):
-        """
-        Entry point to execute a full AST program.
-        'program' is a list of statements or a root node.
-        """
+    # Entry points
+    def interpret(self, statements: list, source: str)-> Any:
+        """Execute a full list of top-level AST statements."""
         self.source = source
         
         result = None
@@ -94,21 +98,53 @@ class Interpreter(ExprVisitor, StmtVisitor):
             result = self.execute(stmt)
         return result
     
-    def execute(self, stmt):
+    def execute(self, stmt) -> Any:
         return stmt.accept(self)
     
-    def evaluate(self, expr):
+    def evaluate(self, expr) -> Any:
         return expr.accept(self)
     
-    def resolve(self, expr, depth):
+    def resolve(self, expr, depth: int) -> None:
         self.locals[expr] = depth
     
-    def runtime_error(self, token=None, message=None):
+    # Error helpers
+    def _raise(self, message: str, token: Token | None = None) -> NoReturn:
         raise runtime.PulseRuntimeException(
-            PulseRuntimeError(message, token=token, context_source=self.source)
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
         )
     
-    def pulse_stringify(self, val) -> str:
+    def _check_number(self, value: Any, token: Token | None, label: str = "Operand") -> PulseNumber:
+        if not isinstance(value, PulseNumber):
+            self._raise(f"{label} must be a number, got {value.type_name()}", token)
+        return value
+    
+    # Truthiness & equality
+    def _is_truthy(self, value: Any) -> bool:
+        return value.is_truthy()
+    
+    def _is_equal(self, a: Any, b: Any) -> bool:
+        if type(a) is not type(b):
+            return False
+        if isinstance(a, PulseNull):
+            return True
+        if isinstance(a, PulseBoolean):
+            return a.value == b.value
+        if isinstance(a, PulseNumber):
+            return a.value == b.value
+        if isinstance(a, PulseString):
+            return a.value == b.value
+        if isinstance(a, PulseList):
+            return a.elements == b.elements
+        if isinstance(a, PulseDict):
+            return a.entries == b.entries
+        return a is b
+    
+    # Stringification
+    def _stringify(self, val: Any) -> str:
         if isinstance(val, PulseInstance):
             for magic in ("__str__", "__repr__"):
                 method = val.klass.find_method(magic)
@@ -117,77 +153,73 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     return repr(result) if result is not None else "null"
         return repr(val)
     
-    # Native Functions
-    def native_print(self, *args, **kwargs):
+    # Built-in functions
+    def _bi_print(self, *args, **kwargs) -> PulseNull:
         sep = str(kwargs.get("sep", " "))
         end = str(kwargs.get("end", "\n"))
         
-        output = sep.join(self.pulse_stringify(arg) for arg in args)
-        print(output, end=end)
-        return None
+        print(sep.join(self._stringify(a) for a in args), end=end)
+        return PulseNull()
     
-    def native_input(self, prompt=""):
-        return input(prompt)
+    def _bi_input(self, prompt: Any = PulseString("")) -> PulseString:
+        return PulseString(input(self._stringify(prompt)))
     
-    def native_str(self, x):
-        return PulseString(repr(x))
+    def _bi_str(self, x: Any) -> PulseString:
+        return PulseString(self._stringify(x))
     
-    def native_int(self, x):
+    def _bi_int(self, x: Any) -> PulseNumber:
         if isinstance(x, PulseNumber):
-            return x
-        
+            return PulseNumber(int(x.value))
         if isinstance(x, PulseString):
             try:
                 return PulseNumber(int(x.value))
-            except:
-                self.runtime_error(message="Invalid conversion to int")
-        
-        self.runtime_error(message="Invalid type for int()")
+            except ValueError:
+                self._raise(f"Cannot convert '{x.value}' to int")
+        self._raise(f"int() expects a number or string, got {x.type_name()}")
     
-    def native_float(self, x):
+    def _bi_float(self, x: Any) -> PulseNumber:
         if isinstance(x, PulseNumber):
-            return x
-        
+            return PulseNumber(float(x.value))
         if isinstance(x, PulseString):
             try:
                 return PulseNumber(float(x.value))
-            except:
-                self.runtime_error(message="Invalid conversion to float")
-        
-        self.runtime_error(message="Invalid type for float()")
+            except ValueError:
+                self._raise(f"Cannot convert '{x.value}' to float")
+        self._raise(f"float() expects a number or string, got {x.type_name()}")
     
-    def native_type(self, obj):
+    def _bi_type(self, obj: Any) -> PulseString:
         return PulseString(obj.type_name())
     
-    def native_abs(self, x):
-        if isinstance(x, PulseNumber):
-            return PulseNumber(abs(x.value))
-        self.runtime_error(message="abs() expects number")
+    def _bi_abs(self, x: Any) -> PulseNumber:
+        self._check_number(x, None, "abs() argument")
+        return PulseNumber(abs(x.value))
     
-    def native_pow(self, base, exp):
-        if isinstance(base, PulseNumber) and isinstance(exp, PulseNumber):
-            return PulseNumber(pow(base.value, exp.value))
-        self.runtime_error(message="pow() expects numbers")
+    def _bi_pow(self, base: Any, exp: Any) -> PulseNumber:
+        self._check_number(base, None, "pow() base")
+        self._check_number(exp,  None, "pow() exponent")
+        return PulseNumber(pow(base.value, exp.value))
     
-    def native_sqrt(self, x):
-        if isinstance(x, PulseNumber):
-            if x.value < 0:
-                self.runtime_error(message="Cannot take square root of negative values")
-            return PulseNumber(math.sqrt(x.value))
-        
-        self.runtime_error(message="sqrt() expects number")
+    def _bi_sqrt(self, x: Any) -> PulseNumber:
+        self._check_number(x, None, "sqrt() argument")
+        if x.value < 0:
+            self._raise("sqrt() argument must be non-negative")
+        return PulseNumber(math.sqrt(x.value))
     
-    def native_min(self, *args):
-        if not all(isinstance(a, PulseNumber) for a in args):
-            self.runtime_error(message="min() expects numbers")
+    def _bi_min(self, *args: Any) -> PulseNumber:
+        if not args:
+            self._raise("min() expects at least one argument")
+        for a in args:
+            self._check_number(a, None, "min() argument")
         return PulseNumber(min(a.value for a in args))
     
-    def native_max(self, *args):
-        if not all(isinstance(a, PulseNumber) for a in args):
-            self.runtime_error(message="max() expects numbers")
+    def _bi_max(self, *args: Any) -> PulseNumber:
+        if not args:
+            self._raise("max() expects at least one argument")
+        for a in args:
+            self._check_number(a, None, "max() argument")
         return PulseNumber(max(a.value for a in args))
     
-    def native_len(self, x):
+    def _bi_len(self, x: Any) -> PulseNumber:
         if isinstance(x, PulseList):
             return PulseNumber(len(x.elements))        
         if isinstance(x, PulseString):
@@ -196,14 +228,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNumber(len(x.entries))
         if isinstance(x, PulseRange):
             return PulseNumber(len(x))
-        
-        self.runtime_error(message="Object has no length")
+        self._raise(f"len() not supported for type '{x.type_name()}'")
     
-    def native_range(self, *args):
-        int_args = []
+    def _bi_range(self, *args: Any) -> PulseRange:
+        int_args: list[int] = []
         for a in args:
-            if not isinstance(a, PulseNumber):
-                self.runtime_error(message="range() expects numbers")
+            self._check_number(a, None, "range() argument")
             int_args.append(int(a.value))
         
         if len(int_args) == 1:
@@ -212,35 +242,168 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseRange(int_args[0], int_args[1])
         if len(int_args) == 3:
             if int_args[2] == 0:
-                self.runtime_error(message="range() step cannot be zero")
+                self._raise("range() step cannot be zero")
             return PulseRange(int_args[0], int_args[1], int_args[2])
         
-        self.runtime_error(message="range() expects 1, 2, or 3, arguments")
+        self._raise("range() expects 1, 2, or 3, arguments")
     
-    def native_round(self, x, digits=None):
-        if not isinstance(x, PulseNumber):
-            self.runtime_error(message="round() expects a number")
+    def _bi_round(self, x: Any, digits: Any = None) -> PulseNumber:
+        self._check_number(x, None, "round() argument")
         if digits is None:
             return PulseNumber(round(x.value))
-        if not isinstance(digits, PulseNumber):
-            self.runtime_error(message="round() digits must be a number")
+        self._check_number(digits, None, "round() digits")
         return PulseNumber(round(x.value, int(digits.value)))
     
-    def native_floor(self, x):
-        if not isinstance(x, PulseNumber):
-            self.runtime_error(message="floor() expects a number")
+    def _bi_floor(self, x: Any) -> PulseNumber:
+        self._check_number(x, None, "floor() argument")
         return PulseNumber(math.floor(x.value))
     
-    def native_ceil(self, x):
-        if not isinstance(x, PulseNumber):
-            self.runtime_error(message="ceil() expects a number")
+    def _bi_ceil(self, x: Any) -> PulseNumber:
+        self._check_number(x, None, "ceil() argument")
         return PulseNumber(math.ceil(x.value))
     
-    # Visit Functions
-    def visit_expression_stmt(self, stmt):
+    # Statement visitors
+    def visit_expression_stmt(self, stmt) -> None:
         self.evaluate(stmt.expression)
     
-    def visit_literal_expr(self, expr):
+    def visit_pass_stmt(self, stmt) -> None:
+        return None
+    
+    def visit_block_stmt(self, stmt) -> Any:
+        previous = self.environment
+        self.environment = Environment(enclosing=previous)
+        
+        try:
+            result = None
+            for s in stmt.statements:
+                result = self.execute(s)
+            return result
+        finally:
+            self.environment = previous
+    
+    def visit_if_stmt(self, stmt) -> Any:
+        if self._is_truthy(self.evaluate(stmt.condition)):
+            return self.execute(stmt.then_branch)
+        
+        for cond, branch in stmt.elif_branches:
+            if self._is_truthy(self.evaluate(cond)):
+                return self.execute(branch)
+        
+        if stmt.else_branch is not None:
+            return self.execute(stmt.else_branch)
+        
+        return None
+    
+    def visit_while_stmt(self, stmt) -> None:
+        while self._is_truthy(self.evaluate(stmt.condition)):
+            try:
+                self.execute(stmt.body)
+            except runtime.BreakException:
+                break
+            except runtime.ContinueException:
+                continue
+    
+    def visit_for_stmt(self, stmt) -> None:
+        iterable = self.evaluate(stmt.iterable)
+        
+        if isinstance(iterable, PulseList):
+            items = iterable.elements
+        elif isinstance(iterable, PulseDict):
+            items = list(iterable.entries.keys())
+        elif isinstance(iterable, PulseRange):
+            items = iterable.to_list()
+        elif isinstance(iterable, PulseString):
+            items = [PulseString(c) for c in iterable.value]
+        else:
+            self._raise(f"Object of type '{iterable.type_name()}' is not iterable")
+        
+        previous = self.environment
+        for value in items:
+            loop_env = Environment(enclosing=previous)
+            self.environment = loop_env
+            
+            try:
+                loop_env.define(stmt.var.lexeme, value)
+                self.execute(stmt.body)
+            except runtime.BreakException:
+                break
+            except runtime.ContinueException:
+                continue
+            finally:
+                self.environment = previous
+    
+    def visit_break_stmt(self, stmt) -> NoReturn:
+        raise runtime.BreakException()
+    
+    def visit_continue_stmt(self, stmt) -> NoReturn:
+        raise runtime.ContinueException()
+    
+    def visit_return_stmt(self, stmt) -> NoReturn:
+        value = self.evaluate(stmt.value) if stmt.value is not None else PulseNull()
+        raise runtime.ReturnException(value)
+    
+    def visit_function_stmt(self, stmt) -> None:
+        func = PulseFunction(stmt, self.environment)
+        self.environment.define(stmt.name.lexeme, func)
+    
+    def visit_class_stmt(self, stmt) -> None:
+        self.environment.define(stmt.name.lexeme, None)
+        
+        bases = [self.environment.get(base) for base in stmt.bases]
+        
+        class_vars: dict[str, Any] = {}
+        for name_tok, value_expr in stmt.class_vars:
+            class_vars[name_tok.lexeme] = self.evaluate(value_expr)
+        
+        methods: dict[str, PulseFunction] = {}
+        for method in stmt.methods:
+            methods[method.name.lexeme] = PulseFunction(method, self.environment)
+        
+        klass = PulseClass(stmt.name.lexeme, methods, class_vars, bases)
+        self.environment.assign(stmt.name.lexeme, klass)
+    
+    def visit_try_stmt(self, stmt) -> Any:
+        result = None
+        try:
+            self.execute(stmt.try_block)
+        except (runtime.BreakException,
+                runtime.ContinueException,
+                runtime.ReturnException):
+            raise
+        
+        except runtime.PulseException as exc:
+            handled = False
+            for exc_type_expr, var_token, block in stmt.except_blocks:
+                if exc_type_expr is None:
+                    match = True
+                else:
+                    exc_type = self.evaluate(exc_type_expr)
+                    if not isinstance(exc_type, type):
+                        self._raise("Exception type in 'except' must be a class")
+                    match = isinstance(exc, exc_type)
+                
+                if match:
+                    handled = True
+                    if var_token is not None:
+                        self.environment.define(var_token.lexeme, exc)
+                    result = self.execute(block)
+                    break
+            
+            if not handled:
+                raise
+        
+        else:
+            if stmt.else_block is not None:
+                result = self.execute(stmt.else_block)
+        
+        finally:
+            if stmt.finally_block is not None:
+                self.execute(stmt.finally_block)
+        
+        return result
+    
+    # Expression visitors
+    def visit_literal_expr(self, expr) -> Any:
         value = expr.value
         
         if isinstance(value, bool):
@@ -254,199 +417,179 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         return value
     
-    def visit_variable_expr(self, expr):
-        if expr.name.lexeme == "self":
+    def visit_variable_expr(self, expr) -> Any:
+        name = expr.name.lexeme
+        if name == "self":
             return self.environment.get("self")
         
         distance = self.locals.get(expr)
-        if distance is None:
-            return self.environment.get(expr.name.lexeme)
-        return self.environment.get(expr.name.lexeme)
+        if distance is not None:
+            return self.environment.get_at(distance, name)
+        return self.environment.get(name)
     
-    def visit_assign_expr(self, expr):
+    def visit_assign_expr(self, expr) -> Any:
         value = self.evaluate(expr.value)
+        name = expr.name.lexeme
+        
         distance = self.locals.get(expr)
         if distance is not None:
-            self.environment.assign_at(distance, expr.name.lexeme, value)
-            return value
-        
-        try:
-            self.environment.assign(expr.name.lexeme, value)
-        except PulseRuntimeError:
-            self.environment.define(expr.name.lexeme, value)
+            self.environment.assign_at(distance, name, value)
+        else:
+            try:
+                self.environment.assign(name, value)
+            except runtime.PulseRuntimeException:
+                self.environment.define(name, value)
         
         return value
     
-    def visit_grouping_expr(self, expr):
+    def visit_grouping_expr(self, expr) -> Any:
         return self.evaluate(expr.expression)
     
-    def visit_unary_expr(self, expr):
+    def visit_unary_expr(self, expr) -> Any:
         right = self.evaluate(expr.right)
         operator = expr.operator.lexeme
         
-        if operator == '-':
-            if isinstance(right, PulseNumber):
-                return PulseNumber(-right.value)
-            self.runtime_error(expr.operator, "Unary '-' requires a number")
+        if operator == "-":
+            self._check_number(right, expr.operator, "Unary '-' operand")
+            return PulseNumber(-right.value)
         
-        if operator == '!':
-            return PulseBoolean(not right.is_truthy())
+        if operator in ("not", "!"):
+            return PulseBoolean(not self._is_truthy(right))
         
-        self.runtime_error(expr.operator, f"Unknown unary operator: {operator}")
+        self._raise(f"Unknown unary operator '{operator}'", expr.operator)
     
-    def visit_binary_expr(self, expr):
+    def visit_binary_expr(self, expr) -> Any:
         left = self.evaluate(expr.left)
         right = self.evaluate(expr.right)
         operator = expr.operator.lexeme
-        
-        if operator == '+':
-            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
-                return PulseNumber(left.value + right.value)
-            
-            if isinstance(left, PulseString) and isinstance(right, PulseString):
-                return PulseString(left.value + right.value)
-            
-            self.runtime_error(expr.operator, "Operands must be two numbers or two strings")
-        elif operator == '-':
-            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
-                return PulseNumber(left.value - right.value)
-            
-            self.runtime_error(expr.operator, "Operands must be two numbers")
-        elif operator == '*':
-            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
-                return PulseNumber(left.value * right.value)
-            
-            self.runtime_error(expr.operator, "Operands must be two numbers")
-        elif operator == '/':
-            if right.value == 0:
-                self.runtime_error(expr.operator, "Division by zero. Divisor cannot be zero")
-            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
-                return PulseNumber(left.value / right.value)
-            
-            self.runtime_error(expr.operator, "Operands must be two numbers")
-        elif operator == '%':
-            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
-                if right.value == 0:
-                    self.runtime_error(expr.operator, "Modulo by zero")
-                return PulseNumber(left.value % right.value)
-            self.runtime_error(expr.operator, "Operands must be two numbers")
-        elif operator == '//':
-            if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
-                if right.value == 0:
-                    self.runtime_error(expr.operator, "Integer division by zero")
-                return PulseNumber(int(left.value // right.value))
-            self.runtime_error(expr.operator, "Operands must be two numbers")
+        tok = expr.operator
         
         if operator == "==":
-            return PulseBoolean(self.is_equal(left, right))
+            return PulseBoolean(self._is_equal(left, right))
+        if operator == "!=":
+            return PulseBoolean(not self._is_equal(left, right))
         
-        if isinstance(left, PulseNumber) and isinstance(right, PulseNumber):
-            if operator == '!=':
-                return PulseBoolean(left.value != right.value)
-            if operator == '<':
-                return PulseBoolean(left.value < right.value)
-            if operator == '<=':
-                return PulseBoolean(left.value <= right.value)
-            if operator == '>':
-                return PulseBoolean(left.value > right.value)
-            if operator == '>=':
-                return PulseBoolean(left.value >= right.value)
-        else:
-            self.runtime_error(expr.operator, "Operands must be numbers")
+        if operator == "+" and isinstance(left, PulseString) and isinstance(right, PulseString):
+            return PulseString(left.value + right.value)
         
-        self.runtime_error(expr.operator, f"Unknown binary operator: {operator}")
+        if operator in ("+", "-", "*", "/", "%", "//", "<", "<=", ">", ">="):
+            if not isinstance(left, PulseNumber) or not isinstance(right, PulseNumber):
+                if operator == "+":
+                    self._raise(
+                        "'+' requires two numbers or two strings, "
+                        f"got '{left.type_name()}' and '{right.type_name()}'",
+                        tok,
+                    )
+                self._raise(
+                    f"'{operator}' requires two numbers, "
+                    f"got '{left.type_name()}' and '{right.type_name()}'",
+                    tok,
+                )
+            
+            lv, rv = left.value, right.value
+            
+            if operator == "+":
+                return PulseNumber(lv + rv)
+            if operator == "-":
+                return PulseNumber(lv - rv)
+            if operator == "*":
+                return PulseNumber(lv * rv)
+            
+            if operator == "/":
+                if rv == 0:
+                    self._raise("Division by zero", tok)
+                return PulseNumber(lv / rv)
+            
+            if operator == "%":
+                if rv == 0:
+                    self._raise("Modulo by zero", tok)
+                return PulseNumber(lv % rv)
+            
+            if operator == "//":
+                if rv == 0:
+                    self._raise("Integer division by zero", tok)
+                return PulseNumber(int(lv // rv))
+            
+            if operator == "<":
+                return PulseBoolean(lv < rv)
+            if operator == "<=":
+                return PulseBoolean(lv <= rv)
+            if operator == ">":
+                return PulseBoolean(lv > rv)
+            if operator == ">=":
+                return PulseBoolean(lv >= rv)
+        
+        self._raise(f"Unknown binary operator '{operator}'", tok)
     
-    def visit_logical_expr(self, expr):
+    def visit_logical_expr(self, expr) -> Any:
         left = self.evaluate(expr.left)
         operator = expr.operator.lexeme
         
         if operator == "or":
-            if self.is_truthy(left):
-                return left
-            return self.evaluate(expr.right)
-        
+            return left if self._is_truthy(left) else self.evaluate(expr.right)
         if operator == "and":
-            if not self.is_truthy(left):
-                return left
-            return self.evaluate(expr.right)
+            return left if not self._is_truthy(left) else self.evaluate(expr.right)
         
-        raise runtime.PulseRuntimeException(
-            PulseRuntimeError(f"Unknown logical operator: {operator}")
-        )
+        self._raise(f"Unknown logical operator '{operator}'", expr.operator)
     
-    def visit_list_expr(self, expr):
+    def visit_list_expr(self, expr) -> PulseList:
         return PulseList([self.evaluate(e) for e in expr.elements])
     
-    def visit_dict_expr(self, expr):
-        entries = {}
+    def visit_dict_expr(self, expr) -> PulseDict:
+        entries: dict[Any, Any] = {}
         for key_expr, val_expr in zip(expr.keys, expr.values):
-            key = self.evaluate(key_expr)
-            value = self.evaluate(val_expr)
-            entries[key] = value
+            entries[self.evaluate(key_expr)] = self.evaluate(val_expr)
         return PulseDict(entries)
     
-    def visit_index_expr(self, expr):
+    def visit_index_expr(self, expr) -> Any:
         obj = self.evaluate(expr.object)
         index = self.evaluate(expr.index)
         
         if isinstance(obj, PulseList):
-            if not isinstance(index, PulseNumber):
-                self.runtime_error(message="List index must be a number")
+            self._check_number(index, None, "List index")
             idx = int(index.value)
-            try:
-                return obj.elements[idx]
-            except IndexError:
-                raise runtime.PulseRuntimeException(
-                    PulseRuntimeError("Index out of bounds")
-                )
+            if idx < -len(obj.elements) or idx >= len(obj.elements):
+                self._raise(f"List index {idx} out of range (length {len(obj.elements)})")
         
         if isinstance(obj, PulseDict):
-            result = obj.get(index)
-            if isinstance(result, PulseNull) and not obj.has(index):
-                self.runtime_error(message=f"Key not found in dict")
-            return result
+            if not obj.has(index):
+                self._raise(f"Key '{self._stringify(index)}' not found in dict")
+            return obj.get(index)
         
         if isinstance(obj, PulseString):
-            if not isinstance(index, PulseNumber):
-                self.runtime_error(message="String index must be a number")
+            self._check_number(index, None, "String index")
             idx = int(index.value)
-            try:
-                return PulseString(obj.value[idx])
-            except IndexError:
-                self.runtime_error(message="String index out of bounds")
+            if idx < -len(obj.value) or idx >= len(obj.value):
+                self._raise(f"String index {idx} out of range (length {len(obj.value)})")
+            return PulseString(obj.value[idx])
         
-        self.runtime_error(message="Object is not indexable")
+        self._raise(f"Object of type '{obj.type_name()}' does not support indexing")
     
-    def visit_setindex_expr(self, expr):
+    def visit_setindex_expr(self, expr) -> Any:
         obj = self.evaluate(expr.object)
         index = self.evaluate(expr.index)
         value = self.evaluate(expr.value)
         
         if isinstance(obj, PulseList):
-            if not isinstance(index, PulseNumber):
-                self.runtime_error(message="List index must be a number")
+            self._check_number(index, None, "List index")
             idx = int(index.value)
-            try:
-                obj.elements[idx] = value
-                return value
-            except IndexError:
-                self.runtime_error(message="Index out of bounds")
+            if idx < -len(obj.elements) or idx >= len(obj.elements):
+                self._raise(f"List index {idx} out of range (length {len(obj.elements)})")
+            obj.elements[idx] = value
+            return value
         
         if isinstance(obj, PulseDict):
             obj.set(index, value)
             return value
         
         if isinstance(obj, PulseString):
-            self.runtime_error(message="Strings are immutable")
+            self._raise("Strings are immutable and do not support index assignment")
         
-        self.runtime_error(message="Object does not support indexed assignment")
+        self._raise(f"Object of type '{obj.type_name()}' does not support indexed assignment")
     
-    def visit_setmember_expr(self, expr):
+    def visit_setmember_expr(self, expr) -> Any:
         obj = self.evaluate(expr.object)
         value = self.evaluate(expr.value)
-        
-        if isinstance(obj, PulseNull):
-            self.runtime_error(expr.object, "Cannot set member on null")
         
         if isinstance(obj, PulseInstance):
             obj.set(expr.name.lexeme, value)
@@ -456,244 +599,49 @@ class Interpreter(ExprVisitor, StmtVisitor):
             obj.class_vars[expr.name.lexeme] = value
             return value
         
-        self.runtime_error(expr.object, "Only class objects support member assignment")
+        self._raise(
+            f"Cannot assign member '{expr.name.lexeme}' on "
+            f"object of type '{obj.type_name()}'",
+            expr.name,
+        )
     
-    def visit_block_stmt(self, stmt):
-        previous = self.environment
-        self.environment = Environment(enclosing=previous)
-        
-        try:
-            result = None
-            for s in stmt.statements:
-                result = self.execute(s)
-            return result
-        finally:
-            self.environment = previous
-    
-    def visit_if_stmt(self, stmt):
-        if self.is_truthy(self.evaluate(stmt.condition)):
-            return self.execute(stmt.then_branch)
-        
-        for cond, branch in stmt.elif_branches:
-            if self.is_truthy(self.evaluate(cond)):
-                return self.execute(branch)
-        
-        if stmt.else_branch:
-            return self.execute(stmt.else_branch)
-        
-        return None
-    
-    def visit_while_stmt(self, stmt):
-        while self.is_truthy(self.evaluate(stmt.condition)):
-            try:
-                self.execute(stmt.body)
-            except runtime.BreakException:
-                break
-            except runtime.ContinueException:
-                continue
-    
-    def visit_return_stmt(self, stmt):
-        value = None
-        if stmt.value:
-            value = self.evaluate(stmt.value)
-        raise runtime.ReturnException(value)
-    
-    def is_truthy(self, value):
-        return value.is_truthy()
-    
-    def is_equal(self, a, b):
-        if type(a) != type(b):
-            return False
-        
-        if isinstance(a, PulseNumber):
-            return a.value == b.value
-        
-        if isinstance(a, PulseString):
-            return a.value == b.value
-        
-        if isinstance(a, PulseList):
-            return a.elements == b.elements
-    
-    def num(self, value):
-        if not isinstance(value, PulseNumber):
-            self.runtime_error(message="Expected number")
-        return value.value
-    
-    def visit_call_expr(self, expr):
+    def visit_call_expr(self, expr) -> Any:
         callee = self.evaluate(expr.callee)
         arguments = [self.evaluate(arg) for arg in expr.arguments]
         
-        keyword_arguments = {
+        kwargs = {
             name.lexeme: self.evaluate(value)
             for name, value in expr.keyword_arguments
         }
         
         if not callable(getattr(callee, "call", None)):
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError("Attempted to call a non-function")
-            )
+            self._raise("Attempted to call a non-callable value")
         
-        return callee.call(self, arguments, keyword_arguments)
+        func_name = getattr(getattr(callee, "declaration", None), "name", None)
+        func_name = func_name.lexeme if func_name else repr(callee)
+        call_line = expr.paren.line if hasattr(expr, "paren") else None
+        PulseRuntimeError.push_stack(func_name, call_line)
+        
+        try:
+            return callee.call(self, arguments, kwargs)
+        finally:
+            PulseRuntimeError.pop_stack()
     
-    def visit_break_stmt(self, stmt):
-        raise runtime.BreakException()
-    
-    def visit_continue_stmt(self, stmt):
-        raise runtime.ContinueException()
-    
-    def visit_for_stmt(self, stmt):
-        iterable = self.evaluate(stmt.iterable)
-        
-        if isinstance(iterable, PulseList):
-            iterable_values = iterable.elements
-        elif isinstance(iterable, PulseDict):
-            iterable_values = list(iterable.entries.keys())
-        elif isinstance(iterable, PulseRange):
-            iterable_values = iterable.to_list()
-        elif isinstance(iterable, PulseString):
-            iterable_values = [PulseString(c) for c in iterable.value]
-        else:
-            self.runtime_error(message="Object is not iterable")
-        
-        for value in iterable_values:
-            loop_env = Environment(enclosing=self.environment)
-            previous = self.environment
-            self.environment = loop_env
-            
-            try:
-                loop_env.define(stmt.var.lexeme, value)
-                self.execute(stmt.body)
-            except runtime.BreakException:
-                break
-            except runtime.ContinueException:
-                continue
-            finally:
-                self.environment = previous
-    
-    def visit_function_stmt(self, stmt):
-        func = PulseFunction(stmt, self.environment)
-        self.environment.define(stmt.name.lexeme, func)
-        return None
-    
-    def visit_class_stmt(self, stmt):
-        self.environment.define(stmt.name.lexeme, None)
-        
-        bases = [self.environment.get(base) for base in stmt.bases]
-        
-        class_vars = {}
-        for name_tok, value_expr in stmt.class_vars:
-            value = self.evaluate(value_expr)
-            class_vars[name_tok.lexeme] = value
-        
-        methods = {}
-        for method in stmt.methods:
-            function = PulseFunction(method, self.environment)
-            methods[method.name.lexeme] = function
-        
-        class_object = PulseClass(stmt.name.lexeme, methods, class_vars, bases)
-        self.environment.assign(stmt.name.lexeme, class_object)
-    
-    def visit_memberaccess_expr(self, expr):
+    def visit_memberaccess_expr(self, expr) -> Any:
         obj = self.evaluate(expr.object)
         name = expr.name.lexeme
         
         if isinstance(obj, PulseNull):
-            self.runtime_error(message="Cannot access member of null")
+            self._raise("Cannot access member of null", expr.name)
         
         if isinstance(obj, PulseList):
-            if name == "append":
-                return PulseNativeFunction("append", lambda val: (
-                    obj.elements.append(val), PulseNull()
-                )[-1])
-            if name == "pop":
-                def list_pop(index=None):
-                    if not obj.elements:
-                        self.runtime_error(message="pop() on empty list")
-                    if index is None:
-                        return obj.elements.pop()
-                    if not isinstance(index, PulseNumber):
-                        self.runtime_error(message="pop() index must be a number")
-                    idx = int(index.value)
-                    try:
-                        return obj.elements.pop(idx)
-                    except IndexError:
-                        self.runtime_error(message="pop() index out of range")
-                return PulseNativeFunction("pop", list_pop)
-            if name == "slice":
-                def list_slice(start, end):
-                    if not isinstance(start, PulseNumber) or not isinstance(end, PulseNumber):
-                        self.runtime_error(message="slice() expects numbers")
-                    return PulseList(obj.elements[int(start.value):int(end.value)])
-                return PulseNativeFunction("slice", list_slice)
-            if name == "contains":
-                def list_contains(val):
-                    for el in obj.elements:
-                        if self.is_equal(el, val):
-                            return PulseBoolean(True)
-                    return PulseBoolean(False)
-                return PulseNativeFunction("contains", list_contains)
-            if name == "length":
-                return PulseNativeFunction("length", lambda: PulseNumber(len(obj.elements)))
-            self.runtime_error(message=f"List has no method '{name}'")
+            return self._list_method(obj, name, expr.name)
         
         if isinstance(obj, PulseString):
-            if name == "upper":
-                return PulseNativeFunction("upper", lambda: PulseString(obj.value.upper()))
-            if name == "lower":
-                return PulseNativeFunction("lower", lambda: PulseString(obj.value.lower()))
-            if name == "trim":
-                return PulseNativeFunction("trim", lambda: PulseString(obj.value.strip()))
-            if name == "split":
-                def str_split(sep=None):
-                    if sep is None:
-                        return PulseList([PulseString(s) for s in obj.value.split()])
-                    if not isinstance(sep, PulseString):
-                        self.runtime_error(message="split() separator must be a string")
-                    return PulseList([PulseString(s) for s in obj.value.split(sep.value)])
-                return PulseNativeFunction("split", str_split)
-            if name == "join":
-                def str_join(lst):
-                    if not isinstance(lst, PulseList):
-                        self.runtime_error(message="join() expects a list")
-                    parts = []
-                    for el in lst.elements:
-                        if not isinstance(el, PulseString):
-                            self.runtime_error(message="join() list elements must be strings")
-                        parts.append(el.value)
-                    return PulseString(obj.value.join(parts))
-                return PulseNativeFunction("join", str_join)
-            if name == "replace":
-                def str_replace(old, new):
-                    if not isinstance(old, PulseString) or not isinstance(new, PulseString):
-                        self.runtime_error(message="replace() expects strings")
-                    return PulseString(obj.value.replace(old.value, new.value))
-                return PulseNativeFunction("replace", str_replace)
-            if name == "starts_with":
-                return PulseNativeFunction("starts_with", lambda s: PulseBoolean(
-                    obj.value.startswith(s.value) if isinstance(s, PulseString)
-                    else self.runtime_error(message="starts_with() expects a string")
-                ))
-            if name == "ends_with":
-                return PulseNativeFunction("ends_with", lambda s: PulseBoolean(
-                    obj.value.endswith(s.value) if isinstance(s, PulseString)
-                    else self.runtime_error(message="ends_with() expects a string")
-                ))
-            if name == "length":
-                return PulseNativeFunction("length", lambda: PulseNumber(len(obj.value)))
-            self.runtime_error(message=f"String has no method '{name}'")
+            return self._string_method(obj, name, expr.name)
         
         if isinstance(obj, PulseDict):
-            if name == "keys":
-                return PulseNativeFunction("keys", lambda: PulseList(list(obj.entries.keys())))
-            if name == "values":
-                return PulseNativeFunction("values", lambda: PulseList(list(obj.entries.values())))
-            if name == "items":
-                return PulseNativeFunction("items", lambda: PulseList([
-                    PulseList([k, v]) for k, v in obj.entries.items()
-                ]))
-            if name == "has":
-                return PulseNativeFunction("has", lambda key: PulseBoolean(obj.has(key)))
-            self.runtime_error(message=f"Dict has no method '{name}'")
+            return self._dict_method(obj, name, expr.name)
         
         if isinstance(obj, PulseInstance):
             return obj.get(name)
@@ -701,47 +649,67 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if isinstance(obj, PulseClass):
             return obj.get(name)
         
-        self.runtime_error(message="Only class objects support member access")
+        self._raise(
+            f"Object of type '{obj.type_name()}' does not support member access",
+            expr.name,
+        )
     
-    def visit_pass_stmt(self, stmt):
-        return None
-    
-    def visit_try_stmt(self, stmt):
-        try:
-            self.execute(stmt.try_block)
-        except runtime.PulseException as e:
-            handled = False
-            for exc_type_expr, var_token, block in stmt.except_blocks:
-                if exc_type_expr is None:
-                    match = True
-                else:
-                    exc_type = self.evaluate(exc_type_expr)
-                    if not isinstance(exc_type, type):
-                        self.runtime_error(message="Exception type must be a class")
-                    match = isinstance(e, exc_type)
-                
-                if match:
-                    handled = True
-                    if var_token is not None:
-                        self.environment.define(var_token.lexeme, e)
-                    self.execute(block)
-                    break
-            if not handled:
-                raise
-        except (runtime.BreakException,
-                runtime.ContinueException,
-                runtime.ReturnException):
-            raise
-        else:
-            if stmt.else_block is not None:
-                self.execute(stmt.else_block)
-        finally:
-            if stmt.finally_block is not None:
-                self.execute(stmt.finally_block)
-    
-    def visit_fstring_expr(self, expr):
+    def visit_fstring_expr(self, expr) -> PulseString:
         result = []
         for part in expr.parts:
             value = self.evaluate(part)
-            result.append(repr(value))
+            result.append(self._stringify(value))
         return PulseString("".join(result))
+    
+    # Built-in method dispatch
+    def _list_method(self, obj: PulseList, name: str, token: Token) -> PulseNativeFunction:
+        if name == "append":
+            def _append(val: Any) -> PulseNull:
+                obj.elements.append(val)
+                return PulseNull()
+            return PulseNativeFunction("append", _append)
+        
+        if name == "pop":
+            def _pop(index: Any = None) -> Any:
+                if not obj.elements:
+                    self._raise("pop() called on empty list")
+                if index is None:
+                    return obj.elements.pop()
+                self._check_number(index, token, "pop() index")
+                idx = int(index.value)
+                if idx < -len(obj.elements) or idx >= len(obj.elements):
+                    self._raise(f"pop() index {idx} out of range")
+                return obj.elements.pop(idx)
+            return PulseNativeFunction("pop", _pop)
+        
+        if name == "slice":
+            def _slice(start: Any, end: Any) -> PulseList:
+                self._check_number(start, token, "slice() start")
+                self._check_number(end, token, "slice() end")
+                return PulseList(obj.elements[int(start.value):int(end.value)])
+            return PulseNativeFunction("slice", _slice)
+        
+        if name == "contains":
+            def _contains(val: Any) -> PulseBoolean:
+                return PulseBoolean(any(self._is_equal(el, val) for el in obj.elements))
+            return PulseNativeFunction("contains", _contains)
+        
+        if name == "length":
+            return PulseNativeFunction("length", lambda: PulseNumber(len(obj.elements)))
+        
+        if name == "reverse":
+            def _reverse() -> PulseNull:
+                obj.elements.reverse()
+                return PulseNull()
+            return PulseNativeFunction("reverse", _reverse)
+        
+        if name == "clear":
+            def _clear() -> PulseNull:
+                obj.elements.clear()
+                return PulseNull()
+            return PulseNativeFunction("clear", _clear)
+        
+        self._raise(f"List has no method '{name}'", token)
+    
+    def _string_method(self, obj: PulseString, name: str, token: Token) -> PulseNativeFunction:
+        pass
