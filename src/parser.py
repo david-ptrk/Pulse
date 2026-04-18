@@ -38,6 +38,7 @@ class Parser:
         self.tokens = tokens
         self.source = source
         self.current = 0
+        self.loop_depth = 0
     
     def _context(self, line: int | None) -> str | None:
         if not line:
@@ -91,8 +92,21 @@ class Parser:
     def consume(self, type: TokenType, message: str) -> Token:
         if self.check(type):
             return self.advance()
-        self._error(self.peek(), message)
-        raise PulseSyntaxError()
+        
+        if self.current > 0:
+            error_token = self.previous()
+            error_token = Token(
+                type=error_token.type,
+                lexeme=error_token.lexeme,
+                literal=error_token.literal,
+                line=error_token.line,
+                column=getattr(error_token, "column", 0) + len(error_token.lexeme),
+            )
+        else:
+            error_token = self.peek()
+        
+        self._error(error_token, message)
+        raise AssertionError("unreachable")
     
     # Entry
     def parse(self) -> List[stmt.Stmt]:
@@ -106,6 +120,11 @@ class Parser:
         return statements
     
     def statement(self) -> Optional[stmt.Stmt]:
+        if self.match(TokenType.NEWLINE):
+            return None
+        if self.check(TokenType.DEDENT) or self.is_at_end():
+            return None
+        
         if self.match(TokenType.INDENT):
             return self.block()
         
@@ -125,62 +144,71 @@ class Parser:
             return self.parse_try_stmt()
         
         if self.match(TokenType.BREAK):
-            return stmt.Break(self.previous())
+            keyword = self.previous()
+            if self.loop_depth == 0:
+                self._error(keyword, "'break' used outside of a loop")
+            self.match(TokenType.NEWLINE)
+            return stmt.Break(keyword)
         if self.match(TokenType.CONTINUE):
-            return stmt.Continue(self.previous())
+            keyword = self.previous()
+            if self.loop_depth == 0:
+                self._error(keyword, "'continue' used outside of a loop")
+            self.match(TokenType.NEWLINE)
+            return stmt.Continue(keyword)
         if self.match(TokenType.RETURN):
             return self.parse_return_stmt()
         if self.match(TokenType.PASS):
+            self.match(TokenType.NEWLINE)
             return stmt.Pass()
         
-        # Skip empty statements
-        if self.match(TokenType.NEWLINE):
-            pass
-        # Stop parsing expressions if we hit block end
-        if self.is_at_end():
-            return None
-        
-        expr_stmt = self.expression()
+        expr_node = self.expression()
         self.match(TokenType.NEWLINE)
-        return stmt.Expression(expr_stmt)
-
+        return stmt.Expression(expr_node)
+    
     def block(self) -> stmt.Block:
         statements: List[stmt.Stmt] = []
         
         while not self.check(TokenType.DEDENT) and not self.is_at_end():
-            if self.check(TokenType.DEDENT):
-                break
             s = self.statement()
             if s is not None:
                 statements.append(s)
         
-        self.consume(TokenType.DEDENT, "Block not closed")
+        if self.is_at_end():
+            self._error(self.previous(), "Unclosed block - expected DEDENT before end of file")
+        
+        self.consume(TokenType.DEDENT, "Expected end of block (DEDENT)")
         return stmt.Block(statements)
+    
+    def _expect_indented_block(self) -> stmt.Stmt:
+        if not self.check(TokenType.INDENT):
+            self._error(self.peek(), "Expected an indented block")
+        return self.statement()
     
     def parse_if_stmt(self) -> stmt.If:
         condition = self.expression()
-        self.consume(TokenType.COLON, "Expect ':' after condition")
-        self.consume(TokenType.INDENT, "Expect block after ':'")
-        then_branch = self.block()
+        self.consume(TokenType.COLON, "Expected ':' after if condition")
+        then_branch = self._expect_indented_block()
         
-        elif_branches = []
+        elif_branches: List[Tuple[expr.Expr, stmt.Stmt]] = []
         while self.match(TokenType.ELIF):
             elif_condition = self.expression()
-            self.consume(TokenType.COLON, "Expect ':' after condition")
-            elif_stmt = self.statement()
+            self.consume(TokenType.COLON, "Expected ':' after elif condition")
+            elif_stmt = self._expect_indented_block()
             elif_branches.append((elif_condition, elif_stmt))
         
         else_branch = None
         if self.match(TokenType.ELSE):
-            self.consume(TokenType.COLON, "Expect ':' after else")
-            else_branch = self.statement()
+            self.consume(TokenType.COLON, "Expected ':' after else")
+            else_branch = self._expect_indented_block()
         
         return stmt.If(condition, then_branch, elif_branches, else_branch)
     
     def parse_while_stmt(self) -> stmt.While:
         condition = self.expression()
         self.consume(TokenType.COLON, "Expected ':' after while condition")
-        body = self.statement()
+        self.loop_depth += 1
+        body = self._expect_indented_block()
+        self.loop_depth -= 1
         return stmt.While(condition, body)
     
     def parse_for_stmt(self) -> stmt.For:
@@ -189,16 +217,15 @@ class Parser:
         iterable = self.expression()
         self.consume(TokenType.COLON, "Expected ':' after iterable")
         
-        # Will work for loop depths later
-        # self.loop_depth += 1
-        body = self.statement()
-        # self.loop_depth -= 1
+        self.loop_depth += 1
+        body = self._expect_indented_block()
+        self.loop_depth -= 1
         
         return stmt.For(var_token, iterable, body)
     
     def parse_func_stmt(self, is_method: bool = False, is_static: bool = False) -> stmt.Function:
-        name = self.consume(TokenType.IDENTIFIER, "Expect function name.")
-        self.consume(TokenType.LEFT_PAREN, "Expect '(' after function name.")
+        name = self.consume(TokenType.IDENTIFIER, "Expected function name")
+        self.consume(TokenType.LEFT_PAREN, "Expected '(' after function name")
         
         params: List[Token] = []
         if not self.check(TokenType.RIGHT_PAREN):
@@ -208,33 +235,33 @@ class Parser:
                     break
                 params.append(self._consume_param())
         
-        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.")
-        self.consume(TokenType.COLON, "Expect ':' before function body.")
+        self.consume(TokenType.RIGHT_PAREN, "Expected ')' after parameters.")
+        self.consume(TokenType.COLON, "Expected ':' before function body")
         
-        self.consume(TokenType.INDENT, "Expect block indentation")
+        self.consume(TokenType.INDENT, "Expected indented block after function definition")
         body = self.block()
         return stmt.Function(name, params, body, is_method, is_static)
     
-    def _consume_param(self):
+    def _consume_param(self) -> Token:
         if self.check(TokenType.SELF):
             return self.advance()
-        return self.consume(TokenType.IDENTIFIER, "Expect parameter name.")
+        return self.consume(TokenType.IDENTIFIER, "Expected parameter name")
     
     def parse_class_stmt(self) -> stmt.Class:
-        name = self.consume(TokenType.IDENTIFIER, "Expect class name")
+        name = self.consume(TokenType.IDENTIFIER, "Expected class name")
         
-        bases = []
+        bases: List[Token] = []
         if self.match(TokenType.LEFT_PAREN):
             if not self.check(TokenType.RIGHT_PAREN):
-                bases.append(self.consume(TokenType.IDENTIFIER, "Expect base class name"))
+                bases.append(self.consume(TokenType.IDENTIFIER, "Expected base class name"))
                 while self.match(TokenType.COMMA):
                     if self.check(TokenType.RIGHT_PAREN):
                         break
-                    bases.append(self.consume(TokenType.IDENTIFIER, "Expect base class name"))
-            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after base classes")
+                    bases.append(self.consume(TokenType.IDENTIFIER, "Expected base class name"))
+            self.consume(TokenType.RIGHT_PAREN, "Expected ')' after base classes")
         
-        self.consume(TokenType.COLON, "Expect ':' after class declaration")
-        self.consume(TokenType.INDENT, "Expect class body indentation")
+        self.consume(TokenType.COLON, "Expected ':' after class declaration")
+        self.consume(TokenType.INDENT, "Expected indented class body")
         
         methods: List[stmt.Function] = []
         class_vars: List[Tuple[Token, expr.Expr]] = []
@@ -254,53 +281,68 @@ class Parser:
                 self._error(self.peek(), "'static' must be followed by 'def'")
             
             if self.check(TokenType.IDENTIFIER):
-                name_tok = self.consume(TokenType.IDENTIFIER, "Expect variable name")
-                self.consume(TokenType.ASSIGN, "Expect '=' after variable name")
+                var_name = self.consume(TokenType.IDENTIFIER, "Expected variable name")
+                self.consume(TokenType.ASSIGN, "Expected '=' after class variable name")
                 
                 value = self.expression()
                 self.match(TokenType.NEWLINE)
-                class_vars.append((name_tok, value))
+                class_vars.append((var_name, value))
                 continue
             
-            self._error(self.peek(), "Invalid class body statement")
+            self._error(self.peek(), "Invalid statement in class body")
         
-        self.consume(TokenType.DEDENT, "Class body not closed")
+        if self.is_at_end():
+            self._error(self.previous(), "Unclosed class body - expected DEDENT before end of file")
+        
+        self.consume(TokenType.DEDENT, "Expected end of class body (DEDENT)")
         return stmt.Class(name, bases, methods, class_vars)
     
     def parse_try_stmt(self) -> stmt.Try:
         self.consume(TokenType.COLON, "Expected ':' after 'try'")
-        try_block = self.statement()
-        if try_block is None:
-            self._error(self.peek(), "Expected block after 'try'")
         
-        except_blocks = []
+        if not self.check(TokenType.INDENT):
+            self._error(self.peek(), "Expected indented block after 'try:'")
+        try_block = self.statement()
+
+        except_blocks: List[Tuple[Optional[expr.Expr], Optional[Token], stmt.Stmt]] = []
         while self.match(TokenType.EXCEPT):
-            exc_type = None
-            exc_name = None
+            exc_type: Optional[expr.Expr] = None
+            exc_name: Optional[Token] = None
+            
             if not self.check(TokenType.COLON):
                 exc_type = self.expression()
                 if self.match(TokenType.AS):
-                    exc_name = self.consume(TokenType.IDENTIFIER, "Expected variable after 'as'")
-            self.consume(TokenType.COLON, "Expected ':' after 'except'")
+                    exc_name = self.consume(TokenType.IDENTIFIER, "Expected variable name after 'as'")
+            self.consume(TokenType.COLON, "Expected ':' after except clause")
+            
+            if not self.check(TokenType.INDENT):
+                self._error(self.peek(), "Expected indented block after 'except:'")
             block = self.statement()
             except_blocks.append((exc_type, exc_name, block))
         
-        else_block = None
+        else_block: Optional[stmt.Stmt] = None
         if self.match(TokenType.ELSE):
             self.consume(TokenType.COLON, "Expected ':' after 'else'")
+            if not self.check(TokenType.INDENT):
+                self._error(self.peek(), "Expected indented block after 'else:'")
             else_block = self.statement()
         
-        finally_block = None
+        finally_block: Optional[stmt.Stmt] = None
         if self.match(TokenType.FINALLY):
             self.consume(TokenType.COLON, "Expected ':' after 'finally'")
+            if not self.check(TokenType.INDENT):
+                self._error(self.peek(), "Expected indented block after 'finally:'")
             finally_block = self.statement()
+        
+        if not except_blocks and finally_block is None:
+            self._error(self.previous(), "Expected at least one 'except' or 'finally' after 'try' block")
         
         return stmt.Try(try_block, except_blocks, finally_block, else_block)
     
     def parse_return_stmt(self) -> stmt.Return:
         keyword = self.previous()
+        value: Optional[expr.Expr] = None
         
-        value = None        
         if not (self.check(TokenType.NEWLINE) or self.check(TokenType.DEDENT) or self.is_at_end()):
             value = self.expression()
         
@@ -318,17 +360,20 @@ class Parser:
             
             # a = 5
             if isinstance(left, expr.Variable):
-                return expr.Assign(left.name, value)
-            
+                node = expr.Assign(left.name, value)
             # obj.x = 5
-            if isinstance(left, expr.MemberAccess):
-                return expr.SetMember(left.object, left.name, value)
-            
+            elif isinstance(left, expr.MemberAccess):
+                node = expr.SetMember(left.object, left.name, value)
             # a[0] = 5
-            if isinstance(left, expr.Index):
-                return expr.SetIndex(left.object, left.index, value)
+            elif isinstance(left, expr.Index):
+                node = expr.SetIndex(left.object, left.index, value)
+            else:
+                self._error(self.previous(), "Invalid assignment target")
             
-            self._error(self.previous(), "Invalid assignment target")
+            if self.check(TokenType.NUMBER) or self.check(TokenType.STRING) or self.check(TokenType.IDENTIFIER):
+                self._error(self.peek(), "Unexpected token after assignment")
+            
+            return node
         
         return left
     
@@ -380,7 +425,12 @@ class Parser:
     def multiplication(self) -> expr.Expr:
         node = self.unary()
         
-        while self.match(TokenType.STAR, TokenType.SLASH, TokenType.MODULUS, TokenType.INT_DIVIDE):
+        while self.match(
+            TokenType.STAR,
+            TokenType.SLASH,
+            TokenType.MODULUS,
+            TokenType.INT_DIVIDE,
+        ):
             op = self.previous()
             right = self.unary()
             node = expr.Binary(node, op, right)
@@ -400,26 +450,28 @@ class Parser:
         
         while True:
             if self.match(TokenType.LEFT_PAREN):
-                arguments = []
-                keyword_arguments = []
+                arguments: List[expr.Expr] = []
+                keyword_arguments: List[Tuple[Token, expr.Expr]] = []
                 
                 if not self.check(TokenType.RIGHT_PAREN):
                     while True:
                         if self.check(TokenType.IDENTIFIER) and self.peek_next().type == TokenType.ASSIGN:
-                            name = self.advance()
-                            self.consume(TokenType.ASSIGN, "Expect '=' after keyword name")
-                            value = self.expression()
-                            keyword_arguments.append((name, value))
+                            kw_name = self.advance()
+                            self.consume(TokenType.ASSIGN, "Expected '=' after keyword argument name")
+                            kw_value = self.expression()
+                            keyword_arguments.append((kw_name, kw_value))
                         else:
+                            if keyword_arguments:
+                                self._error(self.peek(), "Positional argument cannot follow keyword argument")
                             arguments.append(self.expression())
                         if not self.match(TokenType.COMMA):
                             break
                 
-                paren = self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
+                paren = self.consume(TokenType.RIGHT_PAREN, "Expected ')' after arguments")
                 expr_node = expr.Call(expr_node, paren, arguments, keyword_arguments)
             
             elif self.match(TokenType.DOT):
-                name = self.consume(TokenType.IDENTIFIER, "Expect property name after '.'")
+                name = self.consume(TokenType.IDENTIFIER, "Expected property name after '.'")
                 expr_node = expr.MemberAccess(expr_node, name)
             
             elif self.match(TokenType.LEFT_BRACKET):
@@ -446,7 +498,7 @@ class Parser:
                         break
                     elements.append(self.expression())
             
-            self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after list")
+            self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after list literal")
             return expr.List(elements)
         
         if self.match(TokenType.SELF):
@@ -466,10 +518,11 @@ class Parser:
         
         if self.match(TokenType.LEFT_PAREN):
             expr_node = self.expression()
-            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression")
+            self.consume(TokenType.RIGHT_PAREN, "Expected ')' after expression")
             return expr_node
         
-        self._error(self.peek(), "Expect expression")
+        self._error(self.peek(), f"Unexpected token '{self.peek().lexeme}' - expected an expression")
+        raise AssertionError("unreachable")
     
     def parse_dict_literal(self) -> expr.Dict:
         keys: List[expr.Expr] = []
@@ -478,7 +531,7 @@ class Parser:
         if not self.check(TokenType.RIGHT_BRACE):
             while True:
                 key = self.expression()
-                self.consume(TokenType.COLON, "Expect ':' after dict key")
+                self.consume(TokenType.COLON, "Expected ':' after dict key")
                 value = self.expression()
                 keys.append(key)
                 values.append(value)
@@ -487,37 +540,46 @@ class Parser:
                 if self.check(TokenType.RIGHT_BRACE):
                     break
         
-        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after dict entries")
+        self.consume(TokenType.RIGHT_BRACE, "Expected '}' after dict entries")
         return expr.Dict(keys, values)
     
     def parse_fstring(self, token) -> expr.FString:
-        raw = token.literal
-        parts = []
+        raw: str = token.literal
+        parts: List[expr.Expr] = []
         i = 0
+        length = len(raw)
         
-        while i < len(raw):
+        while i < length:
             start = raw.find("{", i)
             
             if start == -1:
-                if i < len(raw):
+                if i < length:
                     parts.append(expr.Literal(raw[i:]))
                 break
             
-            if start > i :
+            if start > i:
                 parts.append(expr.Literal(raw[i:start]))
             
-            end = raw.find("}", start)
-            if end == -1:
+            depth = 1
+            j = start + 1
+            while j < length and depth > 0:
+                if raw[j] == "{":
+                    depth += 1
+                elif raw[j] == "}":
+                    depth -= 1
+                j += 1
+            
+            if depth != 0:
                 self._error(token, "Unclosed '{' in f-string")
             
-            fragment = raw[start + 1:end].strip()
+            fragment = raw[start+1 : j-1].strip()
             if not fragment:
-                self._error(token, "Empty expression in f-string")
+                self._error(token, "Empty expression '{}' in f-string")
             
             inner_tokens = Lexer(fragment).scan_tokens()
             inner_parser = Parser(inner_tokens, fragment)
             parts.append(inner_parser.expression())
             
-            i = end + 1
+            i = j
         
         return expr.FString(parts)
