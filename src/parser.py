@@ -501,6 +501,15 @@ class Parser:
             self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after list literal")
             return expr.List(elements)
         
+        if self.match(TokenType.TENSOR_LITERAL):
+            token = self.previous()
+            import ast as py_ast
+            try:
+                raw = py_ast.literal_eval(token.literal)
+            except Exception:
+                self._error(token, "Invalid tensor literal")
+            return expr.Tensor(raw)
+        
         if self.match(TokenType.SELF):
             return expr.Variable(self.previous())
         

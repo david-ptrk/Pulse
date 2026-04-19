@@ -70,6 +70,7 @@ EXPRESSIONS: ASTDict = {
     "SetIndex": ("object: Expr", "index: Expr", "value: Expr",),
     "SetMember": ("object: Expr", "name: Token", "value: Expr",),
     "FString": ("parts: List[Expr]",),
+    "Tensor": ("value: Any",),
 }
 
 # Statements

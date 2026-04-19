@@ -52,6 +52,7 @@ from src.runtime import PulseClass, PulseInstance
 from src.values import (
     PulseNumber, PulseString, PulseNull,
     PulseList, PulseBoolean, PulseDict, PulseRange,
+    PulseTensor,
 )
 
 class Interpreter(ExprVisitor, StmtVisitor):
@@ -416,6 +417,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNull()
         
         return value
+    
+    def visit_tensor_expr(self, expr) -> PulseTensor:
+        import numpy as np
+        try:
+            array = np.array(expr.value, dtype=float)
+        except (ValueError, TypeError) as e:
+            self._raise(f"Invalid tensor data: {e}")
+        return PulseTensor(array)
     
     def visit_variable_expr(self, expr) -> Any:
         name = expr.name.lexeme

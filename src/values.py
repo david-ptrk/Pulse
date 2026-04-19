@@ -7,6 +7,7 @@ behavior such as type naming, truthiness, and string representation.
 """
 
 from typing import Any, List, Dict
+import numpy as np
 
 class PulseValue:
     def type_name(self) -> str:
@@ -149,3 +150,7 @@ class PulseRange(PulseValue):
         if self.step == 1:
             return f"range({self.start, self.stop})"
         return f"range({self.start}, {self.stop}, {self.step})"
+
+class PulseTensor(PulseValue):
+    def __init__(self, array: np.ndarray) -> None:
+        pass

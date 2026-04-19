@@ -214,6 +214,9 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_literal_expr(self, expr):
         pass
     
+    def visit_tensor_expr(self, expr):
+        pass
+    
     def visit_grouping_expr(self, expr):
         self.resolve_expr(expr.expression)
     

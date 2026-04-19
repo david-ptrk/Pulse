@@ -64,6 +64,10 @@ class ExprVisitor(ABC):
     def visit_fstring_expr(self, expr: 'FString') -> Any:
         pass
 
+    @abstractmethod
+    def visit_tensor_expr(self, expr: 'Tensor') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -191,4 +195,11 @@ class FString(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_fstring_expr(self)
+
+class Tensor(Expr):
+    def __init__(self, value: Any) -> None:
+        self.value = value
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_tensor_expr(self)
 
