@@ -109,17 +109,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     # Error helpers
     def _raise(self, message: str, token: Token | None = None) -> NoReturn:
-        # raise runtime.PulseRuntimeException(
-        #     PulseRuntimeError(
-        #         message=message,
-        #         token=token,
-        #         context_source=self.source,
-        #     )
-        # )
-        raise PulseRuntimeError(
-            message=message,
-            token=token,
-            context_source=self.source,
+        raise runtime.PulseRuntimeException(
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
         )
     
     def _check_number(self, value: Any, token: Token | None, label: str = "Operand") -> PulseNumber:
@@ -268,8 +263,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return PulseNumber(math.ceil(x.value))
     
     # Statement visitors
-    def visit_expression_stmt(self, stmt) -> None:
-        self.evaluate(stmt.expression)
+    def visit_expression_stmt(self, stmt) -> Any:
+        return self.evaluate(stmt.expression)
     
     def visit_pass_stmt(self, stmt) -> None:
         return None

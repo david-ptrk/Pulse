@@ -11,7 +11,8 @@ from src.parser import Parser
 from src.interpreter import Interpreter
 from src.resolver import Resolver
 from src.environment import Environment
-from src.error import PulseError
+from src.error import PulseError, report_error
+from src.runtime import PulseRuntimeException
 
 # Global runtime environment
 global_env = Environment()
@@ -39,13 +40,18 @@ def run_file(path: str) -> None:
     try:
         with open(path, "r", encoding="utf-8") as f:
             source = f.read()
-        run(source)
-    except PulseError as e:
-        print(e)
+    except FileNotFoundError:
+        print(f"pulse: cannot open file '{path}': no such file", file=sys.stderr)
         sys.exit(1)
-    # with open(path, "r", encoding="utf-8") as f:
-    #     source = f.read()
-    # run(source)
+    
+    try:
+        run(source)
+    except PulseRuntimeException as e:
+        report_error(e.error)
+        sys.exit(1)
+    except PulseError as e:
+        report_error(e)
+        sys.exit(1)
 
 # REPL
 def run_prompt() -> None:

@@ -34,10 +34,10 @@ def test_multiplication():
     assert run_pulse("print(3 * 4)") == "12"
 
 def test_division():
-    assert run_pulse("print(10 / 2)") == "5.0"
+    assert run_pulse("print(10 / 2)") == "5"
 
-# def test_modulus():
-#     assert run_pulse("print(10 % 3)") == "1"
+def test_modulus():
+    assert run_pulse("print(10 % 3)") == "1"
 
 def test_variable_assignment():
     assert run_pulse("x = 5\nprint(x)") == "5"
