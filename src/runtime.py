@@ -19,50 +19,67 @@ loops and function execution blocks.
 """
 
 from __future__ import annotations
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from src.error import PulseRuntimeError
+if TYPE_CHECKING:
+    from src.interpreter import Interpreter
 
-class PulseException(Exception):
-    def __init__(self, message=""):
-        super().__init__(message)
-        self.message = message
-    
-    def __str__(self):
-        return self.message
-
-class PulseRuntimeException(PulseException):
-    def __init__(self, error: PulseRuntimeError):
-        super().__init__(str(error))
-        self.error = error
-
-class PulseValueError(PulseRuntimeException):
-    pass
-
-class PulseTypeError(PulseRuntimeException):
-    pass
-
+# Control-flow signals
 class BreakException(Exception):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("break")
 
 class ContinueException(Exception):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("continue")
 
 class ReturnException(Exception):
-    def __init__(self, value=None, token=None):
-        super().__init__(value)
+    def __init__(self, value: Any = None) -> None:
+        super().__init__("return")
         self.value = value
-        self.token = token
 
+# User-visible exception hierarchy
+class PulseException(Exception):
+    def __init__(self, message: str = "") -> None:
+        super().__init__(message)
+        self.message = message
+    
+    def __str__(self) -> str:
+        return self.message
+
+class PulseRuntimeException(PulseException):
+    def __init__(self, error: PulseRuntimeError) -> None:
+        super().__init__(str(error))
+        self.error = error
+    
+    @classmethod
+    def from_message(cls, message: str) -> "PulseRuntimeException":
+        return cls(PulseRuntimeError(message))
+    
+    def __str__(self) -> str:
+        return str(self.error)
+
+class PulseValueError(PulseRuntimeException):
+    def __init__(self, error_or_message: "PulseRuntimeError | str") -> None:
+        if isinstance(error_or_message, str):
+            error_or_message = PulseRuntimeError(error_or_message)
+        super().__init__(error_or_message)
+
+class PulseTypeError(PulseRuntimeException):
+    def __init__(self, error_or_message: "PulseRuntimeError | str") -> None:
+        if isinstance(error_or_message, str):
+            error_or_message = PulseRuntimeError(error_or_message)
+        super().__init__(error_or_message)
+
+# Class system
 class PulseClass:
-    def __init__(self, name, methods, class_vars, bases=None):
+    def __init__(self, name: str, methods: dict, class_vars: dict, bases: Optional[list["PulseClass"]] = None):
         self.name = name
         self.methods = methods
         self.class_vars = class_vars
         self.bases = bases or []
     
-    def call(self, interpreter, arguments, kwargs) -> PulseInstance:
+    def call(self, interpreter: "Interpreter", arguments: list, kwargs: dict) -> PulseInstance:
         instance = PulseInstance(self)
         
         init = self.find_method("__init__")
@@ -71,7 +88,7 @@ class PulseClass:
         
         return instance
     
-    def find_method(self, name):
+    def find_method(self, name: str) -> Optional[Any]:
         if name in self.methods:
             return self.methods[name]
         
@@ -82,7 +99,7 @@ class PulseClass:
         
         return None
     
-    def get(self, name):
+    def get(self, name: str) -> Any:
         if name in self.class_vars:
             return self.class_vars[name]
         
@@ -98,6 +115,9 @@ class PulseClass:
             PulseRuntimeError(f"Undefined class member '{name}'")
         )
     
+    def type_name(self) -> str:
+        return f"class<{self.name}>"
+    
     def __repr__(self) -> str:
         return f"<class {self.name}>"
 
@@ -106,7 +126,7 @@ class PulseInstance:
         self.klass = klass
         self.fields = {}
     
-    def get(self, name):
+    def get(self, name: str) -> Any:
         if name in self.fields:
             return self.fields[name]
         
@@ -123,8 +143,11 @@ class PulseInstance:
             PulseRuntimeError(f"Undefined property '{name}'")
         )
     
-    def set(self, name, value):
+    def set(self, name: str, value: Any) -> None:
         self.fields[name] = value
     
-    def __repr__(self):
+    def type_name(self) -> str:
+        return f"instance<{self.klass.name}>"
+    
+    def __repr__(self) -> str:
         return f"<instance of {self.klass.name}>"

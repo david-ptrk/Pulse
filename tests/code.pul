@@ -1,3 +1,10 @@
-x = 10
-y = 0
-print(x / y)
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    def get(self):
+        print(f"My name is {self.name}, and I'm {self.age} years old")
+
+daud = Person("Daud", 22)
+ahmed = Person("Ahmed", 22)
+daud.get()

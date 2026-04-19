@@ -72,7 +72,8 @@ class Environment:
             self.enclosing.assign(name, value)
             return
         
-        raise PulseRuntimeError(f"Undefined variable '{key}'")
+        # raise PulseRuntimeError(f"Undefined variable '{key}'")
+        self.values[key] = value
     
     def ancestor(self, distance):
         env = self

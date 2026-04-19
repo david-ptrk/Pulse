@@ -43,6 +43,9 @@ def run_file(path: str) -> None:
     except PulseError as e:
         print(e)
         sys.exit(1)
+    # with open(path, "r", encoding="utf-8") as f:
+    #     source = f.read()
+    # run(source)
 
 # REPL
 def run_prompt() -> None:

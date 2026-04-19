@@ -109,12 +109,17 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     # Error helpers
     def _raise(self, message: str, token: Token | None = None) -> NoReturn:
-        raise runtime.PulseRuntimeException(
-            PulseRuntimeError(
-                message=message,
-                token=token,
-                context_source=self.source,
-            )
+        # raise runtime.PulseRuntimeException(
+        #     PulseRuntimeError(
+        #         message=message,
+        #         token=token,
+        #         context_source=self.source,
+        #     )
+        # )
+        raise PulseRuntimeError(
+            message=message,
+            token=token,
+            context_source=self.source,
         )
     
     def _check_number(self, value: Any, token: Token | None, label: str = "Operand") -> PulseNumber:
@@ -712,4 +717,93 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self._raise(f"List has no method '{name}'", token)
     
     def _string_method(self, obj: PulseString, name: str, token: Token) -> PulseNativeFunction:
-        pass
+        if name == "upper":
+            return PulseNativeFunction("upper", lambda: PulseString(obj.value.upper()))
+        
+        if name == "lower":
+            return PulseNativeFunction("lower", lambda: PulseString(obj.value.lower()))
+        
+        if name == "trim":
+            return PulseNativeFunction("trim", lambda: PulseString(obj.value.strip()))
+        
+        if name == "split":
+            def _split(sep: Any = None) -> PulseList:
+                if sep is None:
+                    return PulseList([PulseString(s) for s in obj.value.split()])
+                if not isinstance(sep, PulseString):
+                    self._raise("split() separator must be a string", token)
+                return PulseList([PulseString(s) for s in obj.value.split(sep.value)])
+            return PulseNativeFunction("split", _split)
+        
+        if name == "join":
+            def _join(lst: Any) -> PulseString:
+                if not isinstance(lst, PulseList):
+                    self._raise("join() expects a list", token)
+                parts: list[str] = []
+                for el in lst.elements:
+                    if not isinstance(el, PulseString):
+                        self._raise("join() list elements must all be strings", token)
+                    parts.append(el.value)
+                return PulseString(obj.value.join(parts))
+            return PulseNativeFunction("join", _join)
+        
+        if name == "replace":
+            def _replace(old: Any, new: Any) -> PulseString:
+                if not isinstance(old, PulseString) or not isinstance(new, PulseString):
+                    self._raise("replace() expects two string arguments", token)
+                return PulseString(obj.value.replace(old.value, new.value))
+            return PulseNativeFunction("replace", _replace)
+        
+        if name == "starts_with":
+            def _starts_with(s: Any) -> PulseBoolean:
+                if not isinstance(s, PulseString):
+                    self._raise("starts_with() expects a string", token)
+                return PulseBoolean(obj.value.startswith(s.value))
+            return PulseNativeFunction("starts_with", _starts_with)
+        
+        if name == "ends_with":
+            def _ends_with(s: Any) -> PulseBoolean:
+                if not isinstance(s, PulseString):
+                    self._raise("ends_with() expects a string", token)
+                return PulseBoolean(obj.value.endswith(s.value))
+            return PulseNativeFunction("ends_with", _ends_with)
+        
+        if name == "contains":
+            def _contains(s: Any) -> PulseBoolean:
+                if not isinstance(s, PulseString):
+                    self._raise("contains() expects a string", token)
+                return PulseBoolean(s.value in obj.value)
+            return PulseNativeFunction("contains", _contains)
+        
+        if name == "length":
+            return PulseNativeFunction("length", lambda: PulseNumber(len(obj.value)))
+        
+        self._raise(f"String has no method '{name}'", token)
+    
+    def _dict_method(self, obj: PulseDict, name: str, token: Token) -> PulseNativeFunction:
+        if name == "keys":
+            return PulseNativeFunction("keys", lambda: PulseList(list(obj.entries.keys())))
+        
+        if name == "values":
+            return PulseNativeFunction("values", lambda: PulseList(list(obj.entries.values())))
+        
+        if name == "items":
+            return PulseNativeFunction("items", lambda: PulseList([
+                PulseList([k, v]) for k, v in obj.entries.items()
+            ]))
+        
+        if name == "has":
+            return PulseNativeFunction("has", lambda key: PulseBoolean(obj.has(key)))
+        
+        if name == "remove":
+            def _remove(key: Any) -> PulseNull:
+                if not obj.has(key):
+                    self._raise(f"Key '{self._stringify(key)}' not found in dict", token)
+                del obj.entries[key]
+                return PulseNull()
+            return PulseNativeFunction("remove", _remove)
+        
+        if name == "length":
+            return PulseNativeFunction("length", lambda: PulseNumber(len(obj.entries)))
+        
+        self._raise(f"Dict has no method '{name}'", token)
