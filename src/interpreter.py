@@ -139,10 +139,25 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return a.value == b.value
         if isinstance(a, PulseString):
             return a.value == b.value
+        
         if isinstance(a, PulseList):
-            return a.elements == b.elements
+            if len(a.elements) != len(b.elements):
+                return False
+            for x, y, in zip(a.elements, b.elements):
+                if not self._is_equal(x, y):
+                    return False
+            return True
+        
         if isinstance(a, PulseDict):
-            return a.entries == b.entries
+            if len(a.entries) != len(b.entries):
+                return False
+            for key in a.entries:
+                if key not in b.entries:
+                    return False
+                if not self._is_equal(a.entries[key], b.entries[key]):
+                    return False
+            return True
+        
         return a is b
     
     # Stringification
@@ -585,6 +600,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             idx = int(index.value)
             if idx < -len(obj.elements) or idx >= len(obj.elements):
                 self._raise(f"List index {idx} out of range (length {len(obj.elements)})")
+            return obj.elements[idx]
         
         if isinstance(obj, PulseDict):
             if not obj.has(index):

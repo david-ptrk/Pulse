@@ -26,6 +26,9 @@ class PulseNumber(PulseValue):
     def type_name(self) -> str:
         return "number"
     
+    def is_truthy(self) -> bool:
+        return self.value != 0
+    
     def __repr__(self) -> str:
         if isinstance(self.value, float) and self.value.is_integer():
             return str(int(self.value))
