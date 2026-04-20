@@ -54,6 +54,7 @@ from src.values import (
     PulseList, PulseBoolean, PulseDict, PulseRange,
     PulseTensor,
 )
+import numpy as np
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment: Environment) -> None:
@@ -419,7 +420,6 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return value
     
     def visit_tensor_expr(self, expr) -> PulseTensor:
-        import numpy as np
         try:
             array = np.array(expr.value, dtype=float)
         except (ValueError, TypeError) as e:
@@ -472,6 +472,32 @@ class Interpreter(ExprVisitor, StmtVisitor):
         right = self.evaluate(expr.right)
         operator = expr.operator.lexeme
         tok = expr.operator
+        
+        if isinstance(left, PulseTensor) or isinstance(right, PulseTensor):
+            if not isinstance(left, PulseTensor) or not isinstance(right, PulseTensor):
+                self._raise(
+                    f"Both operands must be tensors, "
+                    f"got '{left.type_name()}' and '{right.type_name()}'",
+                    tok,
+                )
+            try:
+                if operator == "+":
+                    return PulseTensor(left.array + right.array)
+                if operator == "-":
+                    return PulseTensor(left.array - right.array)
+                if operator == "*":
+                    return PulseTensor(left.array * right.array)
+                if operator == "/":
+                    return PulseTensor(left.array / right.array)
+                if operator == "@":
+                    return PulseTensor(left.array @ right.array)
+                if operator == "==":
+                    return PulseBoolean(np.array_equal(left.array, right.array))
+                if operator == "!=":
+                    return PulseBoolean(not np.array_equal(left.array, right.array))
+                self._raise(f"Tensor does not support operator '{operator}'", tok)
+            except ValueError as e:
+                self._raise(f"Tensor operation failed: {e}", tok)
         
         if operator == "==":
             return PulseBoolean(self._is_equal(left, right))
@@ -652,6 +678,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if isinstance(obj, PulseDict):
             return self._dict_method(obj, name, expr.name)
         
+        if isinstance(obj, PulseTensor):
+            return self._tensor_property(obj, name, expr.name)
+        
         if isinstance(obj, PulseInstance):
             return obj.get(name)
         
@@ -811,3 +840,16 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNativeFunction("length", lambda: PulseNumber(len(obj.entries)))
         
         self._raise(f"Dict has no method '{name}'", token)
+    
+    def _tensor_property(self, tensor: PulseTensor, name: str, token) -> Any:
+        if name == "shape":
+            return PulseList([PulseNumber(d) for d in tensor.shape])
+        if name == "ndim":
+            return PulseNumber(tensor.ndim)
+        if name == "T":
+            return tensor.T
+        if name == "size":
+            return PulseNumber(tensor.array.size)
+        if name == "dtype":
+            return PulseString(str(tensor.array.dtype))
+        self._raise(f"Tensor has no property '{name}'", token)

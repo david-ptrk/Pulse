@@ -39,6 +39,7 @@ class TokenType(Enum):
     STAR = auto()
     SLASH = auto()
     MODULUS = auto()
+    AT = auto()
     COMMA = auto()
     COLON = auto()
     SEMICOLON = auto()

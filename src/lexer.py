@@ -50,6 +50,7 @@ class Lexer:
         ':': TokenType.COLON,
         ';': TokenType.SEMICOLON,
         '.': TokenType.DOT,
+        '@': TokenType.AT,
     }
     
     _COMPOUND_OPERATORS: dict[str, tuple[TokenType, TokenType]] = {

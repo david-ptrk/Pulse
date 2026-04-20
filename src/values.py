@@ -153,4 +153,28 @@ class PulseRange(PulseValue):
 
 class PulseTensor(PulseValue):
     def __init__(self, array: np.ndarray) -> None:
-        pass
+        self.array = array
+    
+    def type_name(self) -> str:
+        return "tensor"
+    
+    def is_truthy(self) -> bool:
+        return self.array.size > 0
+    
+    @property
+    def shape(self):
+        return list(self.array.shape)
+    
+    @property
+    def ndim(self):
+        return self.array.ndim
+    
+    @property
+    def T(self):
+        return PulseTensor(self.array.T)
+    
+    def __repr__(self) -> str:
+        result = self.array.tolist()
+        if isinstance(result, (int, float)):
+            return str(result)
+        return f"@{result}"

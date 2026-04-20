@@ -430,6 +430,7 @@ class Parser:
             TokenType.SLASH,
             TokenType.MODULUS,
             TokenType.INT_DIVIDE,
+            TokenType.AT,
         ):
             op = self.previous()
             right = self.unary()
