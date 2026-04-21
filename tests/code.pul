@@ -1,3 +1,8 @@
-d = {"a": 1, "b": 2}
-d.remove("a")
-print(d.has("a"))
+# Test 3 — reshape (flat size and dimensions)
+t = @[1, 2, 3, 4]
+print(t.reshape(2, 2))   # @[[1.0, 2.0], [3.0, 4.0]]
+print(t.reshape(4))      # @[1.0, 2.0, 3.0, 4.0]
+
+m = @[[1, 2], [3, 4]]
+print(m.reshape(4))      # @[1.0, 2.0, 3.0, 4.0]
+print(m.reshape(2, 2))   # @[[1.0, 2.0], [3.0, 4.0]]

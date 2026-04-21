@@ -235,11 +235,85 @@ class TestTensorErrors:
     def test_shape_mismatch_add(self):
         raises_runtime("@[1, 2] + @[1, 2, 3]", "tensor operation failed")
 
-    def test_tensor_plus_number(self):
-        raises_runtime("@[1, 2] + 5", "both operands must be tensors")
+    # def test_tensor_plus_number(self):
+    #     raises_runtime("@[1, 2] + 5", "both operands must be tensors")
 
-    def test_number_plus_tensor(self):
-        raises_runtime("5 + @[1, 2]", "both operands must be tensors")
+    # def test_number_plus_tensor(self):
+    #     raises_runtime("5 + @[1, 2]", "both operands must be tensors")
 
     def test_tensor_plus_string(self):
         raises_runtime('@[1, 2] + "hello"', "both operands must be tensors")
+
+# ----------------------------------------
+# 9. Scalar-Tensor Operations
+# ----------------------------------------
+class TestScalarTensorOps:
+    def test_tensor_plus_scalar(self):
+        result = run("@[1, 2, 3] + 10")
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, [11.0, 12.0, 13.0])
+
+    def test_tensor_minus_scalar(self):
+        result = run("@[4, 5, 6] - 1")
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, [3.0, 4.0, 5.0])
+
+    def test_tensor_multiply_scalar(self):
+        result = run("@[1, 2, 3] * 2")
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, [2.0, 4.0, 6.0])
+
+    def test_scalar_multiply_tensor(self):
+        result = run("2 * @[1, 2, 3]")
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, [2.0, 4.0, 6.0])
+
+    def test_tensor_divide_scalar(self):
+        result = run("@[2, 4, 6] / 2")
+        assert isinstance(result, PulseTensor)
+        assert np.allclose(result.array, [1.0, 2.0, 3.0])
+
+    def test_scalar_divide_by_zero(self):
+        raises_runtime("@[1, 2, 3] / 0", "division by zero")
+
+# ----------------------------------------
+# 10. Tensor Methods
+# ----------------------------------------
+class TestTensorMethods:
+    def test_sum(self):
+        result = run("@[[1, 2], [3, 4]].sum()")
+        assert isinstance(result, PulseNumber)
+        assert result.value == 10.0
+
+    def test_mean(self):
+        result = run("@[[1, 2], [3, 4]].mean()")
+        assert isinstance(result, PulseNumber)
+        assert result.value == 2.5
+
+    def test_max(self):
+        result = run("@[[1, 2], [3, 4]].max()")
+        assert isinstance(result, PulseNumber)
+        assert result.value == 4.0
+
+    def test_min(self):
+        result = run("@[[1, 2], [3, 4]].min()")
+        assert isinstance(result, PulseNumber)
+        assert result.value == 1.0
+
+    def test_flatten(self):
+        result = run("@[[1, 2], [3, 4]].flatten()")
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, [1.0, 2.0, 3.0, 4.0])
+
+    def test_reshape_to_flat(self):
+        result = run("@[[1, 2], [3, 4]].reshape(4)")
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, [1.0, 2.0, 3.0, 4.0])
+
+    def test_reshape_to_2d(self):
+        result = run("@[1, 2, 3, 4].reshape(2, 2)")
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, [[1.0, 2.0], [3.0, 4.0]])
+
+    def test_reshape_invalid(self):
+        raises_runtime("@[1, 2, 3].reshape(2, 2)", "reshape failed")

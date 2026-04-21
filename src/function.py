@@ -116,3 +116,17 @@ class PulseNativeFunction:
     
     def __repr__(self):
         return f"<native fn {self.name}>"
+
+class PulseNativeMethod:
+    def __init__(self, func, arity: int = 0):
+        self._func = func
+        self._arity = arity
+    
+    def arity(self):
+        return self._arity
+    
+    def call(self, interpreter, arguments, keyword_arguments=None):
+        return self._func(*arguments)
+    
+    def __repr__(self):
+        return "<native method>"

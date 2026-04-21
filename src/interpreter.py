@@ -47,7 +47,7 @@ from src.environment import Environment
 from src.error import PulseRuntimeError
 import src.runtime as runtime
 from src.tokens import Token
-from src.function import PulseFunction, PulseNativeFunction
+from src.function import PulseFunction, PulseNativeFunction, PulseNativeMethod
 from src.runtime import PulseClass, PulseInstance
 from src.values import (
     PulseNumber, PulseString, PulseNull,
@@ -489,6 +489,26 @@ class Interpreter(ExprVisitor, StmtVisitor):
         tok = expr.operator
         
         if isinstance(left, PulseTensor) or isinstance(right, PulseTensor):
+            if isinstance(left, PulseNumber) and isinstance(right, PulseTensor):
+                left, right = right, left
+            
+            if isinstance(left, PulseTensor) and isinstance(right, PulseNumber):
+                scalar = right.value
+                try:
+                    if operator == "+":
+                        return PulseTensor(left.array + scalar)
+                    if operator == "-":
+                        return PulseTensor(left.array - scalar)
+                    if operator == "*":
+                        return PulseTensor(left.array * scalar)
+                    if operator == "/":
+                        if scalar == 0:
+                            self._raise("Division by zero", tok)
+                        return PulseTensor(left.array / scalar)
+                    self._raise(f"Tensor does not support operator '{operator}' with scalar", tok)
+                except ValueError as e:
+                    self._raise(f"Tensor operation failed: {e}", tok)
+            
             if not isinstance(left, PulseTensor) or not isinstance(right, PulseTensor):
                 self._raise(
                     f"Both operands must be tensors, "
@@ -868,4 +888,39 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNumber(tensor.array.size)
         if name == "dtype":
             return PulseString(str(tensor.array.dtype))
+        
+        if name == "flatten":
+            def flatten():
+                return PulseTensor(tensor.array.flatten())
+            return PulseNativeMethod(flatten, arity=0)
+        
+        if name == "reshape":
+            def reshape(*args):
+                dims = [int(a.value) for a in args]
+                try:
+                    return PulseTensor(tensor.array.reshape(dims))
+                except ValueError as e:
+                    self._raise(f"reshape failed: {e}", token)
+            return PulseNativeMethod(reshape, arity=-1)
+        
+        if name == "sum":
+            def sum_():
+                return PulseNumber(float(tensor.array.sum()))
+            return PulseNativeMethod(sum_, arity=0)
+        
+        if name == "mean":
+            def mean():
+                return PulseNumber(float(tensor.array.mean()))
+            return PulseNativeMethod(mean, arity=0)
+        
+        if name == "max":
+            def max_():
+                return PulseNumber(float(tensor.array.max()))
+            return PulseNativeMethod(max_, arity=0)
+        
+        if name == "min":
+            def min_():
+                return PulseNumber(float(tensor.array.min()))
+            return PulseNativeMethod(min_, arity=0)
+        
         self._raise(f"Tensor has no property '{name}'", token)
