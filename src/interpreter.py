@@ -52,7 +52,7 @@ from src.runtime import PulseClass, PulseInstance
 from src.values import (
     PulseNumber, PulseString, PulseNull,
     PulseList, PulseBoolean, PulseDict, PulseRange,
-    PulseTensor,
+    PulseTensor, PulseValue
 )
 import numpy as np
 
@@ -848,7 +848,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             def _remove(key: Any) -> PulseNull:
                 if not obj.has(key):
                     self._raise(f"Key '{self._stringify(key)}' not found in dict", token)
-                del obj.entries[key]
+                obj.remove(key)
                 return PulseNull()
             return PulseNativeFunction("remove", _remove)
         

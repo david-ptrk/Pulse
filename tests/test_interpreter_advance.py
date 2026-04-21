@@ -325,3 +325,337 @@ a.length()
 # ----------------------------------------
 # 6. Dict operations
 # ----------------------------------------
+class TestDict:
+    def test_literal_and_access(self):
+        result = run('{"a": 1, "b": 2}["a"]')
+        assert result.value == 1
+    
+    def test_assignment(self):
+        result = run("""
+d = {"x": 10}
+d["x"] = 99
+d["x"]
+""")
+        assert result.value == 99
+    
+    def test_new_key(self):
+        result = run("""
+d = {}
+d["key"] = "val"
+d["key"]
+""")
+        assert result.value == "val"
+    
+    def test_has_true(self):
+        assert run('{"a": 1}.has("a")').value is True
+    
+    def test_has_false(self):
+        assert run('{"a": 1}.has("z")').value is False
+    
+    def test_missing_key_errors(self):
+        raises_runtime('{"a": 1}["z"]', "not found")
+    
+    def test_keys(self):
+        result = run('{"a": 1, "b": 2}.keys()')
+        assert isinstance(result, PulseList)
+        assert len(result.elements) == 2
+    
+    def test_values(self):
+        result = run('{"a": 1, "b": 2}.values()')
+        assert isinstance(result, PulseList)
+    
+    def test_items(self):
+        result = run('{"a": 1}.items()')
+        assert isinstance(result, PulseList)
+        assert isinstance(result.elements[0], PulseList)
+    
+    def test_remove(self):
+        result = run("""
+d = {"a": 1, "b": 2}
+d.remove("a")
+d.has("a")
+""")
+        assert result.value is False
+    
+    def test_remove_missing_key_errors(self):
+        raises_runtime('{"a": 1}.remove("z")', "not found")
+    
+    def test_length(self):
+        assert run('{"a": 1, "b": 2}.length()').value == 2
+    
+    def test_for_loop_iterates_keys(self):
+        result = run("""
+d = {"x": 1, "y": 2}
+keys = []
+for k in d:
+    keys.append(k)
+keys.length()
+""")
+        assert result.value == 2
+
+# ----------------------------------------
+# 7. Control flow
+# ----------------------------------------
+class TestControlFlow:
+    def test_if_true_branch(self):
+        assert run("""
+x = 0
+if true:
+    x = 1
+x
+""").value == 1
+    
+    def test_if_false_branch(self):
+        assert run("""
+x = 0
+if false:
+    x = 1
+else:
+    x = 2
+x
+""").value == 2
+    
+    def test_elif_chain(self):
+        assert run("""
+x = 2
+if x == 1:
+    x = 10
+elif x == 2:
+    x = 20
+elif x == 3:
+    x = 30
+else:
+    x = 0
+x
+""").value == 20
+    
+    def test_while_loop(self):
+        assert run("""
+i = 0
+while i < 5:
+    i = i + 1
+i
+""").value == 5
+    
+    def test_while_break(self):
+        assert run("""
+i = 0
+while true:
+    if i == 3:
+        break
+    i = i + 1
+i
+""").value == 3
+    
+    def test_while_continue(self):
+        result = run("""
+evens = []
+i = 0
+while i < 6:
+    i = i + 1
+    if i % 2 != 0:
+        continue
+    evens.append(i)
+evens.length()
+""")
+        assert result.value == 3
+    
+    def test_for_loop_over_list(self):
+        assert run("""
+total = 0
+for x in [1, 2, 3, 4]:
+    total = total + x
+total
+""").value == 10
+    
+    def test_for_loop_over_string(self):
+        result = run("""
+chars = []
+for c in "abc":
+    chars.append(c)
+chars.length()
+""")
+        assert result.value == 3
+    
+    def test_for_loop_over_range(self):
+        assert run("""
+total = 0
+for i in range(5):
+    total = total + i
+total
+""").value == 10
+    
+    def test_for_loop_break(self):
+        assert run("""
+found = 0
+for x in [1, 2, 3, 4, 5]:
+    if x == 3:
+        found = x
+        break
+found
+""").value == 3
+    
+    def test_for_loop_continue(self):
+        result = run("""
+result = []
+for x in [1, 2, 3, 4, 5]:
+    if x == 3:
+        continue
+    result.append(x)
+result.length()
+""")
+        assert result.value == 4
+    
+    def test_nested_loop_break_only_inner(self):
+        result = run("""
+count = 0
+for i in range(3):
+    for j in range(3):
+        if j == 1:
+            break
+        count = count + 1
+count
+""")
+        assert result.value == 3
+    
+    def test_return_exits_nested_loop(self):
+        result = run("""
+def find():
+    for i in range(5):
+        for j in range(5):
+            if i == 2 and j == 2:
+                return i * 10 + j
+    return -1
+
+find()
+""")
+        assert result.value == 22
+
+# ----------------------------------------
+# 8. Functions
+# ----------------------------------------
+class TestFunctions:
+    def test_basic_call(self):
+        assert run("""
+def add(a, b):
+    return a + b
+add(3, 4)
+""").value == 7
+    
+    def test_return_null_implicitly(self):
+        result = run("""
+def nothing():
+    pass
+nothing()
+""")
+        assert isinstance(result, PulseNull)
+    
+    def test_recursive__fibonacci(self):
+        result = run("""
+def fib(n):
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+fib(10)
+""")
+        assert result.value == 55
+    
+    def test_closure_captures_enclosing_variable(self):
+        result = run("""
+def make_adder(n):
+    def add(x):
+        return x + n
+    return add
+
+add5 = make_adder(5)
+add5(3)
+""")
+        assert result.value == 8
+    
+    def test_closure_cell_is_shared(self):
+        result = run("""
+def make_counter():
+    count = 0
+    def inc():
+        count = count + 1
+        return count
+    return inc
+
+c = make_counter()
+c()
+c()
+c()
+""")
+        assert result.value == 3
+    
+    def test_keyword_arguments(self):
+        result = run("""
+def greet(name, greeting):
+    return greeting + " " + name
+
+greet(name="Pulse", greeting="Hello")
+""")
+        assert result.value == "Hello Pulse"
+    
+    def test_positional_and_keyword_mixed(self):
+        result = run("""
+def f(a, b, c):
+    return a + b + c
+f(1, 2, c=3)
+""")
+        assert result.value == 6
+    
+    def test_higher_order_function(self):
+        result = run("""
+def apply(func, value):
+    return func(value)
+
+def double(x):
+    return x * 2
+
+apply(double, 5)
+""")
+        assert result.value == 10
+    
+    def test_function_as_return_value(self):
+        result = run("""
+def multiplier(n):
+    def mul(x):
+        return x * n
+    return mul
+
+triple = multiplier(3)
+triple(7)
+""")
+        assert result.value == 21
+    
+    def test_variadic_via_list(self):
+        result = run("""
+def sum_all(nums):
+    total = 0
+    for n in nums:
+        total = total + n
+    return total
+sum_all([1, 2, 3, 4, 5])
+""")
+        assert result.value == 15
+    
+    def test_mutual_recursion(self):
+        result = run("""
+def is_even(n):
+    if n == 0:
+        return true
+    return is_odd(n - 1)
+
+def is_odd(n):
+    if n == 0:
+        return false
+    return is_even(n - 1)
+
+is_even(10)
+""")
+        assert result.value is True
+
+# ----------------------------------------
+# 9. Classes
+# ----------------------------------------

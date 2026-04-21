@@ -14,6 +14,7 @@ functions.
 from src.environment import Environment
 from src.error import PulseRuntimeError
 import src.runtime as runtime
+from src.values import PulseNull
 
 class PulseFunction:
     def __init__(self, declaration, closure):
@@ -87,7 +88,7 @@ class PulseFunction:
         finally:
             interpreter.environment = previous
         
-        return None
+        return PulseNull()
     
     def bind(self, instance):
         if self.declaration.is_static:

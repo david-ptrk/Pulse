@@ -113,6 +113,13 @@ class PulseDict(PulseValue):
         raw_key = self._to_raw(key)
         return any(self._to_raw(k) == raw_key for k in self.entries)
     
+    def remove(self, key: PulseValue) -> None:
+        raw_key = self._to_raw(key)
+        for k in list(self.entries):
+            if self._to_raw(k) == raw_key:
+                del self.entries[k]
+                return
+    
     @staticmethod
     def _to_raw(key: PulseValue) -> Any:
         if isinstance(key, (PulseString, PulseNumber, PulseBoolean)):
@@ -123,7 +130,7 @@ class PulseDict(PulseValue):
     
     def __repr__(self) -> str:
         pairs = ", ".join(
-            f"{repr(k)}: {repr(v)}" for k, v in self.entries.items()
+            f"{k}: {repr(v)}" for k, v in self.entries.items()
         )
         return "{" + pairs + "}"
 
