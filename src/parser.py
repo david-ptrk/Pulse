@@ -294,6 +294,9 @@ class Parser:
                 class_vars.append((var_name, value))
                 continue
             
+            if self.match(TokenType.PASS):
+                continue
+            
             self._error(self.peek(), "Invalid statement in class body")
         
         if self.is_at_end():

@@ -210,6 +210,9 @@ class Resolver(ExprVisitor, StmtVisitor):
                 token=stmt.keyword
             )
     
+    def visit_import_stmt(self, stmt):
+        pass
+    
     # Expressions
     def visit_literal_expr(self, expr):
         pass

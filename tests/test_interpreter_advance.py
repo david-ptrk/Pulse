@@ -659,3 +659,93 @@ is_even(10)
 # ----------------------------------------
 # 9. Classes
 # ----------------------------------------
+class TestClasses:
+    def test_basic_instantiation(self):
+        result = run("""
+class Dog:
+    def __init__(self, name):
+        self.name = name
+
+d = Dog("Rex")
+d.name
+""")
+        assert result.value == "Rex"
+    
+    def test_method_call(self):
+        result = run("""
+class Counter:
+    def __init__(self):
+        self.count = 0
+    def increment(self):
+        self.count = self.count + 1
+    def get(self):
+        return self.count
+
+c = Counter()
+c.increment()
+c.increment()
+c.increment()
+c.get()
+""")
+        assert result.value == 3
+    
+    
+    def test_class_without_init(self):
+        result = run("""
+class Empty:
+    pass
+
+e = Empty()
+e
+""")
+        assert isinstance(result, PulseInstance)
+    
+    def test_class_variable(self):
+        result = run("""
+class Config:
+    version = 42
+
+Config.version
+""")
+        assert result.value == 42
+    
+    def test_instance_field_shadows_class_var(self):
+        result = run("""
+class C:
+    x = 10
+    def set(self, v):
+        self.x = v
+    def get(self):
+        return self.x
+
+obj = C()
+obj.set(99)
+obj.get()
+""")
+        assert result.value == 99
+    
+    def test_static_method(self):
+        result = run("""
+class Math:
+    static def square(n):
+        return n * n
+
+Math.square(7)
+""")
+        assert result.value == 49
+    
+    def test_single_inheritance(self):
+        result = run("""
+class Animal:
+    def speak(self):
+        return "..."
+
+class Dog(Animal):
+    def speak(self):
+        return "Woof"
+
+d = Dog()
+d.speak()
+""")
+        assert result.value == "Woof"
+    
