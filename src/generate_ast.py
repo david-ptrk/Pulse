@@ -68,6 +68,8 @@ EXPRESSIONS: ASTDict = {
     "Dict": ("keys: List[Expr]", "values: List[Expr]",),
     "Index": ("object: Expr", "index: Expr",),
     "SetIndex": ("object: Expr", "index: Expr", "value: Expr",),
+    "Slice": ("lower: Optional[Expr]", "upper: Optional[Expr]",),
+    "MultiIndex": ("object: Expr", "indices: List[Expr]",),
     "SetMember": ("object: Expr", "name: Token", "value: Expr",),
     "FString": ("parts: List[Expr]",),
     "Tensor": ("value: Any",),

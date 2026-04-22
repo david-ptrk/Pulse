@@ -476,9 +476,18 @@ class Parser:
                 expr_node = expr.MemberAccess(expr_node, name)
             
             elif self.match(TokenType.LEFT_BRACKET):
-                index = self.expression()
-                self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index")
-                expr_node = expr.Index(expr_node, index)
+                indices = []
+                indices.append(self.parse_index_or_slice())
+                
+                while self.match(TokenType.COMMA):
+                    indices.append(self.parse_index_or_slice())
+                
+                self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after index")
+                
+                if len(indices) == 1 and not isinstance(indices[0], expr.Slice):
+                    expr_node = expr.Index(expr_node, indices[0])
+                else:
+                    expr_node = expr.MultiIndex(expr_node, indices)
             
             else:
                 break
@@ -593,3 +602,21 @@ class Parser:
             i = j
         
         return expr.FString(parts)
+    
+    def parse_index_or_slice(self) -> expr.Expr:
+        if self.check(TokenType.COLON):
+            self.advance()
+            upper = None
+            if not self.check(TokenType.RIGHT_BRACKET) and not self.check(TokenType.COMMA):
+                upper = self.expression()
+            return expr.Slice(None, upper)
+        
+        lower = self.expression()
+        
+        if self.match(TokenType.COLON):
+            upper = None
+            if not self.check(TokenType.RIGHT_BRACKET) and not self.check(TokenType.COMMA):
+                upper = self.expression()
+            return expr.Slice(lower, upper)
+        
+        return lower

@@ -57,6 +57,14 @@ class ExprVisitor(ABC):
         pass
 
     @abstractmethod
+    def visit_slice_expr(self, expr: 'Slice') -> Any:
+        pass
+
+    @abstractmethod
+    def visit_multiindex_expr(self, expr: 'MultiIndex') -> Any:
+        pass
+
+    @abstractmethod
     def visit_setmember_expr(self, expr: 'SetMember') -> Any:
         pass
 
@@ -179,6 +187,22 @@ class SetIndex(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_setindex_expr(self)
+
+class Slice(Expr):
+    def __init__(self, lower: Optional[Expr], upper: Optional[Expr]) -> None:
+        self.lower = lower
+        self.upper = upper
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_slice_expr(self)
+
+class MultiIndex(Expr):
+    def __init__(self, object: Expr, indices: List[Expr]) -> None:
+        self.object = object
+        self.indices = indices
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_multiindex_expr(self)
 
 class SetMember(Expr):
     def __init__(self, object: Expr, name: Token, value: Expr) -> None:

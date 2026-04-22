@@ -55,6 +55,7 @@ from src.values import (
     PulseTensor, PulseValue
 )
 import numpy as np
+import src.expressions as expressions
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment: Environment) -> None:
@@ -634,6 +635,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 self._raise(f"String index {idx} out of range (length {len(obj.value)})")
             return PulseString(obj.value[idx])
         
+        if isinstance(obj, PulseTensor):
+            self._check_number(index, None, "Tensor index")
+            idx = int(index.value)
+            result = obj.array[idx]
+            if isinstance(result, np.ndarray):
+                return PulseTensor(result)
+            return PulseNumber(float(result))
+        
         self._raise(f"Object of type '{obj.type_name()}' does not support indexing")
     
     def visit_setindex_expr(self, expr) -> Any:
@@ -657,6 +666,47 @@ class Interpreter(ExprVisitor, StmtVisitor):
             self._raise("Strings are immutable and do not support index assignment")
         
         self._raise(f"Object of type '{obj.type_name()}' does not support indexed assignment")
+    
+    def visit_slice_expr(self, expr) -> Any:
+        self._raise("Slice used outside of index expression")
+    
+    def visit_multiindex_expr(self, expr) -> Any:
+        obj = self.evaluate(expr.object)
+        
+        def resolve_index(index_expr):
+            if isinstance(index_expr, expressions.Slice):
+                lower = int(self.evaluate(index_expr.lower).value) if index_expr.lower else None
+                upper = int(self.evaluate(index_expr.upper).value) if index_expr.upper else None
+                return slice(lower, upper)
+            else:
+                val = self.evaluate(index_expr)
+                return int(val.value)
+        
+        if isinstance(obj, PulseList):
+            if len(expr.indices) != 1 or not isinstance(expr.indices[0], expressions.Slice):
+                self._raise("Lists only support single slice indexing")
+            s = resolve_index(expr.indices[0])
+            return PulseList(obj.elements[s])
+        
+        if isinstance(obj, PulseString):
+            if len(expr.indices) != 1 or not isinstance(expr.indices[0], expressions.Slice):
+                self._raise("Strings only support single slice indexing")
+            s = resolve_index(expr.indices[0])
+            return PulseString(obj.value[s])
+        
+        if isinstance(obj, PulseTensor):
+            idx = tuple(resolve_index(i) for i in expr.indices)
+            key = idx[0] if len(idx) == 1 else idx
+            try:
+                result = obj.array[key]
+            except IndexError as e:
+                self._raise(f"Tensor index out of range: {e}")
+            
+            if isinstance(result, np.ndarray):
+                return PulseTensor(result)
+            return PulseNumber(float(result))
+        
+        self._raise(f"Object of type '{obj.type_name()}' does not support slicing")
     
     def visit_setmember_expr(self, expr) -> Any:
         obj = self.evaluate(expr.object)

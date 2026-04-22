@@ -278,6 +278,17 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_expr(expr.index)
         self.resolve_expr(expr.value)
     
+    def visit_slice_expr(self, expr):
+        if expr.lower:
+            self.resolve_expr(expr.lower)
+        if expr.upper:
+            self.resolve_expr(expr.upper)
+    
+    def visit_multiindex_expr(self, expr):
+        self.resolve_expr(expr.object)
+        for index in expr.indices:
+            self.resolve_expr(index)
+    
     def visit_setmember_expr(self, expr):
         self.resolve_expr(expr.object)
         self.resolve_expr(expr.value)
