@@ -39,8 +39,9 @@ semantics.
 """
 
 from __future__ import annotations
+import os
 import math
-from typing import Any, NoReturn
+from typing import Any, NoReturn, Optional
 from src.expressions import ExprVisitor
 from src.statements import StmtVisitor
 from src.environment import Environment
@@ -52,10 +53,12 @@ from src.runtime import PulseClass, PulseInstance
 from src.values import (
     PulseNumber, PulseString, PulseNull,
     PulseList, PulseBoolean, PulseDict, PulseRange,
-    PulseTensor, PulseValue
+    PulseTensor, PulseValue, PulseModule,
 )
 import numpy as np
 import src.expressions as expressions
+from src.lexer import Lexer
+from src.parser import Parser
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment: Environment) -> None:
@@ -170,6 +173,51 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     result = method.bind(val).call(self, [], {})
                     return repr(result) if result is not None else "null"
         return repr(val)
+    
+    # File Loaders
+    def _load_module(self, name: str, token) -> PulseModule:
+        builtin = self._load_builtin_module(name, token)
+        if builtin is not None:
+            return builtin
+        
+        return self._load_pulse_file(name, token)
+    
+    def _load_builtin_module(self, name: str, token) -> Optional[PulseModule]:
+        from src.stdlib import STDLIB_MODULES
+        if name in STDLIB_MODULES:
+            return STDLIB_MODULES[name](self)
+        
+        return None
+    
+    def _load_pulse_file(self, name: str, token) -> PulseModule:
+        rel_path = name.replace(".", os.sep) + ".pul"
+        search_dirs = [os.getcwd(), os.path.dirname(__file__)]
+        
+        for base in search_dirs:
+            full_path = os.path.join(base, rel_path)
+            if os.path.isfile(full_path):
+                return self._execute_pulse_file(full_path, name)
+        
+        self._raise(f"Module '{name}' not found", token)
+    
+    def _execute_pulse_file(self, path: str, name: str) -> PulseModule:
+        with open(path, "r", encoding="utf-8") as f:
+            source = f.read()
+        
+        tokens = Lexer(source).scan_tokens()
+        ast = Parser(tokens, source).parse()
+        
+        module_env = Environment(enclosing=self.globals)
+        previous_env = self.environment
+        self.environment = module_env
+        
+        try:
+            for s in ast:
+                self.execute(s)
+        finally:
+            self.environment = previous_env
+        
+        return PulseModule(name, dict(module_env.values))
     
     # Built-in functions
     def _bi_print(self, *args, **kwargs) -> PulseNull:
@@ -419,6 +467,22 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 self.execute(stmt.finally_block)
         
         return result
+    
+    def visit_import_stmt(self, stmt) -> None:
+        module_name = ".".join(t.lexeme for t in stmt.module_path)
+        module = self._load_module(module_name, stmt.keyword)
+        
+        if stmt.names is not None:
+            for name_token, alias_token in stmt.names:
+                key = name_token.lexeme
+                val = module.get(key)
+                if val is None:
+                    self._raise(f"Module '{module_name}' has no member '{key}'", name_token)
+                binding =alias_token.lexeme if alias_token else key
+                self.environment.define(binding, val)
+        else:
+            binding = stmt.alias.lexeme if stmt.alias else stmt.module_path[-1].lexeme
+            self.environment.define(binding, module)
     
     # Expression visitors
     def visit_literal_expr(self, expr) -> Any:
@@ -772,6 +836,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         if isinstance(obj, PulseClass):
             return obj.get(name)
+        
+        if isinstance(obj, PulseModule):
+            val = obj.get(name.lexeme)
+            if val is None:
+                self._raise(f"Module '{obj.name}' has no member '{name.lexeme}'", name)
+            return val
         
         self._raise(
             f"Object of type '{obj.type_name()}' does not support member access",

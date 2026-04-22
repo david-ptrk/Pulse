@@ -1,5 +1,23 @@
-# Test 6 — String slicing
-s = "hello"
-print(s[1:3])   # el
-print(s[:3])    # hel
-print(s[2:])    # llo
+# Namespaced
+import math
+x = math.sqrt(16)
+y = math.pi
+
+# Aliased
+import math as m
+x = m.floor(3.7)
+
+# Selective
+from math import sqrt, pi
+x = sqrt(25)
+
+# Selective with alias
+from math import sqrt as root
+x = root(9)
+
+# User module (loads ./geometry.pulse)
+import geometry
+area = geometry.circle_area(5)
+
+# Dotted path (loads ./shapes/circle.pulse)
+import shapes.circle

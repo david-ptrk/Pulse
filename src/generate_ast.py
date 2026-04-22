@@ -89,6 +89,7 @@ STATEMENTS: ASTDict = {
     "Class": ("name: Token", "bases: List[Token]", "methods: List[Function]", "class_vars: List[Tuple[Token, Expr]]",),
     "Try": ("try_block: Stmt", "except_blocks: List[Tuple[Optional[Expr], Optional[Token], Stmt]]", "finally_block: Optional[Stmt]", "else_block: Optional[Stmt]",),
     "Pass": (),
+    "Import": ("keyword: Token", "module_path: List[Token]", "alias: Optional[Token]", "names: Optional[List[Tuple[Token, Optional[Token]]]]",),
 }
 
 # Generator Functions

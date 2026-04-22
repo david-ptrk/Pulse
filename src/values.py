@@ -188,3 +188,17 @@ class PulseTensor(PulseValue):
         if isinstance(result, (int, float)):
             return str(result)
         return f"@{result}"
+
+class PulseModule(PulseValue):
+    def __init__(self, name: str, members: dict) -> None:
+        self.name = name
+        self.members = members
+    
+    def type_name(self) -> str:
+        return "module"
+    
+    def get(self, key: str):
+        return self.members.get(key)
+    
+    def __repr__(self) -> str:
+        return f"<module '{self.name}'>"

@@ -53,6 +53,10 @@ class StmtVisitor(ABC):
     def visit_pass_stmt(self, expr: 'Pass') -> Any:
         pass
 
+    @abstractmethod
+    def visit_import_stmt(self, expr: 'Import') -> Any:
+        pass
+
 
 
 class Stmt(ABC):
@@ -160,4 +164,14 @@ class Pass(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_pass_stmt(self)
+
+class Import(Stmt):
+    def __init__(self, keyword: Token, module_path: List[Token], alias: Optional[Token], names: Optional[List[Tuple[Token, Optional[Token]]]]) -> None:
+        self.keyword = keyword
+        self.module_path = module_path
+        self.alias = alias
+        self.names = names
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_import_stmt(self)
 

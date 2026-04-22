@@ -128,6 +128,11 @@ class Parser:
         if self.match(TokenType.INDENT):
             return self.block()
         
+        if self.match(TokenType.IMPORT):
+            return self.parse_import_stmt()
+        if self.match(TokenType.FROM):
+            return self.parse_from_import_stmt()
+        
         if self.match(TokenType.DEF):
             return self.parse_func_stmt()
         if self.match(TokenType.CLASS):
@@ -348,6 +353,42 @@ class Parser:
         
         self.match(TokenType.NEWLINE)
         return stmt.Return(keyword, value)
+    
+    def parse_import_stmt(self) -> stmt.Import:
+        keyword = self.previous()
+        module_path = self._parse_module_path()
+        alias: Optional[Token] = None
+        if self.match(TokenType.AS):
+            alias = self.consume(TokenType.IDENTIFIER, "Expected alias name after 'as'")
+        
+        self.match(TokenType.NEWLINE)
+        return stmt.Import(keyword, module_path, alias, names=None)
+    
+    def parse_from_import_stmt(self) -> stmt.Import:
+        keyword = self.previous()
+        module_path = self._parse_module_path()
+        self.consume(TokenType.IMPORT, "Expected 'import' after module name")
+        
+        names: List[Tuple[Token, Optional[Token]]] = []
+        while True:
+            name = self.consume(TokenType.IDENTIFIER, "Expected name to import")
+            alias: Optional[Token] = None
+            if self.match(TokenType.AS):
+                alias = self.consume(TokenType.IDENTIFIER, "Expected alias name after 'as'")
+            names.append((name, alias))
+            if not self.match(TokenType.COMMA):
+                break
+        
+        self.match(TokenType.NEWLINE)
+        return stmt.Import(keyword, module_path, alias=None, names=names)
+    
+    def _parse_module_path(self) -> List[Token]:
+        parts: List[Token] = []
+        parts.append(self.consume(TokenType.IDENTIFIER, "Expected module name"))
+        while self.check(TokenType.DOT) and self.peek_next().type == TokenType.IDENTIFIER:
+            self.advance()
+            parts.append(self.consume(TokenType.IDENTIFIER, "Expected module name after '.'"))
+        return parts
     
     def expression(self) -> expr.Expr:
         return self.assignment()
