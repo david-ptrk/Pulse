@@ -17,7 +17,8 @@ from src.values import (
     PulseBoolean,
     PulseNull,
     PulseList,
-    PulseDict
+    PulseDict,
+    PulseRange,
 )
 import re
 
@@ -748,4 +749,385 @@ d = Dog()
 d.speak()
 """)
         assert result.value == "Woof"
+    
+    def test_inheritance_method_fallback(self):
+        result = run("""
+class Animal:
+    def breathe(self):
+        return "inhale"
+
+class Dog(Animal):
+    def speak(self):
+        return "Woof"
+
+d = Dog()
+d.breathe()
+""")
+        assert result.value == "inhale"
+    
+#     def test_super_init_manual(self):
+#         result = run("""
+# class Vehicle:
+#     def __init__(self, speed):
+#         self.speed = speed
+
+# class Car(Vehicle):
+#     def __init__(self, speed, brand):
+#         Vehicle.__init__(self, speed)
+#         self.brand = brand
+#     def info(self):
+#         return self.brand
+
+# c = Car(100, "Tesla")
+# c.info()
+# """)
+#         assert result.value == "Tesla"
+    
+    def test_undefined_property_errors(self):
+        raises_runtime("""
+class A:
+    pass
+a = A()
+a.foo
+""", "undefined")
+    
+    def test_instance_method_not_accessible_on_class(self):
+        raises_runtime("""
+class A:
+    def greet(self):
+        return "hi"
+A.greet()
+""", "non-static")
+    
+    def test_chained_method_calls(self):
+        result = run("""
+class Builder:
+    def __init__(self):
+        self.parts = []
+    def add(self, part):
+        self.parts.append(part)
+        return self
+    def build(self):
+        return self.parts.length()
+
+Builder().add("a").add("b").add("c").build()
+""")
+        assert result.value == 3
+    
+    def test_mro_depth_two(self):
+        result = run("""
+class C:
+    def hello(self):
+        return "C"
+
+class B(C):
+    pass
+
+class A(B):
+    pass
+
+A().hello()
+""")
+        assert result.value == "C"
+
+# ----------------------------------------
+# 10. Try / except / else / finally
+# ----------------------------------------
+class TestTryExcept:
+    def test_try_no_execution_runs_else(self):
+        result = run("""
+log = []
+try:
+    log.append("try")
+except Exception:
+    log.append("except")
+else:
+    log.append("else")
+finally:
+    log.append("finally")
+log.length()
+""")
+        assert result.value == 3
+    
+    def test_try_with_exception_skips_else(self):
+        result = run("""
+log = []
+try:
+    log.append("try")
+    x = 1 / 0
+    log.append("after_error")
+except Exception:
+    log.append("except")
+else:
+    log.append("else")
+finally:
+    log.append("finally")
+log
+""")
+        values = [e.value for e in result.elements]
+        assert values == ["try", "except", "finally"]
+    
+    def test_finally_always_runs_on_success(self):
+        result = run("""
+ran = false
+try:
+    x = 1 + 1
+finally:
+    ran = true
+ran
+""")
+        assert result.value is True
+    
+    def test_finally_always_runs_on_error(self):
+        result = run("""
+ran = false
+try:
+    try:
+        x = 1 / 0
+    finally:
+        ran = true
+except Exception:
+    pass
+ran
+""")
+        assert result.value is True
+    
+    def test_except_catches_by_type(self):
+        result = run("""
+caught = false
+try:
+    x = 1 / 0
+except Exception:
+    caught = true
+caught
+""")
+        assert result.value is True
+    
+    def test_bare_except_catches_all(self):
+        result = run("""
+caught = false
+try:
+    x = 1 / 0
+except:
+    caught = true
+caught
+""")
+        assert result.value is True
+    
+    def test_uncaught_exception_propagates(self):
+        raises_runtime("""
+try:
+    x = 1 / 0
+except ValueError:
+    pass
+""")
+    
+    def test_exception_variable_binding(self):
+        result = run("""
+msg = ""
+try:
+    x = 1 / 0
+except Exception as e:
+    msg = "caught"
+msg
+""")
+        assert result.value == "caught"
+    
+    def test_nested_try_inner_caught(self):
+        result = run("""
+log = []
+try:
+    try:
+        x = 1 / 0
+    except Exception:
+        log.append("inner")
+    log.append("after_inner")
+except Exception:
+    log.append("outer")
+log.length()
+""")
+        assert result.value == 2
+    
+    def test_return_inside_try_still_runs_finally(self):
+        result = run("""
+log = []
+def f():
+    try:
+        log.append("try")
+        return 42
+    finally:
+        log.append("finally")
+
+val = f()
+log.length()
+""")
+        assert result.value == 2
+    
+    def test_break_inside_try_runs_finally(self):
+        result = run("""
+log = []
+for i in range(3):
+    try:
+        if i == 1:
+            break
+    finally:
+        log.append(i)
+log.length()
+""")
+        assert result.value == 2
+
+# ----------------------------------------
+# 11. Error diagnostics
+# ----------------------------------------
+class TestErrorDiagnostics:
+    def test_runtime_exception_wraps_runtime_error(self):
+        with pytest.raises(PulseRuntimeException) as exc_info:
+            run("1 / 0")
+        assert isinstance(exc_info.value.error, PulseRuntimeError)
+    
+    def test_error_has_message(self):
+        with pytest.raises(PulseRuntimeException) as exc_info:
+            run("1 / 0")
+        assert exc_info.value.error.message != ""
+    
+    def test_error_str_contains_stage_label(self):
+        with pytest.raises(PulseRuntimeException) as exc_info:
+            run("1 / 0")
+        assert "[Runtime Error]" in str(exc_info.value)
+    
+    def test_stack_populated_on_nested_call(self):
+        PulseRuntimeError.clear_stack()
+        with pytest.raises(PulseRuntimeException) as exc_info:
+            run("""
+def bad():
+    return 1 / 0
+bad()
+""")
+        error = exc_info.value.error
+        assert isinstance(error, PulseRuntimeError)
+        assert len(error.stack) >= 1
+    
+    def test_calling_non_callable_errors(self):
+        raises_runtime("42()", "non-callable")
+    
+    def test_accessing_member_of_null_errors(self):
+        raises_runtime("""
+x = null
+x.foo
+""", "null")
+    
+#    def test_undefined_variable_errors(self):
+#        raises_runtime("fooBarBaz", "")
+    
+    def test_index_non_indexable_errors(self):
+        raises_runtime("true[0]", "indexing")
+    
+    def test_wrong_type_for_builtin(self):
+        raises_runtime('abs("hello")', "number")
+    
+    def test_sqrt_negative_errors(self):
+        raises_runtime("sqrt(-1)", "non-negative")
+
+# ----------------------------------------
+# 12. F-strings
+# ----------------------------------------
+class TestFStrings:
+    def test_basic_interpolation(self):
+        result = run("""
+name = "Pulse"
+f"Hello, {name}!"
+""")
+        assert "Pulse" in result.value
+    
+    def test_expression_interpolation(self):
+        result = run('f"Result: {2 + 3}"')
+        assert "5" in result.value
+    
+    def test_nested_call_in_fstring(self):
+        result = run('f"len: {len([1, 2, 3])}"')
+        assert "3" in result.value
+    
+    def test_multiple_interpolations(self):
+        result = run("""
+a = 1
+b = 2
+f"{a} + {b} = {a + b}"
+""")
+        assert "1" in result.value
+        assert "3" in result.value
+    
+    def test_fstring_with_dict_access(self):
+        result = run("""
+d = {"key": "value"}
+f"got {d["key"]}"
+""")
+        assert "value" in result.value
+
+# ----------------------------------------
+# 13. Built-in functions
+# ----------------------------------------
+class TestBuiltins:
+    def test_len_list(self):
+        assert run("len([1, 2, 3])").value == 3
+    
+    def test_len_string(self):
+        assert run('len("hello")').value == 5
+    
+    def test_len_dict(self):
+        assert run('len({"a": 1, "b": 2})').value == 2
+    
+    def test_range_one_arg(self):
+        result = run("range(5)")
+        assert isinstance(result, PulseRange)
+    
+    def test_range_two_args(self):
+        result = run("""
+total = 0
+for i in range(2, 6):
+    total = total + i
+total
+""")
+        assert result.value == 14
+    
+    def test_range_step_zero_errors(self):
+        raises_runtime("range(0, 10, 0)", "step")
+    
+    def test_abs_positive(self):
+        assert run("abs(5)").value == 5
+    
+    def test_abs_negative(self):
+        assert run("abs(-7)").value == 7
+    
+    def test_pow(self):
+        assert run("pow(2, 10)").value == 1024
+    
+    def test_sqrt(self):
+        assert run("sqrt(16)").value == 4.0
+    
+    def test_round(self):
+        assert run("round(3.7)").value == 4
+    
+    def test_round_digits(self):
+        assert run("round(3.14159, 2)").value == 3.14
+    
+    def test_floor(self):
+        assert run("floor(3.9)").value == 3
+    
+    def test_ceil(self):
+        assert run("ceil(3.1)").value == 4
+    
+    def test_min(self):
+        assert run("min(3, 1, 4, 1, 5)").value == 1
+    
+    def test_max(self):
+        assert run("max(3, 1, 4, 1, 5)").value == 5
+    
+    def test_int_from_string(self):
+        assert run('int("42")').value == 42
+    
+    def test_int_bad_string_errors(self):
+        raises_runtime('int("abc")', "convert")
+    
+    def test_float_from_string(self):
+        assert run('float("3.14")').value == pytest.approx(3.14)
     
