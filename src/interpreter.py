@@ -76,14 +76,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("type", PulseNativeFunction("type", self._bi_type)),
             ("abs", PulseNativeFunction("abs", self._bi_abs)),
             ("pow", PulseNativeFunction("pow", self._bi_pow)),
-            ("sqrt", PulseNativeFunction("sqrt", self._bi_sqrt)),
             ("min", PulseNativeFunction("min", self._bi_min)),
             ("max", PulseNativeFunction("max", self._bi_max)),
             ("len", PulseNativeFunction("len", self._bi_len)),
             ("range", PulseNativeFunction("range", self._bi_range)),
             ("round", PulseNativeFunction("round", self._bi_round)),
-            ("floor", PulseNativeFunction("floor", self._bi_floor)),
-            ("ceil", PulseNativeFunction("ceil", self._bi_ceil)),
         ])
         
         # Built-in exception classes
@@ -207,7 +204,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         tokens = Lexer(source).scan_tokens()
         ast = Parser(tokens, source).parse()
         
-        module_env = Environment(enclosing=self.globals)
+        module_env = Environment(enclosing=self.environment)
         previous_env = self.environment
         self.environment = module_env
         
@@ -265,12 +262,6 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self._check_number(exp,  None, "pow() exponent")
         return PulseNumber(pow(base.value, exp.value))
     
-    def _bi_sqrt(self, x: Any) -> PulseNumber:
-        self._check_number(x, None, "sqrt() argument")
-        if x.value < 0:
-            self._raise("sqrt() argument must be non-negative")
-        return PulseNumber(math.sqrt(x.value))
-    
     def _bi_min(self, *args: Any) -> PulseNumber:
         if not args:
             self._raise("min() expects at least one argument")
@@ -319,14 +310,6 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNumber(round(x.value))
         self._check_number(digits, None, "round() digits")
         return PulseNumber(round(x.value, int(digits.value)))
-    
-    def _bi_floor(self, x: Any) -> PulseNumber:
-        self._check_number(x, None, "floor() argument")
-        return PulseNumber(math.floor(x.value))
-    
-    def _bi_ceil(self, x: Any) -> PulseNumber:
-        self._check_number(x, None, "ceil() argument")
-        return PulseNumber(math.ceil(x.value))
     
     # Statement visitors
     def visit_expression_stmt(self, stmt) -> Any:
@@ -838,9 +821,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return obj.get(name)
         
         if isinstance(obj, PulseModule):
-            val = obj.get(name.lexeme)
+            val = obj.get(name)
             if val is None:
-                self._raise(f"Module '{obj.name}' has no member '{name.lexeme}'", name)
+                self._raise(f"Module '{obj.name}' has no member '{name}'", expr.name)
             return val
         
         self._raise(
