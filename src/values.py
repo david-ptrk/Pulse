@@ -202,3 +202,19 @@ class PulseModule(PulseValue):
     
     def __repr__(self) -> str:
         return f"<module '{self.name}'>"
+
+class PulseModel(PulseValue):
+    def __init__(self, model_name: str, sklearn_model) -> None:
+        self.model_name = model_name
+        self.sklearn_model = sklearn_model
+        self.is_trained = False
+    
+    def type_name(self) -> str:
+        return "model"
+    
+    def is_truthy(self) -> bool:
+        return True
+    
+    def __repr__(self) -> str:
+        status = "trained" if self.is_trained else "untrained"
+        return f"<model {self.model_name} ({status})>"

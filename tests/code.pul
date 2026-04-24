@@ -1,5 +1,17 @@
-from io import read_file, write_file
+from models import LogisticRegression
 
-write_file("out.txt", "hello world")
-content = read_file("out.txt")
-print(content)
+model = LogisticRegression()
+print(model)
+data = @[[1, 2], [3, 4], [5, 6], [7, 8]]
+labels = @[0, 0, 1, 1]
+
+model.train(data, labels)
+
+predictions = model.predict(data)
+print(predictions)
+
+accuracy = model.score(data, labels)
+print(accuracy)
+
+print(model.is_trained())
+print(model)
