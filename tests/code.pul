@@ -1,4 +1,5 @@
-class A:
-    def greet(self):
-        return "hi"
-print(A.greet())
+from io import read_file, write_file
+
+write_file("out.txt", "hello world")
+content = read_file("out.txt")
+print(content)

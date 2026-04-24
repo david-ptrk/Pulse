@@ -207,7 +207,15 @@ class Resolver(ExprVisitor, StmtVisitor):
             )
     
     def visit_import_stmt(self, stmt):
-        pass
+        if stmt.names is not None:
+            for name_token, alias_token in stmt.names:
+                binding = alias_token if alias_token else name_token
+                self.declare(binding)
+                self.define(binding)
+        else:
+            binding = stmt.alias if stmt.alias else stmt.module_path[-1]
+            self.declare(binding)
+            self.define(binding)
     
     # Expressions
     def visit_literal_expr(self, expr):
