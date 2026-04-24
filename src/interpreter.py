@@ -782,6 +782,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
             for name, value in expr.keyword_arguments
         }
         
+        if (isinstance(callee, PulseFunction) and not callee.is_bound and not callee.declaration.is_static and callee.declaration.is_method):
+            if arguments and isinstance(arguments[0], PulseInstance):
+                callee = callee.bind(arguments[0])
+                arguments = arguments[1:]
+            else:
+                self._raise(f"{callee.declaration.name.lexeme}() missing required argument: 'self'. Calling non-static")
+        
         if not callable(getattr(callee, "call", None)):
             self._raise("Attempted to call a non-callable value")
         

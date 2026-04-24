@@ -765,23 +765,23 @@ d.breathe()
 """)
         assert result.value == "inhale"
     
-#     def test_super_init_manual(self):
-#         result = run("""
-# class Vehicle:
-#     def __init__(self, speed):
-#         self.speed = speed
+    def test_super_init_manual(self):
+        result = run("""
+class Vehicle:
+    def __init__(self, speed):
+        self.speed = speed
 
-# class Car(Vehicle):
-#     def __init__(self, speed, brand):
-#         Vehicle.__init__(self, speed)
-#         self.brand = brand
-#     def info(self):
-#         return self.brand
+class Car(Vehicle):
+    def __init__(self, speed, brand):
+        Vehicle.__init__(self, speed)
+        self.brand = brand
+    def info(self):
+        return self.brand
 
-# c = Car(100, "Tesla")
-# c.info()
-# """)
-#         assert result.value == "Tesla"
+c = Car(100, "Tesla")
+c.info()
+""")
+        assert result.value == "Tesla"
     
     def test_undefined_property_errors(self):
         raises_runtime("""
@@ -1026,7 +1026,10 @@ x.foo
         raises_runtime('abs("hello")', "number")
     
     def test_sqrt_negative_errors(self):
-        raises_runtime("sqrt(-1)", "non-negative")
+        raises_runtime("""
+from math import sqrt
+sqrt(-1)
+""", "non-negative")
 
 # ----------------------------------------
 # 12. F-strings
@@ -1102,7 +1105,10 @@ total
         assert run("pow(2, 10)").value == 1024
     
     def test_sqrt(self):
-        assert run("sqrt(16)").value == 4.0
+        assert run("""
+from math import sqrt
+sqrt(16)
+""").value == 4.0
     
     def test_round(self):
         assert run("round(3.7)").value == 4
@@ -1111,10 +1117,16 @@ total
         assert run("round(3.14159, 2)").value == 3.14
     
     def test_floor(self):
-        assert run("floor(3.9)").value == 3
+        assert run("""
+from math import floor
+floor(3.9)
+""").value == 3
     
     def test_ceil(self):
-        assert run("ceil(3.1)").value == 4
+        assert run("""
+from math import ceil
+ceil(3.1)
+""").value == 4
     
     def test_min(self):
         assert run("min(3, 1, 4, 1, 5)").value == 1

@@ -73,18 +73,17 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.scopes[-1][name.lexeme] = True
     
     # Resolution Logic
-    def resolve_local(self, expr, name):
-        found = False
-        
+    def resolve_local(self, expr, name):        
         for i in range(len(self.scopes) - 1, -1, -1):
             if name.lexeme in self.scopes[i]:
+                if i == 0:
+                    self.interpreter.resolve(expr, None)
+                    return
                 distance = len(self.scopes) - 1 - i
                 self.interpreter.resolve(expr, distance)
-                found = True
                 return
         
-        if not found:
-            self.interpreter.resolve(expr, None)
+        self.interpreter.resolve(expr, None)
     
     def resolve_function(self, func, func_type):
         enclosing_function = self.current_function
@@ -156,15 +155,12 @@ class Resolver(ExprVisitor, StmtVisitor):
         for base in stmt.bases:
             self.resolve_local(stmt, base)
         
-        self.begin_scope()
         for name_tok, value in stmt.class_vars:
             self.resolve_expr(value)
-            self.scopes[-1][name_tok.lexeme] = True
         
         for method in stmt.methods:
             self.resolve_function(method, FunctionType.METHOD)
         
-        self.end_scope()
         self.current_class = enclosing_class
     
     def visit_for_stmt(self, stmt):

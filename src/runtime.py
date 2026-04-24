@@ -107,9 +107,7 @@ class PulseClass:
         if method is not None:
             if method.declaration.is_static:
                 return method
-            raise PulseRuntimeException(
-                PulseRuntimeError(f"Cannot access non-static method '{name}' on class")
-            )
+            return method
         
         raise PulseRuntimeException(
             PulseRuntimeError(f"Undefined class member '{name}'")

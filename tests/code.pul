@@ -1,7 +1,4 @@
-from tests.code2 import add, square
-
-res1 = add(5, 3)
-res2 = square(4)
-
-print(res1)
-print(res2)
+class A:
+    def greet(self):
+        return "hi"
+print(A.greet())
