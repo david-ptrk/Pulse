@@ -6,7 +6,7 @@ JMJ
 
 ## Folder Structure
 
-- `src/` — interpreter/compiler source code
+- `src/` — interpreter source code
 - `docs/` — documentation and journals
 - `examples/` — example Pulse programs
 - `tests/` — test scripts and validation
@@ -16,3 +16,7 @@ JMJ
 
 - Daud Anjum
 - Hafiz Muhammad Ahmad
+
+## License
+
+This project is licensed under the MIT License.
