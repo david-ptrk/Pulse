@@ -306,3 +306,7 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_fstring_expr(self, expr):
         for part in expr.parts:
             self.resolve_expr(part)
+    
+    def visit_pipe_expr(self, expr):
+        self.resolve_expr(expr.left)
+        self.resolve_expr(expr.right)

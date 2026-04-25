@@ -397,7 +397,7 @@ class Parser:
         return self.assignment()
     
     def assignment(self) -> expr.Expr:
-        left = self.logic()
+        left = self.pipeline()
         
         if self.match(TokenType.ASSIGN):
             value = self.assignment()
@@ -420,6 +420,15 @@ class Parser:
             return node
         
         return left
+    
+    def pipeline(self) -> expr.Expr:
+        node = self.logic()
+        
+        while self.match(TokenType.PIPE):
+            right = self.logic()
+            node = expr.Pipe(node, right)
+        
+        return node
     
     def logic(self) -> expr.Expr:
         node = self.equality()

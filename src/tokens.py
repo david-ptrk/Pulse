@@ -75,6 +75,7 @@ class TokenType(Enum):
     FSTRING = auto()
     INT_DIVIDE = auto()
     STATIC = auto()
+    PIPE = auto()
     
     # Keywords
     IF = auto()

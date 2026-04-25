@@ -850,6 +850,19 @@ class Interpreter(ExprVisitor, StmtVisitor):
             result.append(self._stringify(value))
         return PulseString("".join(result))
     
+    def visit_pipe_expr(self, expr) -> Any:
+        left_val = self.evaluate(expr.left)
+        right_val = self.evaluate(expr.right)
+        
+        if not callable(getattr(right_val, "call", None)):
+            self._raise("Right side of '|>' must be a callable")
+        
+        PulseRuntimeError.push_stack(repr(right_val), line_number=None)
+        try:
+            return right_val.call(self, [left_val], {})
+        finally:
+            PulseRuntimeError.pop_stack()
+    
     # Built-in method dispatch
     def _list_method(self, obj: PulseList, name: str, token: Token) -> PulseNativeFunction:
         if name == "append":

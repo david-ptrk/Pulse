@@ -76,6 +76,10 @@ class ExprVisitor(ABC):
     def visit_tensor_expr(self, expr: 'Tensor') -> Any:
         pass
 
+    @abstractmethod
+    def visit_pipe_expr(self, expr: 'Pipe') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -226,4 +230,12 @@ class Tensor(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_tensor_expr(self)
+
+class Pipe(Expr):
+    def __init__(self, left: Expr, right: Expr) -> None:
+        self.left = left
+        self.right = right
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_pipe_expr(self)
 

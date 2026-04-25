@@ -139,6 +139,14 @@ class Lexer:
             self.tensor_literal( )
             return
         
+        # Pipeline
+        if c == '|':
+            if self.match('>'):
+                self.add_token(TokenType.PIPE)
+            else:
+                self._error("Expected '>' after '|'")
+            return
+        
         # Skip Whitespace character
         if c in (" ", "\r", "\t"):
             return
