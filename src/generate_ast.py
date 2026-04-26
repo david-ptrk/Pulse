@@ -74,6 +74,7 @@ EXPRESSIONS: ASTDict = {
     "FString": ("parts: List[Expr]",),
     "Tensor": ("value: Any",),
     "Pipe": ("left: Expr", "right: Expr",),
+    "Unpack": ("names: List[Token]", "value: Expr",),
 }
 
 # Statements

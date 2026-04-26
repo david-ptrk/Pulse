@@ -128,6 +128,9 @@ class Parser:
         if self.match(TokenType.INDENT):
             return self.block()
         
+        if self.check(TokenType.IDENTIFIER) and self.is_unpack_assignment():
+            return self.parse_unpack_stmt()
+        
         if self.match(TokenType.IMPORT):
             return self.parse_import_stmt()
         if self.match(TokenType.FROM):
@@ -396,7 +399,39 @@ class Parser:
     def expression(self) -> expr.Expr:
         return self.assignment()
     
-    def assignment(self) -> expr.Expr:
+    def is_unpack_assignment(self) -> bool:
+        saved = self.current
+        try:
+            if self.tokens[self.current].type != TokenType.IDENTIFIER:
+                return False
+            self.current += 1
+            
+            if self.tokens[self.current].type != TokenType.COMMA:
+                return False
+            
+            while self.tokens[self.current].type == TokenType.COMMA:
+                self.current += 1
+                if self.tokens[self.current].type != TokenType.IDENTIFIER:
+                    return False
+                self.current += 1
+            
+            return self.tokens[self.current].type == TokenType.ASSIGN
+        finally:
+            self.current = saved
+    
+    def parse_unpack_stmt(self) -> stmt.Expression:
+        names = []
+        names.append(self.consume(TokenType.IDENTIFIER, "Expected identifier"))
+        
+        while self.match(TokenType.COMMA):
+            names.append(self.consume(TokenType.IDENTIFIER, "Expected identifier after ','"))
+        self.consume(TokenType.ASSIGN, "Expected '=' after unpack targets")
+        
+        value = self.expression()
+        self.match(TokenType.NEWLINE)
+        return stmt.Expression(expr.Unpack(names, value))
+    
+    def assignment(self) -> expr.Expr:        
         left = self.pipeline()
         
         if self.match(TokenType.ASSIGN):

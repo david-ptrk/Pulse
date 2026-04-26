@@ -80,6 +80,10 @@ class ExprVisitor(ABC):
     def visit_pipe_expr(self, expr: 'Pipe') -> Any:
         pass
 
+    @abstractmethod
+    def visit_unpack_expr(self, expr: 'Unpack') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -238,4 +242,12 @@ class Pipe(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_pipe_expr(self)
+
+class Unpack(Expr):
+    def __init__(self, names: List[Token], value: Expr) -> None:
+        self.names = names
+        self.value = value
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_unpack_expr(self)
 

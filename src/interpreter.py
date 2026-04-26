@@ -863,6 +863,30 @@ class Interpreter(ExprVisitor, StmtVisitor):
         finally:
             PulseRuntimeError.pop_stack()
     
+    def visit_unpack_expr(self, expr) -> Any:
+        value = self.evaluate(expr.value)
+        
+        if isinstance(value, PulseList):
+            elements = value.elements
+        elif isinstance(value, PulseTensor):
+            elements = []
+            for i in range(len(value.array)):
+                row = value.array[i]
+                if isinstance(row, np.ndarray):
+                    elements.append(PulseTensor(row))
+                else:
+                    elements.append(PulseNumber(float(row)))
+        else:
+            self._raise(f"Cannot unpack value of type '{value.type_name()}'")
+        
+        if len(expr.names) != len(elements):
+            self._raise(f"Cannot unpack {len(elements)} values into {len(expr.names)} variables")
+        
+        for name_tok, val in zip(expr.names, elements):
+            self.environment.define(name_tok.lexeme, val)
+        
+        return value
+    
     # Built-in method dispatch
     def _list_method(self, obj: PulseList, name: str, token: Token) -> PulseNativeFunction:
         if name == "append":

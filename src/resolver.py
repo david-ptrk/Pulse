@@ -310,3 +310,8 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_pipe_expr(self, expr):
         self.resolve_expr(expr.left)
         self.resolve_expr(expr.right)
+    
+    def visit_unpack_expr(self, expr):
+        self.resolve_expr(expr.value)
+        for name in expr.names:
+            self.resolve_local(expr, name)

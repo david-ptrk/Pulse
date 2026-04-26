@@ -1,24 +1,14 @@
-from preprocess import normalize, standardize, min_max_scale, shuffle, one_hot_encode, flatten_data, train_test_split
+from preprocess import train_test_split, normalize
 from models import LogisticRegression
 
-# Test all preprocessing functions
 data = @[[1,2],[3,4],[5,6],[7,8],[9,10],[11,12]]
 labels = @[0, 0, 0, 1, 1, 1]
 
-print(normalize(data))
-print(standardize(data))
-print(min_max_scale(data))
-print(shuffle(data))
-print(one_hot_encode(labels))
-print(flatten_data(data))
-
-# Full pipeline
-split = train_test_split(data, labels, test_size=0.2)
-X_train = split[0]
-X_test  = split[1]
-y_train = split[2]
-y_test  = split[3]
+X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2)
 
 model = LogisticRegression()
 model.train(X_train |> normalize, y_train)
+
+predictions = X_test |> normalize |> model.predict
+print(predictions)
 print(model.score(X_test |> normalize, y_test))
