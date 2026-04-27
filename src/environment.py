@@ -28,6 +28,7 @@ during execution of a Pulse program.
 
 from typing import Any, Union
 from src.tokens import Token
+from src.runtime import PulseRuntimeException
 from src.error import PulseRuntimeError
 
 _NameArg = Union[str, Token]
@@ -43,7 +44,9 @@ class Environment:
         key = _key(name)
         
         if key in self.values:
-            raise PulseRuntimeError(f"Variable '{key}' already defined.")
+            raise PulseRuntimeException(
+                PulseRuntimeError(f"Variable '{key}' already defined.")
+            )
         self.values[key] = value
     
     def define_many(self, funcs):
@@ -59,7 +62,9 @@ class Environment:
         if self.enclosing is not None:
             return self.enclosing.get(name)
         
-        raise PulseRuntimeError(f"Undefined variable '{key}'")
+        raise PulseRuntimeException(
+            PulseRuntimeError(f"Undefined variable '{key}'")
+        )
     
     def assign(self, name, value):
         key = _key(name)

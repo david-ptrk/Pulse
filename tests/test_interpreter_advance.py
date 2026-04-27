@@ -4,23 +4,15 @@ from src.parser import Parser
 from src.interpreter import Interpreter
 from src.environment import Environment
 from src.resolver import Resolver
-from src.runtime import (
-    PulseRuntimeException,
-    PulseException,
-    PulseClass,
-    PulseInstance
-)
+from src.runtime import (PulseRuntimeException, PulseInstance )
 from src.error import PulseRuntimeError
 from src.values import (
-    PulseNumber,
-    PulseString,
-    PulseBoolean,
-    PulseNull,
-    PulseList,
-    PulseDict,
-    PulseRange,
+    PulseNumber, PulseString, PulseBoolean,
+    PulseNull, PulseList, PulseDict, PulseRange,
+    PulseTensor
 )
 import re
+import numpy as np
 
 def run(source: str):
     tokens = Lexer(source).scan_tokens()
@@ -46,6 +38,13 @@ def raises_runtime(source: str, fragment: str | None = None):
             f"Expected '{fragment}' in error message, got:\n{str(exc_info.value)}"
         )
     return exc_info
+
+def tensor_result(source: str) -> np.ndarray:
+    result = run(source)
+    assert isinstance(result, PulseTensor), (
+        f"Expected PulseTensor, got {type(result).__name__}"
+    )
+    return result.array
 
 # ----------------------------------------
 # 1. Arithmetic & operator precedence
@@ -1016,8 +1015,8 @@ x = null
 x.foo
 """, "null")
     
-#    def test_undefined_variable_errors(self):
-#        raises_runtime("fooBarBaz", "")
+    def test_undefined_variable_errors(self):
+        raises_runtime("fooBarBaz", "undefined")
     
     def test_index_non_indexable_errors(self):
         raises_runtime("true[0]", "indexing")
@@ -1143,3 +1142,23 @@ ceil(3.1)
     def test_float_from_string(self):
         assert run('float("3.14")').value == pytest.approx(3.14)
     
+    def test_str_of_number(self):
+        result = run("str(42)")
+        assert isinstance(result, PulseString)
+    
+    def test_type_of_number(self):
+        result = run("type(42)")
+        assert isinstance(result, PulseString)
+        assert "number" in result.value.lower()
+    
+    def test_type_of_string(self):
+        result = run('type("hi")')
+        assert "string" in result.value.lower()
+    
+    def test_type_of_list(self):
+        result = run("type([1, 2])")
+        assert "list" in result.value.lower()
+
+# ----------------------------------------
+# 14. Edge cases & regression guards
+# ----------------------------------------
