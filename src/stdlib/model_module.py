@@ -1,9 +1,23 @@
+# model_module.py
 from __future__ import annotations
-from src.values import PulseModule, PulseModel, PulseNumber, PulseBoolean, PulseTensor, PulseNull
+from src.values import PulseModule, PulseModel, PulseNumber, PulseBoolean, PulseTensor, PulseNull, PulseNamespace
 from src.function import PulseNativeFunction, PulseNativeMethod
 import numpy as np
+from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.cluster import KMeans
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import cross_val_score
+import warnings
 
 def make(interp) -> PulseModule:
+    def _check_tensor(val, fn_name: str, arg_name: str = "data"):
+        if not isinstance(val, PulseTensor):
+            interp._raise(f"{fn_name}() expects a tensor for {arg_name}, got '{val.type_name()}'")
+    
     def _make_model(name: str, sklearn_model):
         pulse_model = PulseModel(name, sklearn_model)
         
@@ -56,40 +70,103 @@ def make(interp) -> PulseModule:
         return pulse_model
     
     def _linear_regression() -> PulseModel:
-        from sklearn.linear_model import LinearRegression
         return _make_model("LinearRegression", LinearRegression())
     
     def _logistic_regression() -> PulseModel:
-        from sklearn.linear_model import LogisticRegression
         return _make_model("LogisticRegression", LogisticRegression())
     
     def _decision_tree() -> PulseModel:
-        from sklearn.tree import DecisionTreeClassifier
         return _make_model("DecisionTree", DecisionTreeClassifier())
     
     def _random_forest() -> PulseModel:
-        from sklearn.ensemble import RandomForestClassifier
         return _make_model("RandomForest", RandomForestClassifier())
     
     def _kmeans(k: PulseNumber) -> PulseModel:
         if not isinstance(k, PulseNumber):
             interp._raise(f"KMeans() expects a number for k, got '{k.type_name()}'")
-        from sklearn.cluster import KMeans
         return _make_model("KMeans", KMeans(n_clusters=int(k.value)))
     
     def _knn(k: PulseNumber) -> PulseModel:
         if not isinstance(k, PulseNumber):
             interp._raise(f"KNN() expects a number for k, got '{k.type_name()}'")
-        from sklearn.neighbors import KNeighborsClassifier
         return _make_model("KNN", KNeighborsClassifier(n_neighbors=int(k.value)))
     
     def _svc() -> PulseModel:
-        from sklearn.svm import SVC
         return _make_model("SVC", SVC())
     
     def _neural_network() -> PulseModel:
-        from sklearn.neural_network import MLPClassifier
         return _make_model("NeuralNetwork", MLPClassifier(max_iter=1000))
+    
+    def _model_auto(data: PulseTensor, labels: PulseTensor) -> PulseModel:
+        _check_tensor(data, "Model.auto", "data")
+        _check_tensor(labels, "Model.auto", "labels")
+        
+        X = data.array
+        y = labels.array
+        n_samples = X.shape[0] if X.ndim > 1 else len(X)
+        
+        unique_values = np.unique(y)
+        is_classification = (
+            len(unique_values) <= 20 and
+            np.all(unique_values == unique_values.astype(int))
+        )
+        
+        cv_folds = min(3, n_samples // 2)
+        cv_folds = max(cv_folds, 2)
+        min_samples_per_fold = n_samples // cv_folds
+        
+        if is_classification:
+            candidates = [
+                ("LogisticRegression", LogisticRegression(max_iter=1000)),
+                ("DecisionTree", DecisionTreeClassifier()),
+            ]
+            if min_samples_per_fold >= 6:
+                n_neighbors = min(5, min_samples_per_fold - 1)
+                candidates.append(("KNN", KNeighborsClassifier(n_neighbors=n_neighbors)))
+            if n_samples >= 20:
+                candidates.append(("RandomForest", RandomForestClassifier()))
+            if n_samples >= 20:
+                candidates.append(("SVC", SVC()))
+            scoring = "accuracy"
+        else:
+            candidates = [
+                ("LinearRegression", LinearRegression()),
+                ("Ridge", Ridge()),
+            ]
+            if n_samples >= 20:
+                candidates.append(("RandomForest", RandomForestRegressor()))
+            scoring = "r2"
+        
+        best_name = None
+        best_score = -float("inf")
+        best_sklearn = None
+        
+        for name, sk_model in candidates:
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    scores = cross_val_score(sk_model, X, y, cv=cv_folds, scoring=scoring)
+                mean_score = float(np.nanmean(scores))
+                if mean_score > best_score:
+                    best_score = mean_score
+                    best_name = name
+                    best_sklearn = sk_model
+            except Exception:
+                continue
+        
+        if best_sklearn is None:
+            interp._raise("Model.auto() could not find a suitable model for the given data")
+        
+        best_sklearn.fit(X, y)
+        model = _make_model(best_name, best_sklearn)
+        model.is_trained = True
+        model.auto_score = best_score
+        
+        return model
+    
+    model_namespace = PulseNamespace("Model", {
+        "auto": PulseNativeFunction("auto", _model_auto),
+    })
     
     return PulseModule("models", {
         "LinearRegression": PulseNativeFunction("LinearRegression", _linear_regression),
@@ -100,4 +177,5 @@ def make(interp) -> PulseModule:
         "KNN": PulseNativeFunction("KNN", _knn),
         "SVC": PulseNativeFunction("SVC", _svc),
         "NeuralNetwork": PulseNativeFunction("NeuralNetwork", _neural_network),
+        "Model": model_namespace,
     })

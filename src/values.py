@@ -163,6 +163,8 @@ class PulseRange(PulseValue):
 
 class PulseTensor(PulseValue):
     def __init__(self, array: np.ndarray) -> None:
+        if not np.issubdtype(array.dtype, np.number):
+            raise TypeError(f"Tensor only supports numerical data, got dtype '{array.dtype}'")
         self.array = array
     
     def type_name(self) -> str:
@@ -218,3 +220,14 @@ class PulseModel(PulseValue):
     def __repr__(self) -> str:
         status = "trained" if self.is_trained else "untrained"
         return f"<model {self.model_name} ({status})>"
+
+class PulseNamespace(PulseValue):
+    def __init__(self, name: str, members: dict) -> None:
+        self.name = name
+        self.members = members
+    
+    def type_name(self) -> str:
+        return "namespace"
+    
+    def __repr__(self) -> str:
+        return f"<{self.name}>"

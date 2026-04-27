@@ -51,7 +51,7 @@ from src.tokens import Token
 from src.function import PulseFunction, PulseNativeFunction, PulseNativeMethod
 from src.runtime import PulseClass, PulseInstance
 from src.values import (
-    PulseNumber, PulseString, PulseNull,
+    PulseNumber, PulseString, PulseNull, PulseNamespace,
     PulseList, PulseBoolean, PulseDict, PulseRange,
     PulseTensor, PulseValue, PulseModule, PulseModel,
 )
@@ -837,6 +837,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
             if val is None:
                 self._raise(f"Module '{obj.name}' has no member '{name}'", expr.name)
             return val
+        
+        if isinstance(obj, PulseNamespace):
+            if name not in obj.members:
+                self._raise(f"'{obj.name}' has no member '{name}'", expr.name)
+            return obj.members[name]
         
         self._raise(
             f"Object of type '{obj.type_name()}' does not support member access",
