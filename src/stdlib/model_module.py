@@ -13,6 +13,7 @@ from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import cross_val_score
 import warnings
+import sys
 
 def make(interp) -> PulseModule:
     def _check_tensor(val, fn_name: str, arg_name: str = "data"):
@@ -22,16 +23,49 @@ def make(interp) -> PulseModule:
     def _make_model(name: str, sklearn_model):
         pulse_model = PulseModel(name, sklearn_model)
         
-        def train(data: PulseTensor, labels: PulseTensor) -> PulseNull:
+        def train(data: PulseTensor, labels: PulseTensor, auto_preprocess=None) -> PulseNull:
             if not isinstance(data, PulseTensor):
                 interp._raise(f"train() expects a tensor for data, got '{data.type_name()}'")
             if not isinstance(labels, PulseTensor):
                 interp._raise(f"train() expects a tensor for labels, got '{labels.type_name()}'")
+            
+            X = data.array.copy()
+            y = labels.array.copy()
+            
+            if auto_preprocess is not None and isinstance(auto_preprocess, PulseBoolean) and auto_preprocess.value:
+                steps = []
+                
+                # Step 1 - fill missing values with column mean
+                if np.isnan(X).any():
+                    col_means = np.nanmean(X, axis=0)
+                    nan_mask = np.isnan(X)
+                    X[nan_mask] = np.take(col_means, np.where(nan_mask)[1])
+                    steps.append("Missing values filled with column mean")
+                
+                # Step 2 - standardize features
+                mean = X.mean(axis=0)
+                std = X.std(axis=0)
+                std = np.where(std == 0, 1, std)
+                X = (X - mean) / std
+                steps.append("Features standardized")
+                
+                # Store scalar params for predict
+                pulse_model._scaler_mean = mean
+                pulse_model._scaler_std = std
+                pulse_model._auto_preprocess = True
+                
+                print("[Pulse] Auto-preprocessing applied:")
+                for step in steps:
+                    print(f"  -> {step}")
+            else:
+                pulse_model._auto_preprocess = False
+            
             try:
-                pulse_model.sklearn_model.fit(data.array, labels.array)
+                pulse_model.sklearn_model.fit(X, y)
                 pulse_model.is_trained = True
             except Exception as e:
                 interp._raise(f"Training failed: {e}")
+            
             return PulseNull()
         
         def predict(data: PulseTensor) -> PulseTensor:
@@ -39,8 +73,18 @@ def make(interp) -> PulseModule:
                 interp._raise(f"predict() expects a tensor, got '{data.type_name()}'")
             if not pulse_model.is_trained:
                 interp._raise(f"Model '{name}' must be trained before calling predict()")
+            
+            X = data.array.copy()
+            
+            if getattr(pulse_model, '_auto_preprocess', False):
+                if np.isnan(X).any():
+                    col_means = pulse_model._scaler_mean
+                    nan_mask = np.isnan(X)
+                    X[nan_mask] = np.take(col_means, np.where(nan_mask)[1])
+                X = (X - pulse_model._scaler_mean) / pulse_model._scaler_std
+            
             try:
-                result = pulse_model.sklearn_model.predict(data.array)
+                result = pulse_model.sklearn_model.predict(X)
                 return PulseTensor(np.array(result, dtype=float))
             except Exception as e:
                 interp._raise(f"Prediction failed: {e}")
@@ -52,8 +96,18 @@ def make(interp) -> PulseModule:
                 interp._raise(f"score() expects a tensor for labels, got '{labels.type_name()}'")
             if not pulse_model.is_trained:
                 interp._raise(f"Model '{name}' must be trained before calling score()")
+            
+            X = data.array.copy()
+            
+            if getattr(pulse_model, '_auto_preprocess', False):
+                if np.isnan(X).any():
+                    col_means = pulse_model._scaler_mean
+                    nan_mask = np.isnan(X)
+                    X[nan_mask] = np.take(col_means, np.where(nan_mask)[1])
+                X = (X - pulse_model._scaler_mean) / pulse_model._scaler_std
+            
             try:
-                s = pulse_model.sklearn_model.score(data.array, labels.array)
+                s = pulse_model.sklearn_model.score(X, labels.array)
                 return PulseNumber(float(s))
             except Exception as e:
                 interp._raise(f"Score failed: {e}")
@@ -62,7 +116,7 @@ def make(interp) -> PulseModule:
             return PulseBoolean(pulse_model.is_trained)
         
         pulse_model.methods = {
-            "train": PulseNativeMethod(train, arity=2),
+            "train": PulseNativeMethod(train, arity=-1),
             "predict": PulseNativeMethod(predict, arity=1),
             "score": PulseNativeMethod(score, arity=2),
             "is_trained": PulseNativeMethod(is_trained_fn, arity=0)

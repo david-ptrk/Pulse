@@ -126,7 +126,9 @@ class PulseNativeMethod:
         return self._arity
     
     def call(self, interpreter, arguments, keyword_arguments=None):
-        return self._func(*arguments)
+        if keyword_arguments is None:
+            keyword_arguments = {}
+        return self._func(*arguments, **keyword_arguments)
     
     def __repr__(self):
         return "<native method>"
