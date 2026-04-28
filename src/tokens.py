@@ -129,6 +129,7 @@ KEYWORDS = {
     "dot": TokenType.DOT,
     "transpose": TokenType.TRANSPOSE,
     "null": TokenType.NULL,
+    "None": TokenType.NULL,
     "static": TokenType.STATIC,
 }
 

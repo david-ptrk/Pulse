@@ -5,7 +5,7 @@ from src.interpreter import Interpreter
 from src.environment import Environment
 from src.resolver import Resolver
 from src.runtime import (PulseRuntimeException, PulseInstance )
-from src.error import PulseRuntimeError
+from src.error import PulseRuntimeError, PulseSemanticError
 from src.values import (
     PulseNumber, PulseString, PulseBoolean,
     PulseNull, PulseList, PulseDict, PulseRange,
@@ -31,6 +31,16 @@ def strip_ansi(text: str):
 
 def raises_runtime(source: str, fragment: str | None = None):
     with pytest.raises(PulseRuntimeException) as exc_info:
+        run(source)
+    if fragment:
+        clean = strip_ansi(str(exc_info.value)).lower()
+        assert fragment.lower() in clean, (
+            f"Expected '{fragment}' in error message, got:\n{str(exc_info.value)}"
+        )
+    return exc_info
+
+def raises_semantic(source: str, fragment: str | None = None):
+    with pytest.raises(PulseSemanticError) as exc_info:
         run(source)
     if fragment:
         clean = strip_ansi(str(exc_info.value)).lower()
@@ -1161,4 +1171,128 @@ ceil(3.1)
 
 # ----------------------------------------
 # 14. Edge cases & regression guards
+# ----------------------------------------
+class TestEdgeCases:
+    def test_empty_program(self):
+        result = run("")
+        assert result is None
+    
+    def test_multiple_assignments_same_name(self):
+        assert run("""
+x = 1
+x = 2
+x = 3
+x
+""").value == 3
+    
+    def test_truthiness_of_empty_list(self):
+        assert run("not []").value is True
+    
+    def test_truthiness_of_non_empty_list(self):
+        assert run("not [1]").value is False
+    
+    def test_truthiness_of_zero(self):
+        assert run("not 0").value is True
+    
+    def test_truthiness_of_empty_string(self):
+        assert run('not ""').value is True
+    
+    def test_deep_nesting_does_not_crash(self):
+        result = run("((((((1 + 1))))))")
+        assert result.value == 2
+    
+    def test_function_redefinition(self):
+        raises_semantic("""
+def f():
+    return 1
+def f():
+    return 2
+f()
+""")
+    
+    def test_variable_scope_does_not_leak_from_block(self):
+        raises_runtime("""
+if true:
+    secret = 42
+secret
+""")
+    
+    def test_variable_scope_uses_outer(self):
+        result = run("""
+secret = None
+if true:
+    secret = 42
+secret
+""")
+        result.value == 42
+    
+    def test_for_loop_variable_inaccessible_after(self):
+        raises_runtime("""
+for i in range(3):
+    pass
+i
+""")
+    
+    def test_large_recursion_without_crash(self):
+        result = run("""
+def count(n):
+    if n == 0:
+        return 0
+    return 1 + count(n - 1)
+count(200)
+""")
+        assert result.value == 200
+    
+    def test_passing_function_modifies_external_list(self):
+        result = run("""
+def fill(lst):
+    lst.append(99)
+
+items = []
+fill(items)
+items[0]
+""")
+        assert result.value == 99
+    
+    def test_null_equality_is_symmetric(self):
+        assert run("null == null").value is True
+        assert run("null != null").value is False
+    
+    def test_boolean_not_equal_to_number(self):
+        assert run("true == 1").value is False
+
+# ----------------------------------------
+# 15. Tensor - construction & basic properties
+# ----------------------------------------
+class TestTensorConstruction:
+    def test_1d_tensor_shape(self):
+        result = run("@[1, 2, 3].shape")
+        assert isinstance(result, PulseList)
+        assert result.elements[0].value == 3
+    
+    def test_2d_tensor_shape(self):
+        result = run("@[[1, 2], [3, 4]].shape")
+        dims = [e.value for e in result.elements]
+        assert dims == [2, 2]
+    
+    def test_tensor_ndim_1d(self):
+        assert run("@[1, 2, 3].ndim").value == 1
+    
+    def test_tensor_ndim_2d(self):
+        assert run("@[[1, 2], [3, 4]].ndim").value == 2
+    
+    def test_tensor_size(self):
+        assert run("@[[1, 2], [3, 4]].size").value == 4
+    
+    def test_tensor_dtype(self):
+        result = run("@[1.0, 2.0].dtype")
+        assert isinstance(result, PulseString)
+        assert "float" in result.value
+    
+    def test_tensor_type_name(self):
+        result = run("type(@[1, 2])")
+        assert "tensor" in result.value.lower()
+
+# ----------------------------------------
+# 16. Tensor - arithmetic (tensor OP tensor)
 # ----------------------------------------

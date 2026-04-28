@@ -5,6 +5,8 @@ Entry point for the Pulse programming language.
 """
 
 import sys
+sys.setrecursionlimit(50000)
+
 from src.tokens import TokenType
 from src.lexer import Lexer
 from src.parser import Parser

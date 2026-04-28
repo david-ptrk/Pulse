@@ -77,8 +77,9 @@ class Environment:
             self.enclosing.assign(name, value)
             return
         
-        # raise PulseRuntimeError(f"Undefined variable '{key}'")
-        self.values[key] = value
+        raise PulseRuntimeException(
+            PulseRuntimeError(f"Undefined variable '{key}'")
+        )
     
     def ancestor(self, distance):
         env = self
@@ -95,3 +96,10 @@ class Environment:
     def assign_at(self, distance, name, value):
         key = name.lexeme if hasattr(name, "lexeme") else name
         self.ancestor(distance).values[_key(name)] = value
+    
+    def has(self, name: str) -> bool:
+        if name in self.values:
+            return True
+        if self.enclosing is not None:
+            return self.enclosing.has(name)
+        return False

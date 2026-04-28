@@ -3,64 +3,65 @@ from src.values import PulseModule, PulseNumber
 from src.function import PulseNativeFunction
 from typing import Any
 
+_PI = PulseNumber(math.pi)
+_E = PulseNumber(math.e)
+_INF = PulseNumber(math.inf)
+_TAU = PulseNumber(math.tau)
+
+_cached_module: PulseModule | None = None
+
 def make(interp) -> PulseModule:
+    global _cached_module
+    if _cached_module is not None:
+        return _cached_module
+    
+    _PN = PulseNumber
+    _raise = interp._raise
+    
+    def _check(name: str, x: Any) -> float:
+        if not isinstance(x, _PN):
+            _raise(f"{name}() argument must be a number, got {x.type_name()}")
+        return x.value
+    
     def _sqrt(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"sqrt() argument must be a number, got {x.type_name()}")
-        if x.value < 0:
-            interp._raise("sqrt() argument must be non-negative")
-        return PulseNumber(math.sqrt(x.value))
+        v = _check("sqrt", x)
+        if v < 0:
+            _raise("sqrt() argument must be non-negative")
+        return _PN(math.sqrt(v))
     
     def _floor(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"floor() argument must be a number, got {x.type_name()}")
-        return PulseNumber(math.floor(x.value))
+        return _PN(math.floor(_check("floor", x)))
     
     def _ceil(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"ceil() argument must be a number, got {x.type_name()}")
-        return PulseNumber(math.ceil(x.value))
+        return _PN(math.ceil(_check("ceil", x)))
     
     def _log(x: Any, base: Any = None) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"log() argument must be a number, got {x.type_name()}")
+        v = _check("log", x)
         if base is None:
-            return PulseNumber(math.log(x.value))
-        if not isinstance(base, PulseNumber):
-            interp._raise(f"log() base must be a number, got {base.type_name()}")
-        return PulseNumber(math.log(x.value, base.value))
+            return _PN(math.log(v))
+        if not isinstance(base, _PN):
+            _raise(f"log() base must be a number, got {base.type_name()}")
+        return _PN(math.log(v, base.value))
     
     def _sin(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"sin() argument must be a number, got {x.type_name()}")
-        return PulseNumber(math.sin(x.value))
+        return _PN(math.sin(_check("sin", x)))
     
     def _cos(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"cos() argument must be a number, got {x.type_name()}")
-        return PulseNumber(math.cos(x.value))
+        return _PN(math.cos(_check("cos", x)))
     
     def _tan(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"tan() argument must be a number, got {x.type_name()}")
-        return PulseNumber(math.tan(x.value))
+        return _PN(math.tan(_check("tan", x)))
     
     def _log2(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"log2() argument must be a number, got {x.type_name()}")
-        return PulseNumber(math.log2(x.value))
+        return _PN(math.log2(_check("log2", x)))
     
     def _log10(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"log10() argument must be a number, got {x.type_name()}")
-        return PulseNumber(math.log10(x.value))
+        return _PN(math.log10(_check("log10", x)))
     
     def _exp(x: Any) -> PulseNumber:
-        if not isinstance(x, PulseNumber):
-            interp._raise(f"exp() argument must be a number, got {x.type_name()}")
-        return PulseNumber(math.exp(x.value))
+        return _PN(math.exp(_check("exp", x)))
     
-    return PulseModule("math", {
+    _cached_module = PulseModule("math", {
         "sqrt":  PulseNativeFunction("sqrt",  _sqrt),
         "floor": PulseNativeFunction("floor", _floor),
         "ceil":  PulseNativeFunction("ceil",  _ceil),
@@ -71,8 +72,9 @@ def make(interp) -> PulseModule:
         "sin":   PulseNativeFunction("sin",   _sin),
         "cos":   PulseNativeFunction("cos",   _cos),
         "tan":   PulseNativeFunction("tan",   _tan),
-        "pi":    PulseNumber(math.pi),
-        "e":     PulseNumber(math.e),
-        "inf":   PulseNumber(math.inf),
-        "tau":   PulseNumber(math.tau),
+        "pi":    _PI,
+        "e":     _E,
+        "inf":   _INF,
+        "tau":   _TAU,
     })
+    return _cached_module

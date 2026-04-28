@@ -40,7 +40,6 @@ semantics.
 
 from __future__ import annotations
 import os
-import math
 from typing import Any, NoReturn, Optional
 from src.expressions import ExprVisitor
 from src.statements import StmtVisitor
@@ -65,6 +64,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self.environment = global_environment
         self.locals: dict[Any, int] = {}
         self.source: str = ""
+        self._call_depth = 0
+        self._max_call_depth = 1000
         
         # Built-in functions
         self.environment.define_many([
@@ -507,9 +508,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if distance is not None:
             self.environment.assign_at(distance, name, value)
         else:
-            try:
+            if self.environment.has(name):
                 self.environment.assign(name, value)
-            except runtime.PulseRuntimeException:
+            else:
                 self.environment.define(name, value)
         
         return value
@@ -774,6 +775,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
         )
     
     def visit_call_expr(self, expr) -> Any:
+        self._call_depth += 1
+        if self._call_depth > self._max_call_depth:
+            self._call_depth = 0
+            self._raise("Maximum recursion depth exceeded", expr.paren)
+        
         callee = self.evaluate(expr.callee)
         arguments = [self.evaluate(arg) for arg in expr.arguments]
         
@@ -799,8 +805,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         try:
             return callee.call(self, arguments, kwargs)
+        except RecursionError:
+            self._call_depth = 0
+            self._raise("Maximum recursion depth exceeded", expr.paren)
         finally:
             PulseRuntimeError.pop_stack()
+            self._call_depth -= 1
     
     def visit_memberaccess_expr(self, expr) -> Any:
         obj = self.evaluate(expr.object)
