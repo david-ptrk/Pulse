@@ -1,5 +1,13 @@
-def count(n):
-    if n == 0:
-        return 0
-    return 1 + count(n - 1)
-print(count(2000))
+from models import Model
+
+data = @[[1,2],[3,4],[5,6],[7,8],[9,10],[11,12]]
+labels = @[0, 0, 0, 1, 1, 1]
+
+model1 = Model.auto(data, labels)
+print(model1)
+
+model2 = Model.auto(data, labels, mode="classification")
+print(model2)
+
+model3 = Model.auto(data, labels, mode="regression")
+print(model3)

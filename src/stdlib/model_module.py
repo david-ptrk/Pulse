@@ -1,6 +1,7 @@
 # model_module.py
 from __future__ import annotations
-from src.values import PulseModule, PulseModel, PulseNumber, PulseBoolean, PulseTensor, PulseNull, PulseNamespace
+from src.values import (PulseModule, PulseModel, PulseNumber, PulseBoolean, 
+    PulseTensor, PulseNull, PulseNamespace, PulseString)
 from src.function import PulseNativeFunction, PulseNativeMethod
 import numpy as np
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
@@ -97,7 +98,7 @@ def make(interp) -> PulseModule:
     def _neural_network() -> PulseModel:
         return _make_model("NeuralNetwork", MLPClassifier(max_iter=1000))
     
-    def _model_auto(data: PulseTensor, labels: PulseTensor) -> PulseModel:
+    def _model_auto(data: PulseTensor, labels: PulseTensor, mode: "PulseString | PulseNull" = None) -> PulseModel:
         _check_tensor(data, "Model.auto", "data")
         _check_tensor(labels, "Model.auto", "labels")
         
@@ -105,11 +106,25 @@ def make(interp) -> PulseModule:
         y = labels.array
         n_samples = X.shape[0] if X.ndim > 1 else len(X)
         
-        unique_values = np.unique(y)
-        is_classification = (
-            len(unique_values) <= 20 and
-            np.all(unique_values == unique_values.astype(int))
-        )
+        if mode is not None and isinstance(mode, PulseString):
+            if mode.value == "classification":
+                is_classification = True
+                unique_values = np.unique(y)
+                if not np.all(unique_values == unique_values.astype(int)):
+                    interp._raise(
+                        "Model.auto() mode='classification' requires integer class labels, "
+                        f"got continuous values like {unique_values[:3].tolist()}"
+                    )
+            elif mode.value == "regression":
+                is_classification = False
+            else:
+                interp._raise(f"Model.auto() mode must be 'classification' or 'regression', got '{mode.value}'")
+        else:
+            unique_values = np.unique(y)
+            is_classification = (
+                len(unique_values) <= 20 and
+                np.all(unique_values == unique_values.astype(int))
+            )
         
         cv_folds = min(3, n_samples // 2)
         cv_folds = max(cv_folds, 2)
