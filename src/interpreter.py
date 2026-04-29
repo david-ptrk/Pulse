@@ -686,6 +686,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if isinstance(obj, PulseTensor):
             self._check_number(index, None, "Tensor index")
             idx = int(index.value)
+            if idx < 0 or idx >= len(obj.array):
+                self._raise("Tensor index out of range")
+            
             result = obj.array[idx]
             if isinstance(result, np.ndarray):
                 return PulseTensor(result)

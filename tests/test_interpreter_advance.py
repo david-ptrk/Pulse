@@ -5,7 +5,7 @@ from src.interpreter import Interpreter
 from src.environment import Environment
 from src.resolver import Resolver
 from src.runtime import (PulseRuntimeException, PulseInstance )
-from src.error import PulseRuntimeError, PulseSemanticError
+from src.error import PulseRuntimeError, PulseSemanticError, PulseSyntaxError
 from src.values import (
     PulseNumber, PulseString, PulseBoolean,
     PulseNull, PulseList, PulseDict, PulseRange,
@@ -41,6 +41,16 @@ def raises_runtime(source: str, fragment: str | None = None):
 
 def raises_semantic(source: str, fragment: str | None = None):
     with pytest.raises(PulseSemanticError) as exc_info:
+        run(source)
+    if fragment:
+        clean = strip_ansi(str(exc_info.value)).lower()
+        assert fragment.lower() in clean, (
+            f"Expected '{fragment}' in error message, got:\n{str(exc_info.value)}"
+        )
+    return exc_info
+
+def raises_syntax(source: str, fragment: str | None = None):
+    with pytest.raises(PulseSyntaxError) as exc_info:
         run(source)
     if fragment:
         clean = strip_ansi(str(exc_info.value)).lower()
@@ -1296,3 +1306,538 @@ class TestTensorConstruction:
 # ----------------------------------------
 # 16. Tensor - arithmetic (tensor OP tensor)
 # ----------------------------------------
+class TestTensorArithmetic:
+    def test_tensor_add(self):
+        arr = tensor_result("@[1, 2, 3] + @[4, 5, 6]")
+        np.testing.assert_array_equal(arr, [5.0, 7.0, 9.0])
+    
+    def test_tensor_subtract(self):
+        arr = tensor_result("@[5, 5, 5] - @[1, 2, 3]")
+        np.testing.assert_array_equal(arr, [4.0, 3.0, 2.0])
+    
+    def test_tensor_elementwise_multiply(self):
+        arr = tensor_result("@[1, 2, 3] * @[2, 2, 2]")
+        np.testing.assert_array_equal(arr, [2.0, 4.0, 6.0])
+    
+    def test_tensor_elementwise_divide(self):
+        arr = tensor_result("@[4, 6, 8] / @[2, 2, 2]")
+        np.testing.assert_array_equal(arr, [2.0, 3.0, 4.0])
+    
+    def test_tensor_matmul(self):
+        arr = tensor_result("@[[1, 2], [3, 4]] @ @[[1, 0], [0, 1]]")
+        np.testing.assert_array_equal(arr,[[1.0, 2.0], [3.0, 4.0]])
+    
+    def test_tensor_matmul_dot_product(self):
+        result = run("@[1, 2, 3] @ @[4, 5, 6]")
+        assert isinstance(result, (PulseTensor, PulseNumber))
+        val = float(result.array) if isinstance(result, PulseTensor) else result.value
+        assert val == pytest.approx(32.0)
+    
+    def test_tensor_equality_true(self):
+        result = run("@[1, 2, 3] == @[1, 2, 3]")
+        assert isinstance(result, PulseBoolean)
+        assert result.value is True
+    
+    def test_tensor_equality_false(self):
+        result = run("@[1, 2, 3] == @[1, 2, 4]")
+        assert result.value is False
+    
+    def test_tensor_not_equal(self):
+        result = run("@[1, 2] != @[1, 2]")
+        assert result.value is False
+    
+    def test_tensor_shape_mismatch_add_errors(self):
+        raises_runtime("@[1, 2] + @[1, 2, 3]", "tensor operation failed")
+    
+    def test_tensor_wrong_type_errors(self):
+        raises_runtime("@[1, 2] + 'hello'")
+
+# ----------------------------------------
+# 17. Tensor - scalar operations (commutativity)
+# ----------------------------------------
+class TestTensorScalarOps:
+    def test_tensor_add_scalar(self):
+        arr = tensor_result("@[1, 2, 3] + 10")
+        np.testing.assert_array_equal(arr, [11.0, 12.0, 13.0])
+    
+    def test_scalar_add_tensor_commutative(self):
+        arr = tensor_result("10 + @[1, 2, 3]")
+        np.testing.assert_array_equal(arr, [11.0, 12.0, 13.0])
+    
+    def test_tensor_multiply_scalar(self):
+        arr = tensor_result("@[1, 2, 3] * 3")
+        np.testing.assert_array_equal(arr, [3.0, 6.0, 9.0])
+    
+    def test_scalar_multiply_tensor_commutative(self):
+        arr = tensor_result("3 * @[1, 2, 3]")
+        np.testing.assert_array_equal(arr, [3.0, 6.0, 9.0])
+    
+    def test_tensor_subtract_scalar(self):
+        arr = tensor_result("@[5, 6, 7] - 2")
+        np.testing.assert_array_equal(arr, [3.0, 4.0, 5.0])
+    
+    def test_tensor_divide_scalar(self):
+        arr = tensor_result("@[4, 6, 8] / 2")
+        np.testing.assert_array_equal(arr, [2.0, 3.0, 4.0])
+    
+    def test_tensor_divide_scalar_zero_errors(self):
+        raises_runtime("@[1, 2, 3] / 0", "division by zero")
+    
+    def test_tensor_unsupported_op_with_scalar_errors(self):
+        raises_runtime("@[1, 2] % 2", "does not support operator")
+
+# ----------------------------------------
+# 18. Tensor - indexing
+# ----------------------------------------
+class TestTensorIndexing:
+    def test_1d_index_returns_number(self):
+        result = run("@[10, 20, 30][1]")
+        assert isinstance(result, PulseNumber)
+        assert result.value == pytest.approx(20.0)
+    
+    def test_2d_index_returns_tensor_row(self):
+        result = run("@[[1, 2], [3, 4]][0]")
+        assert isinstance(result, PulseTensor)
+        np.testing.assert_array_equal(result.array, [1.0, 2.0])
+    
+    def test_tensor_index_out_of_bounds_errors(self):
+        raises_runtime("@[1, 2, 3][10]")
+
+# ----------------------------------------
+# 19. Tensor - properties and methods
+# ----------------------------------------
+class TestTensorMethods:
+    def test_transpose(self):
+        result = run("@[[1, 2], [3, 4]].T")
+        assert isinstance(result, PulseTensor)
+        np.testing.assert_array_equal(result.array, [[1.0, 3.0], [2.0, 4.0]])
+    
+    def test_flatten(self):
+        result = run("@[[1, 2], [3, 4]].flatten()")
+        assert isinstance(result, PulseTensor)
+        np.testing.assert_array_equal(result.array, [1.0, 2.0, 3.0, 4.0])
+    
+    def test_reshape(self):
+        result = run("@[1, 2, 3, 4].reshape(2, 2)")
+        assert isinstance(result, PulseTensor)
+        assert result.array.shape == (2, 2)
+    
+    def test_reshape_invalid_errors(self):
+        raises_runtime("@[1, 2, 3].reshape(2, 2)", "reshape failed")
+    
+    def test_sum(self):
+        result = run("@[1, 2, 3, 4].sum()")
+        assert isinstance(result, PulseNumber)
+        assert result.value == pytest.approx(10.0)
+    
+    def test_mean(self):
+        result = run("@[1, 2, 3, 4].mean()")
+        assert result.value == pytest.approx(2.5)
+    
+    def test_max(self):
+        result = run("@[3, 1, 4, 1, 5, 9].max()")
+        assert result.value == pytest.approx(9.0)
+    
+    def test_min(self):
+        result = run("@[3, 1, 4, 1, 5, 9].min()")
+        assert result.value == pytest.approx(1.0)
+    
+    def test_undefined_property_errors(self):
+        raises_runtime("@[1, 2].foo", "no property")
+    
+    def test_2d_sum(self):
+        result = run("@[[1, 2], [3, 4]].sum()")
+        assert result.value == pytest.approx(10.0)
+    
+    def test_2d_mean(self):
+        result = run("@[[1, 2], [3, 4]].mean()")
+        assert result.value == pytest.approx(2.5)
+    
+    def test_chained_tensor_ops(self):
+        result = run("@[1, 2, 3, 4].reshape(2, 2).sum()")
+        assert result.value == pytest.approx(10.0)
+
+# ----------------------------------------
+# 20. Tensor - in Pulse program
+# ----------------------------------------
+class TestTensorInProgram:
+    def test_tensor_in_variable(self):
+        arr = tensor_result("""
+t = @[1, 2, 3]
+t
+""")
+        np.testing.assert_array_equal(arr, [1.0, 2.0, 3.0])
+    
+    def test_tensor_passed_to_function(self):
+        result = run("""
+def scale(t, factor):
+    return t * factor
+
+scale(@[1, 2, 3], 5)
+""")
+        assert isinstance(result, PulseTensor)
+        np.testing.assert_array_equal(result.array, [5.0, 10.0, 15.0])
+    
+    def test_tensor_returned_from_function(self):
+        result = run("""
+def make_tensor():
+    return @[10, 20, 30]
+
+make_tensor()
+""")
+        assert isinstance(result, PulseTensor)
+    
+    def test_tensor_stored_in_list(self):
+        result = run("""
+tensors = [@[1, 2], @[3, 4]]
+tensors[0]
+""")
+        assert isinstance(result, PulseTensor)
+        np.testing.assert_array_equal(result.array, [1.0, 2.0])
+    
+    def test_tensor_in_loop_accumulation(self):
+        result = run("""
+t = @[0, 0, 0]
+for i in range(3):
+    t = t + @[1, 1, 1]
+t.sum()
+""")
+        assert result.value == pytest.approx(9.0)
+    
+    def test_matrix_multiply_chain(self):
+        result = run("""
+a = @[[1, 0], [0, 1]]
+b = @[[2, 3], [4, 5]]
+c = a @ b
+c.sum()
+""")
+        assert result.value == pytest.approx(14.0)
+
+# ----------------------------------------
+# 21. Multi-index and slicing
+# ----------------------------------------
+class TestMultiIndexAndSlice:
+    def test_list_slice(self):
+        result = run("[10, 20, 30, 40, 50][1:3]")
+        assert isinstance(result, PulseList)
+        values = [e.value for e in result.elements]
+        assert values == [20.0, 30.0]
+    
+    def test_list_slice_from_start(self):
+        result = run("[1, 2, 3, 4][:2]")
+        values = [e.value for e in result.elements]
+        assert values == [1.0, 2.0]
+    
+    def test_list_slice_to_end(self):
+        result = run("[1, 2, 3, 4][2:]")
+        values = [e.value for e in result.elements]
+        assert values == [3.0, 4.0]
+    
+    def test_list_full_slice(self):
+        result = run("[1, 2, 3][:]")
+        assert len(result.elements) == 3
+    
+    def test_string_slice(self):
+        result = run('"hello"[1:4]')
+        assert isinstance(result, PulseString)
+        assert result.value == "ell"
+    
+    def test_string_slice_from_start(self):
+        assert run('"pulse"[:3]').value == "pul"
+    
+    def test_string_slice_to_end(self):
+        assert run('"pulse"[2:]').value == "lse"
+    
+    def test_tensor_slice_1d(self):
+        result = run("@[10, 20, 30, 40, 50][1:3]")
+        assert isinstance(result, PulseTensor)
+        np.testing.assert_array_equal(result.array, [20.0, 30.0])
+    
+    def test_tensor_2d_row_slice(self):
+        result = run("@[[1,2],[3,4],[5,6]][1:3]")
+        assert isinstance(result, PulseTensor)
+        assert result.array.shape == (2, 2)
+    
+    def test_tensor_multi_index_element(self):
+        result = run("@[[1, 2], [3, 4]][1, 0]")
+        assert isinstance(result, PulseNumber)
+        assert result.value == pytest.approx(3.0)
+    
+    def test_tensor_multi_index_element_row1_col1(self):
+        result = run("@[[10, 20], [30, 40]][1, 1]")
+        assert result.value == pytest.approx(40.0)
+    
+    def test_list_multi_index_not_slice_errors(self):
+        raises_runtime("[[1,2],[3,4]][0, 1]")
+    
+    def test_slice_standalone_errors(self):
+        raises_syntax("1:3")
+
+# ----------------------------------------
+# 22. Pipe operator
+# ----------------------------------------
+class TestPipeOperator:
+    def test_pipe_single_function(self):
+        result = run("""
+def double(x):
+    return x * 2
+
+5 |> double
+""")
+        assert result.value == 10
+    
+    def test_pipe_chained(self):
+        result = run("""
+def double(x):
+    return x * 2
+
+def inc(x):
+    return x + 1
+
+3 |> double |> inc
+""")
+        assert result.value == 7
+    
+    def test_pipe_with_builtin(self):
+        result = run("""
+[1, 2, 3] |> len
+""")
+        assert result.value == 3
+    
+    def test_pipe_passes_tensor(self):
+        result = run("""
+def total(t):
+    return t.sum()
+
+@[1, 2, 3, 4] |> total
+""")
+        assert result.value == pytest.approx(10.0)
+    
+    def test_pipe_non_callable_right_errors(self):
+        raises_runtime("5 |> 42", "callable")
+    
+    def test_pipe_preserves_type(self):
+        result = run("""
+def identity(x):
+    return x
+
+"hello" |> identity
+""")
+        assert isinstance(result, PulseString)
+        assert result.value == "hello"
+    
+    def test_pipe_with_string_method_wrapper(self):
+        result = run("""
+def shout(s):
+    return s.upper()
+
+"hello" |> shout
+""")
+        assert result.value == "HELLO"
+
+# ----------------------------------------
+# 23. Destructuring / unpack expressions
+# ----------------------------------------
+class TestUnpack:
+    def test_basic_unpack(self):
+        result = run("""
+a, b = [1, 2]
+a + b
+""")
+        assert result.value == 3
+    
+    def test_unpack_three_values(self):
+        result = run("""
+x, y, z = [10, 20, 30]
+x + y + z
+""")
+        assert result.value == 60
+    
+    def test_unpack_strings(self):
+        result = run("""
+a, b = ["hello", "world"]
+b
+""")
+        assert result.value == "world"
+    
+    def test_unpack_order_preserved(self):
+        result = run("""
+first, second, third = [3, 1, 2]
+first
+""")
+        assert result.value == 3
+    
+    def test_unpack_into_loop(self):
+        result = run("""
+pairs = [[1, 2], [3, 4], [5, 6]]
+total = 0
+for pair in pairs:
+    a, b = pair
+    total = total + a + b
+total
+""")
+        assert result.value == 21
+    
+    def test_unpack_from_function_return(self):
+        result = run("""
+def coords():
+    return [10, 20]
+
+x, y = coords()
+x * y
+""")
+        assert result.value == 200
+    
+    def test_unpack_count_mismatch_too_many_vars_errors(self):
+        raises_runtime("""
+a, b, c = [1, 2]
+""", "unpack")
+    
+    def test_unpack_count_mismatch_too_few_vars_errors(self):
+        raises_runtime("""
+a, b = [1, 2, 3]
+""", "unpack")
+    
+    def test_unpack_non_list_errors(self):
+        raises_runtime("""
+a, b = "hello"
+""", "unpack")
+    
+    def test_unpack_tensor_1d(self):
+        result = run("""
+a, b, c = @[1, 2, 3]
+a
+""")
+        assert isinstance(result, PulseNumber)
+        assert result.value == pytest.approx(1.0)
+    
+    def test_unpack_tensor_rows(self):
+        result = run("""
+row1, row2 = @[[1, 2], [3, 4]]
+row1
+""")
+        assert isinstance(result, PulseTensor)
+        np.testing.assert_array_equal(result.array, [1.0, 2.0])
+    
+    def test_unpack_variables_are_independent(self):
+        result = run("""
+a, b = [1, 2]
+a = 99
+b
+""")
+        assert result.value == 2
+
+# ----------------------------------------
+# 24. Import system errors
+# ----------------------------------------
+class TestImportErrors:
+    def test_import_nonexistent_module_errors(self):
+        raises_runtime("import totally_fake_module_xyz", "not found")
+    
+    def test_import_non_existent_member_errors(self):
+        raises_runtime(
+            "from math import something_fake",
+            "no member"
+        )
+
+# ----------------------------------------
+# 25. Unbound method call guard
+# ----------------------------------------
+class TestUnboundMethodGuard:
+    def test_calling_instance_method_on_class_without_self_errors(self):
+        raises_runtime("""
+class Greeter:
+    def greet(self):
+        return "hello"
+
+Greeter.greet()
+""", "self")
+    
+    def test_calling_static_method_on_class_works(self):
+        result = run("""
+class Math:
+    static def square(n):
+        return n * n
+
+Math.square(6)
+""")
+        assert result.value == 36
+    
+    def test_calling_instance_method_through_instance_works(self):
+        result = run("""
+class Counter:
+    def __init__(self):
+        self.n = 0
+    def inc(self):
+        self.n = self.n + 1
+        return self.n
+
+c = Counter()
+c.inc()
+c.inc()
+""")
+        assert result.value == 2
+
+# ----------------------------------------
+# 26. Tensor + control flow
+# ----------------------------------------
+class TestTensorIntegration:
+    def test_tensor_in_if_condition_errors_gracefully(self):
+        # We just check it doesn't raise a Python-level crash
+        try:
+            run("""
+t = @[1]
+if t:
+    x = 1
+""")
+        except PulseRuntimeException:
+            pass
+    
+    def test_tensor_equality_in_if(self):
+        result = run("""
+a = @[1, 2, 3]
+b = @[1, 2, 3]
+x = None
+if a == b:
+    x = "equal"
+else:
+    x = "not equal"
+x
+""")
+        assert result.value == "equal"
+    
+    def test_tensor_function_pipeline(self):
+        result = run("""
+def normalise(t):
+    total = t.sum()
+    return t * (1 / total)
+
+def check_sum(t):
+    return t.sum()
+
+@[1, 1, 1, 1] |> normalise |> check_sum
+""")
+        assert result.value == pytest.approx(1.0)
+    
+    def test_tensor_stored_in_dict(self):
+        result = run("""
+d = {"weights": @[0.1, 0.2, 0.3]}
+d["weights"].sum()
+""")
+        assert result.value == pytest.approx(0.6)
+    
+    def test_tensor_shape_used_in_arithmetic(self):
+        result = run("""
+t = @[[1, 2, 3], [4, 5, 6]]
+rows = t.shape[0]
+cols = t.shape[1]
+rows * cols
+""")
+        assert result.value == 6
+    
+    def test_unpack_then_matmul(self):
+        result = run("""
+a, b = [@[[1, 0], [0, 1]], @[[2, 3], [4, 5]]]
+(a @ b).sum()
+""")
+        assert result.value == pytest.approx(14.0)
