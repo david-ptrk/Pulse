@@ -1,0 +1,17 @@
+class Animal:
+    def __init__(self, name):
+        self.name = name
+    def speak(self):
+        print(f"{self.name} says ...")
+
+class Dog(Animal):
+    def __init__(self, name):
+        Animal.__init__(self, name)
+    def speak(self):
+        print(f"{self.name} says Woof!")
+
+obj1 = Animal("Tommy")
+obj1.speak()
+
+obj2 = Dog("Lucky")
+obj2.speak()

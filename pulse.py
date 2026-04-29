@@ -72,6 +72,14 @@ def run_prompt() -> None:
 # Entry point
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        run_file(sys.argv[1])
+        path = sys.argv[1]
+        
+        if not path.endswith(".pul"):
+            report_error(
+                PulseError(f'"{path}" is not a .pul file. Pulse only reads .pul, behave.')
+            )
+            sys.exit(1)
+        
+        run_file(path)
     else:
         run_prompt()

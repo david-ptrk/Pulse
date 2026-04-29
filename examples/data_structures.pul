@@ -1,0 +1,36 @@
+# List
+x = [1, 2, 3, 4]
+x.append(5)
+print("Llist:")
+print(x)
+print(x.length())
+print(x.contains(3))
+print(x.contains(8))
+x.reverse()
+print(x)
+
+# String
+y = "Hello"
+print("\nString:")
+print(y.upper())
+print(y.lower())
+print(y.length())
+
+# Dict
+z = {'a': 2, 'b': 'hello'}
+print("\nDict:")
+print(z)
+print(z.keys())
+print(z.items())
+print(z.length())
+
+# Tensor
+a = @[[1, 2], [3, 4]]
+print("\nTensor:")
+print(a)
+print(a.shape)
+print(a.ndim)
+print(a.size)
+print(a.dtype)
+print(a.flatten())
+print(a.mean())

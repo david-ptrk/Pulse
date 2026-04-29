@@ -1,0 +1,12 @@
+import math
+print(math.sqrt(3))
+
+from io import write_file, read_file
+text = "hello from code"
+write_file("examples/text.txt", text)
+input = read_file("examples/text.txt")
+print(input)
+
+from math import exp, log10
+print(exp(4))
+print(log10(20))

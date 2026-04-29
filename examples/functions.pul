@@ -1,0 +1,26 @@
+def add(a, b):
+    return a + b
+def square(a):
+    print(a * a)
+a = 5
+b = 7
+print(add(a, b))
+square(b)
+
+
+def user(name, age):
+    print(name, age)
+user(age=22, name="Daud")
+
+
+def factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+print(factorial(5))
+
+
+def square2(a):
+    return a * a
+output = 5 |> square2 |> square2
+print(output)

@@ -1,9 +1,0 @@
-from models import LinearRegression
-
-model = LinearRegression()
-data = @[[1, 2],[3, 4]]
-labels = @[0, 1]
-
-model.train(data, labels)
-predictions = model.predict(data)
-score = model.score(data, labels)

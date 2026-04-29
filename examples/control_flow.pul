@@ -1,0 +1,28 @@
+# if/else
+age = 16
+if age < 18:
+    print("You are young")
+else:
+    print("You are adult")
+
+# if/elif/else
+num = 10
+if num > 0:
+    print("Positive")
+elif num == 0:
+    print("Zero")
+else:
+    print("Negative")
+
+# while
+i = 1
+while i <= 5:
+    print(i)
+    i = i + 1
+
+# for
+for i in [10, 20, 30]:
+    print(i)
+
+for i in range(1, 10):
+    print(i)
