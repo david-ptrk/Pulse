@@ -32,6 +32,7 @@ from src import statements as stmt
 from src.tokens import Token, TokenType
 from src.error import PulseSyntaxError
 from src.lexer import Lexer
+import ast as py_ast
 
 class Parser:
     def __init__(self, tokens: List[Token], source: str) -> None:
@@ -601,9 +602,21 @@ class Parser:
         
         if self.match(TokenType.TENSOR_LITERAL):
             token = self.previous()
-            import ast as py_ast
+            
+            def parse_tensor_value(node):
+                if isinstance(node, py_ast.Constant):
+                    return node.value
+                if isinstance(node, py_ast.Name) and node.id == "NaN":
+                    return float('nan')
+                if isinstance(node, py_ast.UnaryOp) and isinstance(node.op, py_ast.USub):
+                    return -parse_tensor_value(node.operand)
+                if isinstance(node, py_ast.List):
+                    return [parse_tensor_value(el) for el in node.elts]
+                raise ValueError(f"Unsupported tensor value: {py_ast.dump(node)}")
+            
             try:
-                raw = py_ast.literal_eval(token.literal)
+                tree = py_ast.parse(token.literal, mode='eval')
+                raw = parse_tensor_value(tree.body)
             except Exception:
                 self._error(token, "Invalid tensor literal")
             return expr.Tensor(raw)

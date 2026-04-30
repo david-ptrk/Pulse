@@ -354,7 +354,10 @@ class Lexer:
             return
         
         token_type = KEYWORDS.get(text, TokenType.IDENTIFIER)
-        self.add_token(token_type)
+        if text == "NaN":
+            self.add_token(TokenType.NUMBER, float('nan'))
+        else:
+            self.add_token(token_type)
 
     # No strings allowed inside tensors for now
     def tensor_literal(self) -> None:

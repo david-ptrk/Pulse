@@ -6,7 +6,8 @@ Each class wraps a native Python value and provides Pulse-specific
 behavior such as type naming, truthiness, and string representation.
 """
 
-from typing import Any, List, Dict
+from __future__ import annotations
+from typing import Any, List, Dict, Union
 import numpy as np
 
 class PulseValue:
@@ -163,8 +164,8 @@ class PulseRange(PulseValue):
 
 class PulseTensor(PulseValue):
     def __init__(self, array: np.ndarray) -> None:
-        if not np.issubdtype(array.dtype, np.number):
-            raise TypeError(f"Tensor only supports numerical data, got dtype '{array.dtype}'")
+        if not (np.issubdtype(array.dtype, np.number) or np.issubdtype(array.dtype, np.bool_)):
+            raise TypeError(f"Tensor supports numerical and boolean data, got dtype '{array.dtype}'")
         self.array = array
     
     def type_name(self) -> str:
@@ -174,22 +175,29 @@ class PulseTensor(PulseValue):
         return self.array.size > 0
     
     @property
-    def shape(self):
+    def shape(self) -> list:
         return list(self.array.shape)
     
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return self.array.ndim
     
     @property
-    def T(self):
+    def T(self) -> "PulseTensor":
         return PulseTensor(self.array.T)
     
     def __repr__(self) -> str:
+        def to_str(val):
+            if isinstance(val, float) and np.isnan(val):
+                return "NaN"
+            if isinstance(val, list):
+                return "[" + ", ".join(to_str(v) for v in val) + "]"
+            return str(val)
+        
         result = self.array.tolist()
         if isinstance(result, (int, float)):
-            return str(result)
-        return f"@{result}"
+            return "NaN" if np.isnan(result) else str(result)
+        return f"@{to_str(result)}"
 
 class PulseModule(PulseValue):
     def __init__(self, name: str, members: dict) -> None:

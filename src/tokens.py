@@ -131,6 +131,7 @@ KEYWORDS = {
     "null": TokenType.NULL,
     "None": TokenType.NULL,
     "static": TokenType.STATIC,
+    "NaN": TokenType.NUMBER,
 }
 
 # -------------------------------------------------------

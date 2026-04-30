@@ -50,8 +50,8 @@ def make(interp) -> PulseModule:
                 steps.append("Features standardized")
                 
                 # Store scalar params for predict
-                pulse_model._scaler_mean = mean
-                pulse_model._scaler_std = std
+                pulse_model._scalar_mean = mean
+                pulse_model._scalar_std = std
                 pulse_model._auto_preprocess = True
                 
                 print("[Pulse] Auto-preprocessing applied:")
@@ -78,10 +78,10 @@ def make(interp) -> PulseModule:
             
             if getattr(pulse_model, '_auto_preprocess', False):
                 if np.isnan(X).any():
-                    col_means = pulse_model._scaler_mean
+                    col_means = pulse_model._scalar_mean
                     nan_mask = np.isnan(X)
                     X[nan_mask] = np.take(col_means, np.where(nan_mask)[1])
-                X = (X - pulse_model._scaler_mean) / pulse_model._scaler_std
+                X = (X - pulse_model._scalar_mean) / pulse_model._scalar_std
             
             try:
                 result = pulse_model.sklearn_model.predict(X)
@@ -101,10 +101,10 @@ def make(interp) -> PulseModule:
             
             if getattr(pulse_model, '_auto_preprocess', False):
                 if np.isnan(X).any():
-                    col_means = pulse_model._scaler_mean
+                    col_means = pulse_model._scalar_mean
                     nan_mask = np.isnan(X)
                     X[nan_mask] = np.take(col_means, np.where(nan_mask)[1])
-                X = (X - pulse_model._scaler_mean) / pulse_model._scaler_std
+                X = (X - pulse_model._scalar_mean) / pulse_model._scalar_std
             
             try:
                 s = pulse_model.sklearn_model.score(X, labels.array)
@@ -152,12 +152,40 @@ def make(interp) -> PulseModule:
     def _neural_network() -> PulseModel:
         return _make_model("NeuralNetwork", MLPClassifier(max_iter=1000))
     
-    def _model_auto(data: PulseTensor, labels: PulseTensor, mode: "PulseString | PulseNull" = None) -> PulseModel:
+    def _model_auto(data: PulseTensor, labels: PulseTensor, mode: "PulseString | PulseNull" = None, auto_preprocess=None) -> PulseModel:
         _check_tensor(data, "Model.auto", "data")
         _check_tensor(labels, "Model.auto", "labels")
         
-        X = data.array
-        y = labels.array
+        X = data.array.copy()
+        y = labels.array.copy()
+        
+        scalar_mean = None
+        scalar_std = None
+        did_preprocess = False
+        
+        if auto_preprocess is not None and isinstance(auto_preprocess, PulseBoolean) and auto_preprocess.value:
+            steps = []
+            
+            # Step 1 - fill missing values with column mean
+            if np.isnan(X).any():
+                col_means = np.nanmean(X, axis=0)
+                nan_mask = np.isnan(X)
+                X[nan_mask] = np.take(col_means, np.where(nan_mask)[1])
+                steps.append("Missing values filled with column mean")
+                
+            # Step 2 - standardize features
+            scalar_mean = X.mean(axis=0)
+            scalar_std = X.std(axis=0)
+            scalar_std = np.where(scalar_std == 0, 1, scalar_std)
+            X = (X - scalar_mean) / scalar_std
+            steps.append("Features standardized")
+            
+            did_preprocess = True
+            
+            print("[Pulse] Auto-preprocessing applied:")
+            for step in steps:
+                print(f"  -> {step}")
+        
         n_samples = X.shape[0] if X.ndim > 1 else len(X)
         
         if mode is not None and isinstance(mode, PulseString):
@@ -230,6 +258,11 @@ def make(interp) -> PulseModule:
         model = _make_model(best_name, best_sklearn)
         model.is_trained = True
         model.auto_score = best_score
+        
+        if did_preprocess:
+            model._auto_preprocess=True
+            model._scalar_mean = scalar_mean
+            model._scalar_std = scalar_std
         
         return model
     
