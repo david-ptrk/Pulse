@@ -1,8 +1,4 @@
-from time import clock
-start = clock()
+from tests.code2 import add, square
 
-from math import sqrt
-
-end = clock()
-print("Time taken:")
-print(end - start)
+print(add(2, 4))
+print(square(5))

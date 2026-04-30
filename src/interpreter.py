@@ -58,6 +58,7 @@ import numpy as np
 import src.expressions as expressions
 from src.lexer import Lexer
 from src.parser import Parser
+from src.loader_c import find_module, read_file
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment: Environment) -> None:
@@ -188,19 +189,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return None
     
     def _load_pulse_file(self, name: str, token) -> PulseModule:
-        rel_path = name.replace(".", os.sep) + ".pul"
         search_dirs = [os.getcwd(), os.path.dirname(__file__)]
         
-        for base in search_dirs:
-            full_path = os.path.join(base, rel_path)
-            if os.path.isfile(full_path):
-                return self._execute_pulse_file(full_path, name)
+        path = find_module(name, search_dirs)
+        if path is None:
+            self._raise(f"Module '{name}' not found", token)
         
-        self._raise(f"Module '{name}' not found", token)
+        return self._execute_pulse_file(path, name)
     
     def _execute_pulse_file(self, path: str, name: str) -> PulseModule:
-        with open(path, "r", encoding="utf-8") as f:
-            source = f.read()
+        source = read_file(path)
+        if source is None:
+            self._raise(f"Could not read module file: {path}", None)
         
         tokens = Lexer(source).scan_tokens()
         ast = Parser(tokens, source).parse()
