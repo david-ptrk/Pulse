@@ -3,6 +3,7 @@ import math
 from src.values import PulseModule, PulseNumber
 from src.function import PulseNativeFunction
 from typing import Any
+from src.native import make_c_math_functions
 
 _PI = PulseNumber(math.pi)
 _E = PulseNumber(math.e)
@@ -19,60 +20,43 @@ def make(interp) -> PulseModule:
     _PN = PulseNumber
     _raise = interp._raise
     
-    def _check(name: str, x: Any) -> float:
+    c_fns = make_c_math_functions(_raise)
+    
+    def _wrap(name: str):
+        c_fn = c_fns[name]
+        def call(x):
+            if not isinstance(x, _PN):
+                _raise(f"{name}() argument must be a number, got {x.type_name()}")
+            return _PN(c_fn(x.value))   # unwrap → C → rewrap
+        return call
+    
+    def _log(x, base=None):
         if not isinstance(x, _PN):
-            _raise(f"{name}() argument must be a number, got {x.type_name()}")
-        return x.value
-    
-    def _sqrt(x: Any) -> PulseNumber:
-        v = _check("sqrt", x)
-        if v < 0:
-            _raise("sqrt() argument must be non-negative")
-        return _PN(math.sqrt(v))
-    
-    def _floor(x: Any) -> PulseNumber:
-        return _PN(math.floor(_check("floor", x)))
-    
-    def _ceil(x: Any) -> PulseNumber:
-        return _PN(math.ceil(_check("ceil", x)))
-    
-    def _log(x: Any, base: Any = None) -> PulseNumber:
-        v = _check("log", x)
-        if base is None:
-            return _PN(math.log(v))
-        if not isinstance(base, _PN):
+            _raise(f"log() argument must be a number, got {x.type_name()}")
+        if base is not None and not isinstance(base, _PN):
             _raise(f"log() base must be a number, got {base.type_name()}")
-        return _PN(math.log(v, base.value))
+        return _PN(c_fns["log"](x.value, base.value if base else None))
     
-    def _sin(x: Any) -> PulseNumber:
-        return _PN(math.sin(_check("sin", x)))
-    
-    def _cos(x: Any) -> PulseNumber:
-        return _PN(math.cos(_check("cos", x)))
-    
-    def _tan(x: Any) -> PulseNumber:
-        return _PN(math.tan(_check("tan", x)))
-    
-    def _log2(x: Any) -> PulseNumber:
-        return _PN(math.log2(_check("log2", x)))
-    
-    def _log10(x: Any) -> PulseNumber:
-        return _PN(math.log10(_check("log10", x)))
-    
-    def _exp(x: Any) -> PulseNumber:
-        return _PN(math.exp(_check("exp", x)))
+    def _pow(b, e):
+        if not isinstance(b, _PN):
+            _raise(f"pow() base must be a number, got {b.type_name()}")
+        if not isinstance(e, _PN):
+            _raise(f"pow() exponent must be a number, got {e.type_name()}")
+        return _PN(c_fns["pow"](b.value, e.value))
     
     _cached_module = PulseModule("math", {
-        "sqrt":  PulseNativeFunction("sqrt",  _sqrt),
-        "floor": PulseNativeFunction("floor", _floor),
-        "ceil":  PulseNativeFunction("ceil",  _ceil),
+        "sqrt":  PulseNativeFunction("sqrt",  _wrap("sqrt")),
+        "floor": PulseNativeFunction("floor", _wrap("floor")),
+        "ceil":  PulseNativeFunction("ceil",  _wrap("ceil")),
         "log":   PulseNativeFunction("log",   _log),
-        "log2":  PulseNativeFunction("log2",  _log2),
-        "log10": PulseNativeFunction("log10", _log10),
-        "exp":   PulseNativeFunction("exp",   _exp),
-        "sin":   PulseNativeFunction("sin",   _sin),
-        "cos":   PulseNativeFunction("cos",   _cos),
-        "tan":   PulseNativeFunction("tan",   _tan),
+        "log2":  PulseNativeFunction("log2",  _wrap("log2")),
+        "log10": PulseNativeFunction("log10", _wrap("log10")),
+        "exp":   PulseNativeFunction("exp",   _wrap("exp")),
+        "sin":   PulseNativeFunction("sin",   _wrap("sin")),
+        "cos":   PulseNativeFunction("cos",   _wrap("cos")),
+        "tan":   PulseNativeFunction("tan",   _wrap("tan")),
+        "abs":   PulseNativeFunction("abs",   _wrap("abs")),
+        "pow":   PulseNativeFunction("pow",   _pow),
         "pi":    _PI,
         "e":     _E,
         "inf":   _INF,
