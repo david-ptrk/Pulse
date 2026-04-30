@@ -58,7 +58,7 @@ import numpy as np
 import src.expressions as expressions
 from src.lexer import Lexer
 from src.parser import Parser
-from src.loader_c import find_module, read_file
+from src.native import find_module, read_file
 
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment: Environment) -> None:

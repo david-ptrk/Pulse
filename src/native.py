@@ -1,10 +1,10 @@
-# loader_c.py
+# native.py
 import ctypes
 import os
 import sys
 
 _lib_name = "pulse_loader.dll" if sys.platform == "win32" else "pulse_loader.so"
-_lib_path = os.path.join(os.path.dirname(__file__), "..", _lib_name)
+_lib_path = os.path.join(os.path.dirname(__file__), "..", "bin", _lib_name)
 
 try:
     _lib = ctypes.CDLL(os.path.abspath(_lib_path))
