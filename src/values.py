@@ -58,6 +58,12 @@ class PulseBoolean(PulseValue):
     def is_truthy(self) -> bool:
         return self.value
     
+    def to_number(self) -> PulseNumber:
+        return PulseNumber(1 if self.value else 0)
+    
+    def numeric_value(self) -> int:
+        return 1 if self.value else 0
+    
     def __repr__(self) -> str:
         return "true" if self.value else "false"
 

@@ -341,8 +341,8 @@ class Lexer:
         
         text = self.source[self.start : self.current]
         
-        if text in ("true", "false"):
-            self.add_token(TokenType.BOOL, literal=(text=="true"))
+        if text in ("True", "False"):
+            self.add_token(TokenType.BOOL, literal=(text=="True"))
             return
         
         if text == "null":

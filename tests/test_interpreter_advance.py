@@ -131,8 +131,8 @@ class TestEquality:
         assert run("null == 0").value is False
     
     def test_bool_equality(self):
-        assert run("true == true").value is True
-        assert run("true == false").value is False
+        assert run("True == True").value is True
+        assert run("True == False").value is False
     
     def test_number_equality(self):
         assert run("1 == 1").value is True
@@ -164,11 +164,11 @@ class TestEquality:
 # ----------------------------------------
 class TestShortCircuit:
     def test_or_short_circuits_on_true(self):
-        result = run("true or (1 / 0)")
+        result = run("True or (1 / 0)")
         assert result.value is True
     
     def test_and_short_circuits_on_false(self):
-        result = run("false and (1 / 0)")
+        result = run("False and (1 / 0)")
         assert result.value is False
     
     def test_or_returns_first_truthy(self):
@@ -180,12 +180,12 @@ class TestShortCircuit:
         assert result.value == 2
     
     def test_or_returns_last_value_when_all_false(self):
-        result = run("false or 0 or null")
+        result = run("False or 0 or null")
         assert isinstance(result, PulseNull)
     
     def test_not_operator(self):
-        assert run("not true").value is False
-        assert run("not false").value is True
+        assert run("not True").value is False
+        assert run("not False").value is True
         assert run("not null").value is True
         assert run("not 0").value is True
 
@@ -420,7 +420,7 @@ class TestControlFlow:
     def test_if_true_branch(self):
         assert run("""
 x = 0
-if true:
+if True:
     x = 1
 x
 """).value == 1
@@ -428,7 +428,7 @@ x
     def test_if_false_branch(self):
         assert run("""
 x = 0
-if false:
+if False:
     x = 1
 else:
     x = 2
@@ -460,7 +460,7 @@ i
     def test_while_break(self):
         assert run("""
 i = 0
-while true:
+while True:
     if i == 3:
         break
     i = i + 1
@@ -664,12 +664,12 @@ sum_all([1, 2, 3, 4, 5])
         result = run("""
 def is_even(n):
     if n == 0:
-        return true
+        return True
     return is_odd(n - 1)
 
 def is_odd(n):
     if n == 0:
-        return false
+        return False
     return is_even(n - 1)
 
 is_even(10)
@@ -888,23 +888,23 @@ log
     
     def test_finally_always_runs_on_success(self):
         result = run("""
-ran = false
+ran = False
 try:
     x = 1 + 1
 finally:
-    ran = true
+    ran = True
 ran
 """)
         assert result.value is True
     
     def test_finally_always_runs_on_error(self):
         result = run("""
-ran = false
+ran = False
 try:
     try:
         x = 1 / 0
     finally:
-        ran = true
+        ran = True
 except Exception:
     pass
 ran
@@ -913,22 +913,22 @@ ran
     
     def test_except_catches_by_type(self):
         result = run("""
-caught = false
+caught = False
 try:
     x = 1 / 0
 except Exception:
-    caught = true
+    caught = True
 caught
 """)
         assert result.value is True
     
     def test_bare_except_catches_all(self):
         result = run("""
-caught = false
+caught = False
 try:
     x = 1 / 0
 except:
-    caught = true
+    caught = True
 caught
 """)
         assert result.value is True
@@ -1039,7 +1039,7 @@ x.foo
         raises_runtime("fooBarBaz", "undefined")
     
     def test_index_non_indexable_errors(self):
-        raises_runtime("true[0]", "indexing")
+        raises_runtime("True[0]", "indexing")
     
     def test_wrong_type_for_builtin(self):
         raises_runtime('abs("hello")', "number")
@@ -1222,7 +1222,7 @@ f()
     
     def test_variable_scope_does_not_leak_from_block(self):
         raises_runtime("""
-if true:
+if True:
     secret = 42
 secret
 """)
@@ -1230,7 +1230,7 @@ secret
     def test_variable_scope_uses_outer(self):
         result = run("""
 secret = None
-if true:
+if True:
     secret = 42
 secret
 """)
@@ -1268,8 +1268,8 @@ items[0]
         assert run("null == null").value is True
         assert run("null != null").value is False
     
-    def test_boolean_not_equal_to_number(self):
-        assert run("true == 1").value is False
+    def test_boolean_equal_to_number(self):
+        assert run("True == 1").value is True
 
 # ----------------------------------------
 # 15. Tensor - construction & basic properties

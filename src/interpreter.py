@@ -132,8 +132,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return value.is_truthy()
     
     def _is_equal(self, a: Any, b: Any) -> bool:
+        if isinstance(a, PulseBoolean) and isinstance(b, PulseNumber):
+            return (1 if a.value else 0) == b.value
+        if isinstance(a, PulseNumber) and isinstance(b, PulseBoolean):
+            return a.value == (1 if b.value else 0)
+        
         if type(a) is not type(b):
             return False
+        
         if isinstance(a, PulseNull):
             return True
         if isinstance(a, PulseBoolean):
