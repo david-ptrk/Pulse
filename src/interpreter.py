@@ -169,6 +169,24 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         return a is b
     
+    def _contains(self, container: Any, item: Any, token) -> bool:
+        if isinstance(container, PulseList):
+            return any(self._is_equal(item, el) for el in container.elements)
+        
+        if isinstance(container, PulseDict):
+            return container.has(item)
+        
+        if isinstance(container, PulseString):
+            if not isinstance(item, PulseString):
+                self._raise("'in' on string requires a string operand", token)
+            return item.value in container.value
+        
+        if isinstance(container, PulseRange):
+            items = container.to_list()
+            return any(self._is_equal(item, el) for el in items)
+        
+        self._raise(f"'in' operator not supported for type '{container.type_name()}'", token)
+    
     # Stringification
     def _stringify(self, val: Any) -> str:
         if isinstance(val, PulseInstance):
@@ -593,6 +611,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseBoolean(self._is_equal(left, right))
         if operator == "!=":
             return PulseBoolean(not self._is_equal(left, right))
+        
+        if operator == "in":
+            return PulseBoolean(self._contains(right, left, tok))
+        if operator == "not in":
+            return PulseBoolean(not self._contains(right, left, tok))
         
         if operator == "+" and isinstance(left, PulseString) and isinstance(right, PulseString):
             return PulseString(left.value + right.value)

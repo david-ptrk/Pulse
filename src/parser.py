@@ -518,10 +518,34 @@ class Parser:
     def equality(self) -> expr.Expr:
         node = self.comparison()
         
-        while self.match(TokenType.EQUALITY, TokenType.BANG_EQUAL):
-            op = self.previous()
-            right = self.comparison()
-            node = expr.Binary(node, op, right)
+        while True:
+            if self.match(TokenType.EQUALITY, TokenType.BANG_EQUAL):
+                op = self.previous()
+                right = self.comparison()
+                node = expr.Binary(node, op, right)
+            
+            elif self.match(TokenType.IN):
+                op = self.previous()
+                right = self.comparison()
+                node = expr.Binary(node, op, right)
+            
+            elif self.match(TokenType.NOT):
+                if self.match(TokenType.IN):
+                    op = Token(
+                        type=TokenType.NOT,
+                        lexeme="not in",
+                        literal=None,
+                        line=self.previous().line,
+                        column=getattr(self.previous(), "column", 0),
+                    )
+                    right = self.comparison()
+                    node = expr.Binary(node, op, right)
+                else:
+                    self.current -= 1
+                    break
+            
+            else:
+                break
         
         return node
     

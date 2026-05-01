@@ -1,2 +1,14 @@
-x += 1
-print(x)
+if 5 in [1, 2, 5]:
+    print("yes")
+
+if "key" in {"key": 1}:
+    print("found")
+
+if "he" in "hello":
+    print("yes")
+
+if 3 not in [1, 2]:
+    print("not there")
+
+for x in [1, 2, 3]:   # already worked, unchanged
+    print(x)
