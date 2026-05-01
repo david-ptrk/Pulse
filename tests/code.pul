@@ -1,6 +1,27 @@
+# basic
+double = lambda x: x * 2
+print(double(5))         # 10
+
+# multiple params
+add = lambda x, y: x + y
+print(add(3, 4))         # 7
+
+# no params
+greet = lambda: "hello"
+print(greet())           # hello
+
+# inline with map, filter, sort
 nums = [3, 1, 4, 1, 5]
-print(nums)
-nums.sort()
-print(nums)
-nums.sort(reverse=True)
-print(nums)
+
+doubled = nums.map(lambda x: x * 2)
+print(doubled)           # [6, 2, 8, 2, 10]
+
+evens = nums.filter(lambda x: x % 2 == 0)
+print(evens)             # [4]
+
+nums.sort(key=lambda x: -x)
+print(nums)              # [5, 4, 3, 1, 1]
+
+words = ["banana", "apple", "cherry"]
+words.sort(key=lambda w: w.length())
+print(words)             # [apple, banana, cherry]

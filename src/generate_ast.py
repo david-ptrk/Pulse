@@ -40,15 +40,14 @@ INDENT = "    "
 DEFAULT_IMPORTS: Tuple[str, ...] = (
     "from __future__ import annotations",
     "from abc import ABC, abstractmethod",
+    "from typing import Any, Optional, List, Tuple",
 )
 
 EXPRESSIONS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
-    "from typing import Any, List, Tuple",
     "from src.tokens import Token",
 )
 
 STATEMENTS_IMPORTS: Tuple[str, ...] = DEFAULT_IMPORTS + (
-    "from typing import Any, Optional, List, Tuple",
     "from src.expressions import Expr",
     "from src.tokens import Token"
 )
@@ -75,6 +74,7 @@ EXPRESSIONS: ASTDict = {
     "Tensor": ("value: Any",),
     "Pipe": ("left: Expr", "right: Expr",),
     "Unpack": ("names: List[Token]", "value: Expr",),
+    "Lambda": ("params: List[Token]", "body: Expr",),
 }
 
 # Statements

@@ -690,6 +690,9 @@ class Parser:
         if self.match(TokenType.NULL):
             return expr.Literal(None)
         
+        if self.match(TokenType.LAMBDA):
+            return self.parse_lambda()
+        
         if self.match(TokenType.FSTRING):
             return self.parse_fstring(self.previous())
         
@@ -784,3 +787,17 @@ class Parser:
             return expr.Slice(lower, upper)
         
         return lower
+    
+    def parse_lambda(self) -> expr.Expr:
+        params: List[Token] = []
+        
+        if not self.check(TokenType.COLON):
+            params.append(self.consume(TokenType.IDENTIFIER, "Expected paramater name"))
+            while self.match(TokenType.COMMA):
+                if self.check(TokenType.COLON):
+                    break
+                params.append(self.consume(TokenType.IDENTIFIER, "Expected paramater name"))
+        
+        self.consume(TokenType.COLON, "Expected ':' after lambda parameters")
+        body = self.expression()
+        return expr.Lambda(params, body)

@@ -47,7 +47,7 @@ from src.environment import Environment
 from src.error import PulseRuntimeError
 import src.runtime as runtime
 from src.tokens import Token
-from src.function import PulseFunction, PulseNativeFunction, PulseNativeMethod
+from src.function import PulseFunction, PulseNativeFunction, PulseNativeMethod, PulseLambda
 from src.runtime import PulseClass, PulseInstance
 from src.values import (
     PulseNumber, PulseString, PulseNull, PulseNamespace,
@@ -910,6 +910,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         finally:
             PulseRuntimeError.pop_stack()
     
+    def visit_lambda_expr(self, expression) -> Any:
+        return PulseLambda(expression.params, expression.body, self.environment)
+    
     def visit_unpack_expr(self, expr) -> Any:
         value = self.evaluate(expr.value)
         
@@ -983,7 +986,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNativeFunction("clear", _clear)
         
         if name == "sort":
-            def _sort(key_fn: Any = None, reverse: Any = None) -> PulseNull:
+            def _sort(key=None, reverse=None) -> PulseNull:
                 rev = False
                 if reverse is not None:
                     if not isinstance(reverse, PulseBoolean):
@@ -991,7 +994,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     rev = reverse.value
                 
                 try:
-                    if key_fn is None:
+                    if key is None:
                         def default_key(el):
                             if isinstance(el, PulseNumber):
                                 return el.value
@@ -1000,10 +1003,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
                             self._raise(f"sort() cannot compare values of type '{el.type_name()}'", token)
                         obj.elements.sort(key=default_key, reverse=rev)
                     else:
-                        if not callable(getattr(key_fn, "call", None)):
+                        if not callable(getattr(key, "call", None)):
                             self._raise("sort() key must be a callable", token)
                         def pulse_key(el):
-                            result = key_fn.call(self, [el], {})
+                            result = key.call(self, [el], {})
                             if isinstance(result, PulseNumber):
                                 return result.value
                             if isinstance(result, PulseString):

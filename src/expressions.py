@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple
+from typing import Any, Optional, List, Tuple
 from src.tokens import Token
 
 class ExprVisitor(ABC):
@@ -82,6 +82,10 @@ class ExprVisitor(ABC):
 
     @abstractmethod
     def visit_unpack_expr(self, expr: 'Unpack') -> Any:
+        pass
+
+    @abstractmethod
+    def visit_lambda_expr(self, expr: 'Lambda') -> Any:
         pass
 
 
@@ -250,4 +254,12 @@ class Unpack(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_unpack_expr(self)
+
+class Lambda(Expr):
+    def __init__(self, params: List[Token], body: Expr) -> None:
+        self.params = params
+        self.body = body
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_lambda_expr(self)
 

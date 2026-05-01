@@ -132,3 +132,37 @@ class PulseNativeMethod:
     
     def __repr__(self):
         return "<native method>"
+
+class PulseLambda:
+    def __init__(self, params, body_expr, closure) -> None:
+        self.params = params
+        self.body_expr = body_expr
+        self.closure = closure
+    
+    def call(self, interpreter, arguments: list, kwargs: dict):
+        if len(arguments) != len(self.params):
+            raise runtime.PulseRuntimeException(
+                RuntimeError(
+                    f"Lambda expects {len(self.params)} argument(s), "
+                    f"got {len(arguments)}"
+                )
+            )
+        
+        env = Environment(enclosing=self.closure)
+        for param, arg in zip(self.params, arguments):
+            env.define(param.lexeme, arg)
+        
+        previous = interpreter.environment
+        interpreter.environment = env
+        
+        try:
+            return interpreter.evaluate(self.body_expr)
+        finally:
+            interpreter.environment = previous
+    
+    def type_name(self) -> str:
+        return "lambda"
+    
+    def __repr__(self) -> str:
+        params = ", ".join(p.lexeme for p in self.params)
+        return f"<lambda ({params})>"

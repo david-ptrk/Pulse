@@ -77,6 +77,7 @@ class TokenType(Enum):
     INT_DIVIDE = auto()
     STATIC = auto()
     PIPE = auto()
+    LAMBDA = auto()
     
     # Keywords
     IF = auto()
@@ -133,6 +134,7 @@ KEYWORDS = {
     "None": TokenType.NULL,
     "static": TokenType.STATIC,
     "NaN": TokenType.NUMBER,
+    "lambda": TokenType.LAMBDA,
 }
 
 # -------------------------------------------------------

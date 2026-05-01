@@ -315,3 +315,16 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_expr(expr.value)
         for name in expr.names:
             self.resolve_local(expr, name)
+    
+    def visit_lambda_expr(self, expr):
+        enclosing_function = self.current_function
+        self.current_function = FunctionType.FUNCTION
+        self.begin_scope()
+        
+        for param in expr.params:
+            self.scopes[-1][param.lexeme] = True
+        
+        self.resolve_expr(expr.body)
+        
+        self.end_scope()
+        self.current_function = enclosing_function
