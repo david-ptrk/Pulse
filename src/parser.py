@@ -435,6 +435,45 @@ class Parser:
     def assignment(self) -> expr.Expr:        
         left = self.pipeline()
         
+        # Augmented assignment operators
+        aug_map = {
+            TokenType.PLUS_EQUAL: "+",
+            TokenType.MINUS_EQUAL: "-",
+            TokenType.STAR_EQUAL: "*",
+            TokenType.SLASH_EQUAL: "/",
+            TokenType.PERCENT_EQUAL: "%",
+        }
+        
+        for token_type, op_str in aug_map.items():
+            if self.match(token_type):
+                op_token = self.previous()
+                bin_op = Token(
+                    type={
+                        "+": TokenType.PLUS, "-": TokenType.MINUS, "*": TokenType.STAR,
+                        "/": TokenType.SLASH, "%": TokenType.MODULUS,
+                    }[op_str],
+                    lexeme=op_str,
+                    literal=None,
+                    line=op_token.line,
+                    column=getattr(op_token, "column", 0),
+                )
+                value = self.assignment()
+                
+                if isinstance(left, expr.Variable):
+                    rhs = expr.Binary(left, bin_op, value)
+                    return expr.Assign(left.name, rhs)
+                
+                if isinstance(left, expr.MemberAccess):
+                    rhs = expr.Binary(left, bin_op, value)
+                    return expr.SetMember(left.object, left.name, rhs)
+                
+                if isinstance(left, expr.Index):
+                    rhs = expr.Binary(left, bin_op, value)
+                    return expr.SetIndex(left.object, left.index, rhs)
+                
+                self._error(op_token, "Invalid augmented assignment target")
+        
+        # Regular assignment
         if self.match(TokenType.ASSIGN):
             value = self.assignment()
             

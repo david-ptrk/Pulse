@@ -61,6 +61,7 @@ class TokenType(Enum):
     MINUS_EQUAL = auto()
     STAR_EQUAL = auto()
     SLASH_EQUAL = auto()
+    PERCENT_EQUAL = auto()
     BANG_EQUAL = auto()
     LESS = auto()
     GREATER = auto()

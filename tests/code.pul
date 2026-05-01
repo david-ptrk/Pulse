@@ -1,4 +1,2 @@
-if True == 1:
-    print("yes")
-else:
-    print("no")
+x += 1
+print(x)

@@ -45,7 +45,6 @@ class Lexer:
         ']': TokenType.RIGHT_BRACKET,
         '{': TokenType.LEFT_BRACE,
         '}': TokenType.RIGHT_BRACE,
-        '%': TokenType.MODULUS,
         ',': TokenType.COMMA,
         ':': TokenType.COLON,
         ';': TokenType.SEMICOLON,
@@ -57,6 +56,7 @@ class Lexer:
         '+': (TokenType.PLUS_EQUAL, TokenType.PLUS),
         '-': (TokenType.MINUS_EQUAL, TokenType.MINUS),
         '*': (TokenType.STAR_EQUAL, TokenType.STAR),
+        "%": (TokenType.PERCENT_EQUAL, TokenType.MODULUS),
     }
     
     _ESCAPE_MAP: dict[str, str] = {
