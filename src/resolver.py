@@ -167,7 +167,12 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_expr(stmt.iterable)
         self.begin_scope()
         
-        self.scopes[-1][stmt.var.lexeme] = True
+        if stmt.vars is not None:
+            for var in stmt.vars:
+                self.scopes[-1][var.lexeme] = True
+        else:
+            self.scopes[-1][stmt.var.lexeme] = True
+        
         self.loop_depth += 1
         self.resolve_stmt(stmt.body)
         self.loop_depth -= 1

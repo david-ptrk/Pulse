@@ -83,7 +83,7 @@ STATEMENTS: ASTDict = {
     "Block": ("statements: List[Stmt]",),
     "If": ("condition: Expr", "then_branch: Stmt", "elif_branches: List[Tuple[Expr, Stmt]]", "else_branch: Optional[Stmt]",),
     "While": ("condition: Expr", "body: Stmt",),
-    "For": ("var: Token", "iterable: Expr", "body: Stmt",),
+    "For": ("var: Token", "iterable: Expr", "body: Stmt", "vars: Optional[List[Token]]",),
     "Break": ("keyword: Token",),
     "Continue": ("keyword: Token",),
     "Return": ("keyword: Token", "value: Optional[Expr]",),

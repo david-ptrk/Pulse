@@ -221,7 +221,11 @@ class Parser:
         return stmt.While(condition, body)
     
     def parse_for_stmt(self) -> stmt.For:
-        var_token = self.consume(TokenType.IDENTIFIER, "Expected loop variable after 'for'")
+        vars: List[Token] = []
+        vars.append(self.consume(TokenType.IDENTIFIER, "Expected loop variable after 'for'"))
+        while self.match(TokenType.COMMA):
+            vars.append(self.consume(TokenType.IDENTIFIER, "Expected variable name after ','"))
+        
         self.consume(TokenType.IN, "Expected 'in' after loop variable")
         iterable = self.expression()
         self.consume(TokenType.COLON, "Expected ':' after iterable")
@@ -230,7 +234,8 @@ class Parser:
         body = self._expect_indented_block()
         self.loop_depth -= 1
         
-        return stmt.For(var_token, iterable, body)
+        var_token = vars[0]
+        return stmt.For(var_token, iterable, body, vars if len(vars) > 1 else None)
     
     def parse_func_stmt(self, is_method: bool = False, is_static: bool = False) -> stmt.Function:
         name = self.consume(TokenType.IDENTIFIER, "Expected function name")

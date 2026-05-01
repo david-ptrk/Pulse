@@ -97,10 +97,11 @@ class While(Stmt):
         return visitor.visit_while_stmt(self)
 
 class For(Stmt):
-    def __init__(self, var: Token, iterable: Expr, body: Stmt) -> None:
+    def __init__(self, var: Token, iterable: Expr, body: Stmt, vars: Optional[List[Token]]) -> None:
         self.var = var
         self.iterable = iterable
         self.body = body
+        self.vars = vars
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_for_stmt(self)

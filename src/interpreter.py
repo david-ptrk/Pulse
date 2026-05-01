@@ -83,6 +83,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("len", PulseNativeFunction("len", self._bi_len)),
             ("range", PulseNativeFunction("range", self._bi_range)),
             ("round", PulseNativeFunction("round", self._bi_round)),
+            ("bool", PulseNativeFunction("bool", self._bi_bool)),
+            ("enumerate", PulseNativeFunction("enumerate", self._bi_enumerate)),
+            ("zip", PulseNativeFunction("zip", self._bi_zip)),
         ])
         
         # Built-in exception classes
@@ -336,6 +339,48 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self._check_number(digits, None, "round() digits")
         return PulseNumber(round(x.value, int(digits.value)))
     
+    def _bi_bool(self, x: Any) -> PulseBoolean:
+        return PulseBoolean(self._is_truthy(x))
+    
+    def _bi_enumerate(self, iterable: Any, start: Any = None) -> PulseList:
+        offset = 0
+        if start is not None:
+            self._check_number(start, None, "enumerate() start")
+            offset = int(start.value)
+        
+        if isinstance(iterable, PulseList):
+            items = iterable.elements
+        elif isinstance(iterable, PulseString):
+            items = [PulseString(c) for c in iterable.value]
+        elif isinstance(iterable, PulseRange):
+            items = iterable.to_list()
+        else:
+            self._raise(f"enumerate() argument must be iterable, got '{iterable.type_name()}'")
+        
+        return PulseList([
+            PulseList([PulseNumber(i + offset), el])
+            for i, el in enumerate(items)
+        ])
+    
+    def _bi_zip(self, *iterables: Any) -> PulseList:
+        if not iterables:
+            return PulseList([])
+        
+        def to_items(obj):
+            if isinstance(obj, PulseList):
+                return obj.elements
+            if isinstance(obj, PulseString):
+                return [PulseString(c) for c in obj.value]
+            if isinstance(obj, PulseRange):
+                return obj.to_list()
+            self._raise(f"zip() argument must be iterable, got '{obj.type_name()}'")
+        
+        lists = [to_items(it) for it in iterables]
+        return PulseList([
+            PulseList(list(group))
+            for group in zip(*lists)
+        ])
+    
     # Statement visitors
     def visit_expression_stmt(self, stmt) -> Any:
         return self.evaluate(stmt.expression)
@@ -397,7 +442,19 @@ class Interpreter(ExprVisitor, StmtVisitor):
             self.environment = loop_env
             
             try:
-                loop_env.define(stmt.var.lexeme, value)
+                if stmt.vars is not None:
+                    if not isinstance(value, PulseList):
+                        self._raise(f"Cannot unpack non-list value in for loop")
+                    if len(value.elements) != len(stmt.vars):
+                        self._raise(
+                            f"Cannot unpack {len(value.elements)} values "
+                            f"into {len(stmt.vars)} variables"
+                        )
+                    for var, el in zip(stmt.vars, value.elements):
+                        loop_env.define(var.lexeme, el)
+                else:                
+                    loop_env.define(stmt.var.lexeme, value)
+                
                 self.execute(stmt.body)
             except runtime.BreakException:
                 break
@@ -1099,6 +1156,32 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         if name == "length":
             return PulseNativeFunction("length", lambda: PulseNumber(len(obj.value)))
+        
+        if name == "find":
+            def _find(sub: Any, start: Any = None) -> PulseNumber:
+                if not isinstance(sub, PulseString):
+                    self._raise("find() argument must be a string", token)
+                s = int(start.value) if start is not None else 0
+                return PulseNumber(obj.value.find(sub.value, s))
+            return PulseNativeFunction("find", _find)
+        
+        if name == "index":
+            def _index(sub: Any, start: Any = None) -> PulseNumber:
+                if not isinstance(sub, PulseString):
+                    self._raise("index() argument must be a string", token)
+                s = int(start.value) if start is not None else 0
+                try:
+                    return PulseNumber(obj.value.index(sub.value, s))
+                except ValueError:
+                    self._raise(f"'{sub.value}' not found in string", token)
+            return PulseNativeFunction("index", _index)
+        
+        if name == "count":
+            def _count(sub: Any) -> PulseNumber:
+                if not isinstance(sub, PulseString):
+                    self._raise("count() argument must be a string", token)
+                return PulseNumber(obj.value.count(sub.value))
+            return PulseNativeFunction("count", _count)
         
         self._raise(f"String has no method '{name}'", token)
     

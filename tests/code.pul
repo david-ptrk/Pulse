@@ -1,27 +1,24 @@
-# basic
-double = lambda x: x * 2
-print(double(5))         # 10
+# bool
+print(bool(0))         # false
+print(bool("hello"))   # true
+print(bool([]))        # false
 
-# multiple params
-add = lambda x, y: x + y
-print(add(3, 4))         # 7
+# enumerate
+for i, val in enumerate([10, 20, 30]):
+    print(f"{i}: {val}")   # 0: 10, 1: 20, 2: 30
 
-# no params
-greet = lambda: "hello"
-print(greet())           # hello
+for i, val in enumerate([10, 20, 30], start=1):
+    print(f"{i}: {val}")   # 1: 10, 2: 20, 3: 30
 
-# inline with map, filter, sort
-nums = [3, 1, 4, 1, 5]
+# zip
+names = ["Alice", "Bob", "Charlie"]
+scores = [95, 87, 92]
+for name, score in zip(names, scores):
+    print(f"{name}: {score}")
 
-doubled = nums.map(lambda x: x * 2)
-print(doubled)           # [6, 2, 8, 2, 10]
-
-evens = nums.filter(lambda x: x % 2 == 0)
-print(evens)             # [4]
-
-nums.sort(key=lambda x: -x)
-print(nums)              # [5, 4, 3, 1, 1]
-
-words = ["banana", "apple", "cherry"]
-words.sort(key=lambda w: w.length())
-print(words)             # [apple, banana, cherry]
+# string methods
+s = "hello world"
+print(s.find("world"))    # 6
+print(s.find("xyz"))      # -1
+print(s.index("world"))   # 6
+print(s.count("l"))       # 3
