@@ -982,6 +982,57 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return PulseNull()
             return PulseNativeFunction("clear", _clear)
         
+        if name == "sort":
+            def _sort(key_fn: Any = None, reverse: Any = None) -> PulseNull:
+                rev = False
+                if reverse is not None:
+                    if not isinstance(reverse, PulseBoolean):
+                        self._raise("sort() 'reverse' must be a boolean", token)
+                    rev = reverse.value
+                
+                try:
+                    if key_fn is None:
+                        def default_key(el):
+                            if isinstance(el, PulseNumber):
+                                return el.value
+                            if isinstance(el, PulseString):
+                                return el.value
+                            self._raise(f"sort() cannot compare values of type '{el.type_name()}'", token)
+                        obj.elements.sort(key=default_key, reverse=rev)
+                    else:
+                        if not callable(getattr(key_fn, "call", None)):
+                            self._raise("sort() key must be a callable", token)
+                        def pulse_key(el):
+                            result = key_fn.call(self, [el], {})
+                            if isinstance(result, PulseNumber):
+                                return result.value
+                            if isinstance(result, PulseString):
+                                return result.value
+                            self._raise(f"sort() key function must return a number or string", token)
+                        obj.elements.sort(key=pulse_key, reverse=rev)
+                except PulseRuntimeError:
+                    raise
+                
+                return PulseNull()
+            return PulseNativeFunction("sort", _sort)
+        
+        if name == "map":
+            def _map(fn: Any) -> PulseList:
+                if not callable(getattr(fn, "call", None)):
+                    self._raise("map() argument must be a callable", token)
+                return PulseList([fn.call(self, [el], {}) for el in obj.elements])
+            return PulseNativeFunction("map", _map)
+        
+        if name == "filter":
+            def _filter(fn: Any) -> PulseList:
+                if not callable(getattr(fn, "call", None)):
+                    self._raise("filter() argument must be a callable", token)
+                return PulseList([
+                    el for el in obj.elements
+                    if self._is_truthy(fn.call(self, [el], {}))
+                ])
+            return PulseNativeFunction("filter", _filter)
+        
         self._raise(f"List has no method '{name}'", token)
     
     def _string_method(self, obj: PulseString, name: str, token: Token) -> PulseNativeFunction:

@@ -1,14 +1,6 @@
-if 5 in [1, 2, 5]:
-    print("yes")
-
-if "key" in {"key": 1}:
-    print("found")
-
-if "he" in "hello":
-    print("yes")
-
-if 3 not in [1, 2]:
-    print("not there")
-
-for x in [1, 2, 3]:   # already worked, unchanged
-    print(x)
+nums = [3, 1, 4, 1, 5]
+print(nums)
+nums.sort()
+print(nums)
+nums.sort(reverse=True)
+print(nums)
