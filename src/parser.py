@@ -131,6 +131,8 @@ class Parser:
         
         if self.check(TokenType.IDENTIFIER) and self.is_unpack_assignment():
             return self.parse_unpack_stmt()
+        if self.match(TokenType.DEL):
+            return self.parse_del_stmt()
         
         if self.match(TokenType.IMPORT):
             return self.parse_import_stmt()
@@ -151,6 +153,8 @@ class Parser:
         
         if self.match(TokenType.TRY):
             return self.parse_try_stmt()
+        if self.match(TokenType.RAISE):
+            return self.parse_raise_stmt()
         
         if self.match(TokenType.BREAK):
             keyword = self.previous()
@@ -242,24 +246,42 @@ class Parser:
         self.consume(TokenType.LEFT_PAREN, "Expected '(' after function name")
         
         params: List[Token] = []
+        defaults: List[Optional[expr.Expr]] = []
+        
         if not self.check(TokenType.RIGHT_PAREN):
-            params.append(self._consume_param())
+            param, default = self._consume_param_with_default()
+            params.append(param)
+            defaults.append(default)
+            
             while self.match(TokenType.COMMA):
                 if self.check(TokenType.RIGHT_PAREN):
                     break
-                params.append(self._consume_param())
+                param, default = self._consume_param_with_default()
+                if default is None and any(d is not None for d in defaults):
+                    self._error(param, "Non-default parameter cannot follow a default parameter")
+                params.append(param)
+                defaults.append(default)
         
         self.consume(TokenType.RIGHT_PAREN, "Expected ')' after parameters.")
         self.consume(TokenType.COLON, "Expected ':' before function body")
         
         self.consume(TokenType.INDENT, "Expected indented block after function definition")
         body = self.block()
-        return stmt.Function(name, params, body, is_method, is_static)
+        return stmt.Function(name, params, defaults, body, is_method, is_static)
     
     def _consume_param(self) -> Token:
         if self.check(TokenType.SELF):
             return self.advance()
         return self.consume(TokenType.IDENTIFIER, "Expected parameter name")
+    
+    def _consume_param_with_default(self) -> Tuple[Token, Optional[expr.Expr]]:
+        if self.check(TokenType.SELF):
+            return self.advance(), None
+        param = self.consume(TokenType.IDENTIFIER, "Expected parameter name")
+        default = None
+        if self.match(TokenType.ASSIGN):
+            default = self.expression()
+        return param, default
     
     def parse_class_stmt(self) -> stmt.Class:
         name = self.consume(TokenType.IDENTIFIER, "Expected class name")
@@ -320,7 +342,7 @@ class Parser:
         if not self.check(TokenType.INDENT):
             self._error(self.peek(), "Expected indented block after 'try:'")
         try_block = self.statement()
-
+        
         except_blocks: List[Tuple[Optional[expr.Expr], Optional[Token], stmt.Stmt]] = []
         while self.match(TokenType.EXCEPT):
             exc_type: Optional[expr.Expr] = None
@@ -401,6 +423,24 @@ class Parser:
             self.advance()
             parts.append(self.consume(TokenType.IDENTIFIER, "Expected module name after '.'"))
         return parts
+    
+    def parse_raise_stmt(self) -> stmt.Raise:
+        keyword = self.previous()
+        exception = None
+        if not (self.check(TokenType.NEWLINE) or self.check(TokenType.DEDENT) or self.is_at_end()):
+            exception = self.expression()
+        self.match(TokenType.NEWLINE)
+        return stmt.Raise(keyword, exception)
+    
+    def parse_del_stmt(self) -> stmt.Del:
+        keyword = self.previous()
+        targets: List[expr.Expr] = []
+        
+        targets.append(self.expression())
+        while self.match(TokenType.COMMA):
+            targets.append(self.expression())
+        self.match(TokenType.NEWLINE)
+        return stmt.Del(keyword, targets)
     
     def expression(self) -> expr.Expr:
         return self.assignment()

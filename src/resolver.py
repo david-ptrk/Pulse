@@ -96,6 +96,10 @@ class Resolver(ExprVisitor, StmtVisitor):
         for param in func.params:
             self.scopes[-1][param.lexeme] = True
         
+        for default in getattr(func, "defaults", []):
+            if default is not None:
+                self.resolve_expr(default)
+        
         self.resolve(func.body.statements)
         self.end_scope()
         self.current_function = enclosing_function
@@ -221,6 +225,14 @@ class Resolver(ExprVisitor, StmtVisitor):
             binding = stmt.alias if stmt.alias else stmt.module_path[-1]
             self.declare(binding)
             self.define(binding)
+    
+    def visit_raise_stmt(self, stmt):
+        if stmt.exception is not None:
+            self.resolve_expr(stmt.exception)
+    
+    def visit_del_stmt(self, stmt):
+        for target in stmt.targets:
+            self.resolve_expr(target)
     
     # Expressions
     def visit_literal_expr(self, expr):

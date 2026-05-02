@@ -87,11 +87,13 @@ STATEMENTS: ASTDict = {
     "Break": ("keyword: Token",),
     "Continue": ("keyword: Token",),
     "Return": ("keyword: Token", "value: Optional[Expr]",),
-    "Function": ("name: Token", "params: List[Token]", "body: Block", "is_method: bool", "is_static: bool",),
+    "Function": ("name: Token", "params: List[Token]", "defaults: List[Optional[Expr]]", "body: Block", "is_method: bool", "is_static: bool",),
     "Class": ("name: Token", "bases: List[Token]", "methods: List[Function]", "class_vars: List[Tuple[Token, Expr]]",),
     "Try": ("try_block: Stmt", "except_blocks: List[Tuple[Optional[Expr], Optional[Token], Stmt]]", "finally_block: Optional[Stmt]", "else_block: Optional[Stmt]",),
     "Pass": (),
     "Import": ("keyword: Token", "module_path: List[Token]", "alias: Optional[Token]", "names: Optional[List[Tuple[Token, Optional[Token]]]]",),
+    "Raise": ("keyword: Token", "exception: Optional[Expr]",),
+    "Del": ("keyword: Token", "targets: List[Expr]",),
 }
 
 # Generator Functions

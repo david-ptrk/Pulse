@@ -1,24 +1,5 @@
-# bool
-print(bool(0))         # false
-print(bool("hello"))   # true
-print(bool([]))        # false
+x = 10
+print(x)
 
-# enumerate
-for i, val in enumerate([10, 20, 30]):
-    print(f"{i}: {val}")   # 0: 10, 1: 20, 2: 30
-
-for i, val in enumerate([10, 20, 30], start=1):
-    print(f"{i}: {val}")   # 1: 10, 2: 20, 3: 30
-
-# zip
-names = ["Alice", "Bob", "Charlie"]
-scores = [95, 87, 92]
-for name, score in zip(names, scores):
-    print(f"{name}: {score}")
-
-# string methods
-s = "hello world"
-print(s.find("world"))    # 6
-print(s.find("xyz"))      # -1
-print(s.index("world"))   # 6
-print(s.count("l"))       # 3
+del x
+print(x)

@@ -57,6 +57,14 @@ class StmtVisitor(ABC):
     def visit_import_stmt(self, expr: 'Import') -> Any:
         pass
 
+    @abstractmethod
+    def visit_raise_stmt(self, expr: 'Raise') -> Any:
+        pass
+
+    @abstractmethod
+    def visit_del_stmt(self, expr: 'Del') -> Any:
+        pass
+
 
 
 class Stmt(ABC):
@@ -129,9 +137,10 @@ class Return(Stmt):
         return visitor.visit_return_stmt(self)
 
 class Function(Stmt):
-    def __init__(self, name: Token, params: List[Token], body: Block, is_method: bool, is_static: bool) -> None:
+    def __init__(self, name: Token, params: List[Token], defaults: List[Optional[Expr]], body: Block, is_method: bool, is_static: bool) -> None:
         self.name = name
         self.params = params
+        self.defaults = defaults
         self.body = body
         self.is_method = is_method
         self.is_static = is_static
@@ -175,4 +184,20 @@ class Import(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_import_stmt(self)
+
+class Raise(Stmt):
+    def __init__(self, keyword: Token, exception: Optional[Expr]) -> None:
+        self.keyword = keyword
+        self.exception = exception
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_raise_stmt(self)
+
+class Del(Stmt):
+    def __init__(self, keyword: Token, targets: List[Expr]) -> None:
+        self.keyword = keyword
+        self.targets = targets
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_del_stmt(self)
 

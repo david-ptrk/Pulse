@@ -31,11 +31,15 @@ class PulseFunction:
             keyword_arguments = {}
         
         params = self.declaration.params
+        defaults = getattr(self.declaration, "defaults", [None] * len(params))
         callable_params = [p for p in params if p.lexeme != "self"]
+        callable_defaults = [
+            defaults[i] for i, p in enumerate(params) if p.lexeme != "self"
+        ]
         
         if len(arguments) > len(callable_params):
             raise runtime.PulseRuntimeException(
-                PulseRuntimeError(f"Expected {len(callable_params)} arguments but got {len(arguments)}")
+                PulseRuntimeError(f"Expected at most {len(callable_params)} arguments but got {len(arguments)}")
             )
         
         bound = {}
@@ -48,20 +52,21 @@ class PulseFunction:
             if key not in params_names:
                 raise runtime.PulseRuntimeException(
                     PulseRuntimeError(f"Unexpected keyword argument '{key}'")
-                )
-            
+                )           
             if key in bound:
                 raise runtime.PulseRuntimeException(
                     PulseRuntimeError(f"Multiple values for argument '{key}'")
                 )
-            
             bound[key] = value
         
-        for param in callable_params:
+        for param, default in zip(callable_params, callable_defaults):
             if param.lexeme not in bound:
-                raise runtime.PulseRuntimeException(
-                    PulseRuntimeError(f"Missing required argument '{param.lexeme}'")
-                )
+                if default is not None:
+                    bound[param.lexeme] = interpreter.evaluate(default)
+                else:
+                    raise runtime.PulseRuntimeException(
+                        PulseRuntimeError(f"Missing required argument '{param.lexeme}'")
+                    )
         
         # Create a new environment for the function
         environment = Environment(enclosing=self.closure)

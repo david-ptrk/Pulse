@@ -549,6 +549,53 @@ class Interpreter(ExprVisitor, StmtVisitor):
             binding = stmt.alias.lexeme if stmt.alias else stmt.module_path[-1].lexeme
             self.environment.define(binding, module)
     
+    def visit_raise_stmt(self, stmt) -> NoReturn:
+        if stmt.exception is None:
+            self._raise("raise requires an exception", stmt.keyword)
+        
+        exc = self.evaluate(stmt.exception)
+        
+        if isinstance(exc, type) and issubclass(exc, runtime.PulseException):
+            raise exc(PulseRuntimeError("", token=stmt.keyword))
+        if isinstance(exc, runtime.PulseException):
+            raise exc
+        
+        self._raise(self._stringify(exc), stmt.keyword)
+    
+    def visit_del_stmt(self, stmt) -> None:
+        for target in stmt.targets:
+            if isinstance(target, expressions.Variable):
+                name = target.name.lexeme
+                if not self.environment.has(name):
+                    self._raise(f"Cannot delete undefined variable '{name}'", stmt.keyword)
+                self.environment.delete(name)
+            
+            elif isinstance(target, expressions.Index):
+                obj = self.evaluate(target.object)
+                index = self.evaluate(target.index)
+                if isinstance(obj, PulseList):
+                    self._check_number(index, stmt.keyword, "List index")
+                    idx = int(index.value)
+                    if idx < -len(obj.elements) or idx >= len(obj.elements):
+                        self._raise(f"List index {idx} out of range", stmt.keyword)
+                    obj.elements.pop(idx)
+                elif isinstance(obj, PulseDict):
+                    if not obj.has(index):
+                        self._raise(f"Key '{self._stringify(index)}' not found in dict", stmt.keyword)
+                    obj.remove(index)
+                else:
+                    self._raise(f"Cannot delete index on type '{obj.type_name()}'", stmt.keyword)
+            
+            elif isinstance(target, expressions.MemberAccess):
+                obj = self.evaluate(target.object)
+                if isinstance(obj, PulseInstance):
+                    obj.fields.pop(target.name.lexeme, None)
+                else:
+                    self._raise(f"Cannot delete member on type '{obj.type_name()}'", stmt.keyword)
+            
+            else:
+                self._raise("Invalid del target", stmt.keyword)
+    
     # Expression visitors
     def visit_literal_expr(self, expr) -> Any:
         value = expr.value

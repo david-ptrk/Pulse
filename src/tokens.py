@@ -103,6 +103,7 @@ class TokenType(Enum):
     IN = auto()
     DEL = auto()
     SELF = auto()
+    RAISE = auto()
 
 # Mapping of string keywords to TokenType for easy lookup
 KEYWORDS = {
@@ -135,6 +136,7 @@ KEYWORDS = {
     "static": TokenType.STATIC,
     "NaN": TokenType.NUMBER,
     "lambda": TokenType.LAMBDA,
+    "raise": TokenType.RAISE,
 }
 
 # -------------------------------------------------------

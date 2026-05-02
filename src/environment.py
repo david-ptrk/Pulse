@@ -103,3 +103,14 @@ class Environment:
         if self.enclosing is not None:
             return self.enclosing.has(name)
         return False
+    
+    def delete(self, name: str) -> None:
+        if name in self.values:
+            del self.values[name]
+            return
+        if self.enclosing is not None:
+            self.enclosing.delete(name)
+            return
+        raise PulseRuntimeException(
+            PulseRuntimeError(f"Undefined variable '{name}'")
+        )
