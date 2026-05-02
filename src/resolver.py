@@ -107,6 +107,30 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.end_scope()
         self.current_function = enclosing_function
     
+    def _resolve_pattern(self, pattern):
+        if isinstance(pattern, Token) and pattern.lexeme == "_":
+            return
+        
+        if isinstance(pattern, Token):
+            self.scopes[-1][pattern.lexeme] = True
+            return
+        
+        if isinstance(pattern, tuple) and pattern[0] == "or":
+            return
+        
+        if isinstance(pattern, tuple) and pattern[0] == "sequence":
+            for sub in pattern[1]:
+                self._resolve_pattern(sub)
+            return
+        
+        if isinstance(pattern, tuple) and pattern[0] == "mapping":
+            for key_expr, val_pattern in pattern[1]:
+                self.resolve_expr(key_expr)
+                self._resolve_pattern(val_pattern)
+            return
+        
+        self.resolve_expr(pattern)
+    
     # Statements
     def visit_block_stmt(self, stmt):
         self.begin_scope()
@@ -236,6 +260,19 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_del_stmt(self, stmt):
         for target in stmt.targets:
             self.resolve_expr(target)
+    
+    def visit_match_stmt(self, stmt):
+        self.resolve_expr(stmt.subject)
+        
+        for pattern, guard, body in stmt.cases:
+            self.begin_scope()
+            self._resolve_pattern(pattern)
+            
+            if guard is not None:
+                self.resolve_expr(guard)
+            
+            self.resolve_stmt(body)
+            self.end_scope()
     
     # Expressions
     def visit_literal_expr(self, expr):

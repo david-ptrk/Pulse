@@ -78,6 +78,7 @@ class TokenType(Enum):
     STATIC = auto()
     PIPE = auto()
     LAMBDA = auto()
+    BAR = auto()
     
     # Keywords
     IF = auto()
@@ -104,6 +105,8 @@ class TokenType(Enum):
     DEL = auto()
     SELF = auto()
     RAISE = auto()
+    MATCH = auto()
+    CASE = auto()
 
 # Mapping of string keywords to TokenType for easy lookup
 KEYWORDS = {
@@ -137,6 +140,8 @@ KEYWORDS = {
     "NaN": TokenType.NUMBER,
     "lambda": TokenType.LAMBDA,
     "raise": TokenType.RAISE,
+    "match": TokenType.MATCH,
+    "case": TokenType.CASE,
 }
 
 # -------------------------------------------------------

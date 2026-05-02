@@ -65,6 +65,10 @@ class StmtVisitor(ABC):
     def visit_del_stmt(self, expr: 'Del') -> Any:
         pass
 
+    @abstractmethod
+    def visit_match_stmt(self, expr: 'Match') -> Any:
+        pass
+
 
 
 class Stmt(ABC):
@@ -201,4 +205,13 @@ class Del(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_del_stmt(self)
+
+class Match(Stmt):
+    def __init__(self, keyword: Token, subject: Expr, cases: List[Tuple[Any, Optional[Expr], Stmt]]) -> None:
+        self.keyword = keyword
+        self.subject = subject
+        self.cases = cases
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_match_stmt(self)
 

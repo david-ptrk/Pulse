@@ -144,7 +144,7 @@ class Lexer:
             if self.match('>'):
                 self.add_token(TokenType.PIPE)
             else:
-                self._error("Expected '>' after '|'")
+                self.add_token(TokenType.BAR)
             return
         
         # Skip Whitespace character

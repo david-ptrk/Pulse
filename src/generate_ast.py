@@ -95,6 +95,7 @@ STATEMENTS: ASTDict = {
     "Import": ("keyword: Token", "module_path: List[Token]", "alias: Optional[Token]", "names: Optional[List[Tuple[Token, Optional[Token]]]]",),
     "Raise": ("keyword: Token", "exception: Optional[Expr]",),
     "Del": ("keyword: Token", "targets: List[Expr]",),
+    "Match": ("keyword: Token", "subject: Expr", "cases: List[Tuple[Any, Optional[Expr], Stmt]]",),
 }
 
 # Generator Functions

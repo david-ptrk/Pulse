@@ -150,6 +150,8 @@ class Parser:
             return self.parse_while_stmt()
         if self.match(TokenType.FOR):
             return self.parse_for_stmt()
+        if self.match(TokenType.MATCH):
+            return self.parse_match_stmt()
         
         if self.match(TokenType.TRY):
             return self.parse_try_stmt()
@@ -447,6 +449,79 @@ class Parser:
             targets.append(self.expression())
         self.match(TokenType.NEWLINE)
         return stmt.Del(keyword, targets)
+    
+    def parse_match_stmt(self) -> stmt.Match:
+        keyword = self.previous()
+        subject = self.expression()
+        self.consume(TokenType.COLON, "Expected ':' after match subject")
+        self.match(TokenType.NEWLINE)
+        self.consume(TokenType.INDENT, "Expected indented block after 'match:'")
+        
+        cases = []
+        while not self.check(TokenType.DEDENT) and not self.is_at_end():
+            if self.match(TokenType.NEWLINE):
+                continue
+            self.consume(TokenType.CASE, "Expected 'case' in match block")
+            pattern = self.parse_pattern()
+            
+            guard = None
+            if self.match(TokenType.IF):
+                guard = self.expression()
+            
+            self.consume(TokenType.COLON, "Expected ':' after case pattern")
+            body = self._expect_indented_block()
+            cases.append((pattern, guard, body))
+        
+        self.consume(TokenType.DEDENT, "Expected end of match block")
+        return stmt.Match(keyword, subject, cases)
+    
+    def parse_pattern(self):
+        if self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "_":
+            return self.advance()
+        
+        if self.check(TokenType.IDENTIFIER) and not self._is_pattern_literal():
+            return self.advance()
+        
+        if self.match(TokenType.LEFT_BRACKET):
+            patterns = []
+            if not self.check(TokenType.RIGHT_BRACKET):
+                patterns.append(self.parse_pattern())
+                while self.match(TokenType.COMMA):
+                    if self.check(TokenType.RIGHT_BRACKET):
+                        break
+                    patterns.append(self.parse_pattern())
+            self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after sequence pattern")
+            return ("sequence", patterns)
+        
+        if self.match(TokenType.LEFT_BRACE):
+            pairs = []
+            if not self.check(TokenType.RIGHT_BRACE):
+                while True:
+                    key = self.expression()
+                    self.consume(TokenType.COLON, "Expected ':' in mapping pattern")
+                    val_pattern = self.parse_pattern()
+                    pairs.append((key, val_pattern))
+                    if not self.match(TokenType.COMMA):
+                        break
+            self.consume(TokenType.RIGHT_BRACE, "Expected '}' after mapping pattern")
+            return ("mapping", pairs)
+        
+        node = self.expression()
+        if self.match(TokenType.BAR):
+            alternatives = [node]
+            alternatives.append(self.expression())
+            while self.match(TokenType.BAR):
+                alternatives.append(self.expression())
+            return ("or", alternatives)
+        
+        return node
+    
+    def _is_pattern_literal(self) -> bool:
+        next_type = self.peek_next().type
+        return next_type in (
+            TokenType.DOT,
+            TokenType.LEFT_PAREN,
+        )
     
     def expression(self) -> expr.Expr:
         return self.assignment()

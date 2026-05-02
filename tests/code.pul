@@ -1,29 +1,57 @@
-# list comprehension
-nums = [1, -2, 3, -4, 5]
-pos = [x * 2 for x in nums if x > 0]
-print(pos)   # [2, 6, 10]
+# literal matching
+status = 404
+match status:
+    case 200:
+        print("OK")
+    case 404:
+        print("Not Found")
+    case 500:
+        print("Server Error")
+    case _:
+        print("Unknown")
 
-squares = [x * x for x in range(1, 6)]
-print(squares)  # [1, 4, 9, 16, 25]
+# capture variable
+match status:
+    case 200:
+        print("OK")
+    case code:
+        print(f"Got code: {code}")
 
-# *args
-def sum_all(*args):
-    total = 0
-    for n in args:
-        total += n
-    return total
+# OR pattern
+match status:
+    case 400 | 401 | 403:
+        print("Client Error")
+    case 500 | 502 | 503:
+        print("Server Error")
 
-print(sum_all(1, 2, 3, 4, 5))  # 15
+# guard condition
+x = 42
+match x:
+    case n if n < 0:
+        print("negative")
+    case n if n == 0:
+        print("zero")
+    case n:
+        print(f"positive: {n}")
 
-def first_and_rest(first, *rest):
-    print(first)
-    print(rest)
+# sequence pattern
+point = [1, 2]
+match point:
+    case [0, 0]:
+        print("origin")
+    case [x, 0]:
+        print(f"on x-axis at {x}")
+    case [0, y]:
+        print(f"on y-axis at {y}")
+    case [x, y]:
+        print(f"point at {x}, {y}")
 
-first_and_rest(1, 2, 3, 4)  # 1 then [2, 3, 4]
-
-# list methods
-nums = [3, 1, 4, 1, 5]
-print(nums.index(4))       # 2
-print(nums.find(99))       # -1
-nums.insert(0, 99)
-print(nums)                # [99, 3, 1, 4, 1, 5]
+# mapping pattern
+response = {"status": 200, "body": "hello"}
+match response:
+    case {"status": 200, "body": msg}:
+        print(f"Success: {msg}")
+    case {"status": 404}:
+        print("Not found")
+    case _:
+        print("Unknown response")

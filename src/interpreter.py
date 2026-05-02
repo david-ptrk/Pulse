@@ -597,6 +597,78 @@ class Interpreter(ExprVisitor, StmtVisitor):
             else:
                 self._raise("Invalid del target", stmt.keyword)
     
+    def visit_match_stmt(self, stmt) -> Any:
+        subject = self.evaluate(stmt.subject)
+        
+        for pattern, guard, body in stmt.cases:
+            bindings = {}
+            if self._match_pattern(pattern, subject, bindings):
+                if guard is not None:
+                    prev = self.environment
+                    guard_env = Environment(enclosing=prev)
+                    for k, v in bindings.items():
+                        guard_env.define(k, v)
+                    self.environment = guard_env
+                    try:
+                        passed = self._is_truthy(self.evaluate(guard))
+                    finally:
+                        self.environment = prev
+                    if not passed:
+                        continue
+                
+                prev = self.environment
+                case_env = Environment(enclosing=prev)
+                for k, v in bindings.items():
+                    case_env.define(k, v)
+                self.environment = case_env
+                try:
+                    return self.execute(body)
+                finally:
+                    self.environment = prev
+        
+        return None
+    
+    def _match_pattern(self, pattern, subject, bindings: dict) -> bool:
+        if isinstance(pattern, Token) and pattern.lexeme == "_":
+            return True
+        
+        if isinstance(pattern, Token):
+            bindings[pattern.lexeme] = subject
+            return True
+        
+        if isinstance(pattern, tuple) and pattern[0] == "or":
+            return any(self._match_pattern(alt, subject, {}) for alt in pattern[1])
+        
+        if isinstance(pattern, tuple) and pattern[0] == "sequence":
+            if not isinstance(subject, PulseList):
+                return False
+            sub_patterns = pattern[1]
+            if len(sub_patterns) != len(subject.elements):
+                return False
+            for sub_pat, el in zip(sub_patterns, subject.elements):
+                sub_bindings = {}
+                if not self._match_pattern(sub_pat, el, sub_bindings):
+                    return False
+                bindings.update(sub_bindings)
+            return True
+        
+        if isinstance(pattern, tuple) and pattern[0] == "mapping":
+            if not isinstance(subject, PulseDict):
+                return False
+            for key_expr, val_pattern in pattern[1]:
+                key = self.evaluate(key_expr)
+                if not subject.has(key):
+                    return False
+                val = subject.get(key)
+                sub_bindings = {}
+                if not self._match_pattern(val_pattern, val, sub_bindings):
+                    return False
+                bindings.update(sub_bindings)
+            return True
+        
+        value = self.evaluate(pattern)
+        return self._is_equal(subject, value)
+    
     # Expression visitors
     def visit_literal_expr(self, expr) -> Any:
         value = expr.value
