@@ -555,10 +555,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         exc = self.evaluate(stmt.exception)
         
-        if isinstance(exc, type) and issubclass(exc, runtime.PulseException):
-            raise exc(PulseRuntimeError("", token=stmt.keyword))
         if isinstance(exc, runtime.PulseException):
             raise exc
+        
+        if isinstance(exc, PulseString):
+            self._raise(exc.value, stmt.keyword)
         
         self._raise(self._stringify(exc), stmt.keyword)
     
@@ -931,6 +932,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
             else:
                 self._raise(f"{callee.declaration.name.lexeme}() missing required argument: 'self'. Calling non-static")
         
+        if isinstance(callee, type) and issubclass(callee, runtime.PulseException):
+            msg = self._stringify(arguments[0]) if arguments else ""
+            raise callee(msg)
+        
         if not callable(getattr(callee, "call", None)):
             self._raise("Attempted to call a non-callable value")
         
@@ -1041,6 +1046,34 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         return value
     
+    def visit_listcomp_expr(self, expr) -> PulseList:
+        iterable = self.evaluate(expr.iterable)
+        
+        if isinstance(iterable, PulseList):
+            items = iterable.elements
+        elif isinstance(iterable, PulseRange):
+            items = iterable.to_list()
+        elif isinstance(iterable, PulseString):
+            items = [PulseString(c) for c in iterable.value]
+        else:
+            self._raise(f"List comprehension iterable must be iterable, got '{iterable.type_name()}'")
+        
+        results = []
+        previous = self.environment
+        for item in items:
+            loop_env = Environment(enclosing=previous)
+            loop_env.define(expr.var.lexeme, item)
+            self.environment = loop_env
+            try:
+                if expr.condition is not None:
+                    if not self._is_truthy(self.evaluate(expr.condition)):
+                        continue
+                results.append(self.evaluate(expr.element))
+            finally:
+                self.environment = previous
+        
+        return PulseList(results)
+    
     # Built-in method dispatch
     def _list_method(self, obj: PulseList, name: str, token: Token) -> PulseNativeFunction:
         if name == "append":
@@ -1139,6 +1172,32 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     if self._is_truthy(fn.call(self, [el], {}))
                 ])
             return PulseNativeFunction("filter", _filter)
+        
+        if name == "index":
+            def _index(val: Any, start: Any = None) -> PulseNumber:
+                s = int(start.value) if start is not None else 0
+                for i, el in enumerate(obj.elements[s:], s):
+                    if self._is_equal(el, val):
+                        return PulseNumber(i)
+                self._raise(f"Value not found in list", token)
+            return PulseNativeFunction("index", _index)
+        
+        if name == "find":
+            def _find(val: Any, start: Any = None) -> PulseNumber:
+                s = int(start.value) if start is not None else 0
+                for i, el in enumerate(obj.elements[s:], s):
+                    if self._is_equal(el, val):
+                        return PulseNumber(i)
+                return PulseNumber(-1)
+            return PulseNativeFunction("find", _find)
+        
+        if name == "insert":
+            def _insert(index: Any, val: Any) -> PulseNull:
+                self._check_number(index, token, "insert() index")
+                idx = int(index.value)
+                obj.elements.insert(idx, val)
+                return PulseNull()
+            return PulseNativeFunction("insert", _insert)
         
         self._raise(f"List has no method '{name}'", token)
     

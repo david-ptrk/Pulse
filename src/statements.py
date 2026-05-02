@@ -137,10 +137,11 @@ class Return(Stmt):
         return visitor.visit_return_stmt(self)
 
 class Function(Stmt):
-    def __init__(self, name: Token, params: List[Token], defaults: List[Optional[Expr]], body: Block, is_method: bool, is_static: bool) -> None:
+    def __init__(self, name: Token, params: List[Token], defaults: List[Optional[Expr]], vararg: Optional[Token], body: Block, is_method: bool, is_static: bool) -> None:
         self.name = name
         self.params = params
         self.defaults = defaults
+        self.vararg = vararg
         self.body = body
         self.is_method = is_method
         self.is_static = is_static

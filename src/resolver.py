@@ -96,6 +96,9 @@ class Resolver(ExprVisitor, StmtVisitor):
         for param in func.params:
             self.scopes[-1][param.lexeme] = True
         
+        if getattr(func, "vararg", None) is not None:
+            self.scopes[-1][func.vararg.lexeme] = True
+        
         for default in getattr(func, "defaults", []):
             if default is not None:
                 self.resolve_expr(default)
@@ -345,3 +348,13 @@ class Resolver(ExprVisitor, StmtVisitor):
         
         self.end_scope()
         self.current_function = enclosing_function
+    
+    def visit_listcomp_expr(self, expr):
+        self.resolve_expr(expr.iterable)
+        self.begin_scope()
+        
+        self.scopes[-1][expr.var.lexeme] = True
+        self.resolve_expr(expr.element)
+        if expr.condition is not None:
+            self.resolve_expr(expr.condition)
+        self.end_scope()

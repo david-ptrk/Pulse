@@ -88,6 +88,10 @@ class ExprVisitor(ABC):
     def visit_lambda_expr(self, expr: 'Lambda') -> Any:
         pass
 
+    @abstractmethod
+    def visit_listcomp_expr(self, expr: 'ListComp') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -262,4 +266,14 @@ class Lambda(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_lambda_expr(self)
+
+class ListComp(Expr):
+    def __init__(self, element: Expr, var: Token, iterable: Expr, condition: Optional[Expr]) -> None:
+        self.element = element
+        self.var = var
+        self.iterable = iterable
+        self.condition = condition
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_listcomp_expr(self)
 

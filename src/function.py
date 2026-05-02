@@ -14,7 +14,7 @@ functions.
 from src.environment import Environment
 from src.error import PulseRuntimeError
 import src.runtime as runtime
-from src.values import PulseNull
+from src.values import PulseNull, PulseList
 
 class PulseFunction:
     def __init__(self, declaration, closure):
@@ -32,20 +32,28 @@ class PulseFunction:
         
         params = self.declaration.params
         defaults = getattr(self.declaration, "defaults", [None] * len(params))
+        vararg = getattr(self.declaration, "vararg", None)
         callable_params = [p for p in params if p.lexeme != "self"]
         callable_defaults = [
             defaults[i] for i, p in enumerate(params) if p.lexeme != "self"
         ]
         
-        if len(arguments) > len(callable_params):
-            raise runtime.PulseRuntimeException(
-                PulseRuntimeError(f"Expected at most {len(callable_params)} arguments but got {len(arguments)}")
-            )
+        if vararg is not None:
+            n = len(callable_params)
+            regular_args = arguments[:n]
+            extra_args = arguments[n:]
+        else:
+            if len(arguments) > len(callable_params):
+                raise runtime.PulseRuntimeException(
+                    PulseRuntimeError(f"Expected at most {len(callable_params)} arguments but got {len(arguments)}")
+                )
+            regular_args = arguments
+            extra_args = []
         
         bound = {}
         for i, param in enumerate(callable_params):
-            if i < len(arguments):
-                bound[param.lexeme] = arguments[i]
+            if i < len(regular_args):
+                bound[param.lexeme] = regular_args[i]
         
         params_names = {p.lexeme for p in callable_params}
         for key, value in keyword_arguments.items():
@@ -77,6 +85,9 @@ class PulseFunction:
         # Bind parameters
         for name, value in bound.items():
             environment.define(name, value)
+        
+        if vararg is not None:
+            environment.define(vararg.lexeme, PulseList(extra_args))
         
         previous = interpreter.environment
         interpreter.environment = environment

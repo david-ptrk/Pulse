@@ -247,27 +247,33 @@ class Parser:
         
         params: List[Token] = []
         defaults: List[Optional[expr.Expr]] = []
+        vararg: Optional[Token] = None
         
         if not self.check(TokenType.RIGHT_PAREN):
-            param, default = self._consume_param_with_default()
-            params.append(param)
-            defaults.append(default)
-            
-            while self.match(TokenType.COMMA):
-                if self.check(TokenType.RIGHT_PAREN):
+            while True:
+                if self.match(TokenType.STAR):
+                    vararg = self.consume(TokenType.IDENTIFIER, "Expected parameter name after '*'")
+                    if not self.check(TokenType.RIGHT_PAREN):
+                        self.consume(TokenType.RIGHT_PAREN, "*args must be the last parameter")
                     break
+                
                 param, default = self._consume_param_with_default()
                 if default is None and any(d is not None for d in defaults):
                     self._error(param, "Non-default parameter cannot follow a default parameter")
                 params.append(param)
                 defaults.append(default)
+                
+                if not self.match(TokenType.COMMA):
+                    break
+                if self.check(TokenType.RIGHT_PAREN):
+                    break
         
         self.consume(TokenType.RIGHT_PAREN, "Expected ')' after parameters.")
         self.consume(TokenType.COLON, "Expected ':' before function body")
         
         self.consume(TokenType.INDENT, "Expected indented block after function definition")
         body = self.block()
-        return stmt.Function(name, params, defaults, body, is_method, is_static)
+        return stmt.Function(name, params, defaults, vararg, body, is_method, is_static)
     
     def _consume_param(self) -> Token:
         if self.check(TokenType.SELF):
@@ -696,14 +702,27 @@ class Parser:
             return self.parse_dict_literal()
         
         if self.match(TokenType.LEFT_BRACKET):
-            elements: List[expr.Expr] = []
+            if self.check(TokenType.RIGHT_BRACKET):
+                self.advance()
+                return expr.List([])
             
-            if not self.check(TokenType.RIGHT_BRACKET):
+            first = self.expression()
+            
+            if self.match(TokenType.FOR):
+                var = self.consume(TokenType.IDENTIFIER, "Expected variable after 'for'")
+                self.consume(TokenType.IN, "Expected 'in' after loop variable")
+                iterable = self.expression()
+                condition = None
+                if self.match(TokenType.IF):
+                    condition = self.expression()
+                self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after list comprehension")
+                return expr.ListComp(first, var, iterable, condition)
+            
+            elements = [first]
+            while self.match(TokenType.COMMA):
+                if self.check(TokenType.RIGHT_BRACKET):
+                    break
                 elements.append(self.expression())
-                while self.match(TokenType.COMMA):
-                    if self.check(TokenType.RIGHT_BRACKET):
-                        break
-                    elements.append(self.expression())
             
             self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after list literal")
             return expr.List(elements)

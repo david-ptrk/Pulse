@@ -75,6 +75,7 @@ EXPRESSIONS: ASTDict = {
     "Pipe": ("left: Expr", "right: Expr",),
     "Unpack": ("names: List[Token]", "value: Expr",),
     "Lambda": ("params: List[Token]", "body: Expr",),
+    "ListComp": ("element: Expr", "var: Token", "iterable: Expr", "condition: Optional[Expr]",),
 }
 
 # Statements
@@ -87,7 +88,7 @@ STATEMENTS: ASTDict = {
     "Break": ("keyword: Token",),
     "Continue": ("keyword: Token",),
     "Return": ("keyword: Token", "value: Optional[Expr]",),
-    "Function": ("name: Token", "params: List[Token]", "defaults: List[Optional[Expr]]", "body: Block", "is_method: bool", "is_static: bool",),
+    "Function": ("name: Token", "params: List[Token]", "defaults: List[Optional[Expr]]", "vararg: Optional[Token]", "body: Block", "is_method: bool", "is_static: bool",),
     "Class": ("name: Token", "bases: List[Token]", "methods: List[Function]", "class_vars: List[Tuple[Token, Expr]]",),
     "Try": ("try_block: Stmt", "except_blocks: List[Tuple[Optional[Expr], Optional[Token], Stmt]]", "finally_block: Optional[Stmt]", "else_block: Optional[Stmt]",),
     "Pass": (),
