@@ -92,6 +92,10 @@ class ExprVisitor(ABC):
     def visit_listcomp_expr(self, expr: 'ListComp') -> Any:
         pass
 
+    @abstractmethod
+    def visit_ternary_expr(self, expr: 'Ternary') -> Any:
+        pass
+
 
 
 class Expr(ABC):
@@ -276,4 +280,13 @@ class ListComp(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_listcomp_expr(self)
+
+class Ternary(Expr):
+    def __init__(self, then_expr: Expr, condition: Expr, else_expr: Expr) -> None:
+        self.then_expr = then_expr
+        self.condition = condition
+        self.else_expr = else_expr
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_ternary_expr(self)
 

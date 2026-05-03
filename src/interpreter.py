@@ -193,6 +193,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         self._raise(f"'in' operator not supported for type '{container.type_name()}'", token)
     
+    def _is_same(self, a: Any, b: Any) -> bool:
+        if isinstance(a, PulseNull) and isinstance(b, PulseNull):
+            return True
+        if isinstance(a, PulseBoolean) and isinstance(b, PulseBoolean):
+            return a.value is b.value
+        return a is b
+    
     # Stringification
     def _stringify(self, val: Any) -> str:
         if isinstance(val, PulseInstance):
@@ -829,6 +836,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if operator == "not in":
             return PulseBoolean(not self._contains(right, left, tok))
         
+        if operator == "is":
+            return PulseBoolean(self._is_same(left, right))
+        if operator == "is not":
+            return PulseBoolean(not self._is_same(left, right))
+        
         if operator == "+" and isinstance(left, PulseString) and isinstance(right, PulseString):
             return PulseString(left.value + right.value)
         
@@ -1180,6 +1192,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 self.environment = previous
         
         return PulseList(results)
+    
+    def visit_ternary_expr(self, expr) -> Any:
+        if self._is_truthy(self.evaluate(expr.condition)):
+            return self.evaluate(expr.then_expr)
+        return self.evaluate(expr.else_expr)
     
     # Built-in method dispatch
     def _list_method(self, obj: PulseList, name: str, token: Token) -> PulseNativeFunction:

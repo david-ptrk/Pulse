@@ -76,6 +76,7 @@ EXPRESSIONS: ASTDict = {
     "Unpack": ("names: List[Token]", "value: Expr",),
     "Lambda": ("params: List[Token]", "body: Expr",),
     "ListComp": ("element: Expr", "var: Token", "iterable: Expr", "condition: Optional[Expr]",),
+    "Ternary": ("then_expr: Expr", "condition: Expr", "else_expr: Expr",),
 }
 
 # Statements

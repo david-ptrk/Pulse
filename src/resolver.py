@@ -395,3 +395,8 @@ class Resolver(ExprVisitor, StmtVisitor):
         if expr.condition is not None:
             self.resolve_expr(expr.condition)
         self.end_scope()
+    
+    def visit_ternary_expr(self, expr):
+        self.resolve_expr(expr.then_expr)
+        self.resolve_expr(expr.condition)
+        self.resolve_expr(expr.else_expr)

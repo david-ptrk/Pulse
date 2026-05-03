@@ -561,6 +561,12 @@ class Parser:
     def assignment(self) -> expr.Expr:        
         left = self.pipeline()
         
+        if self.match(TokenType.IF):
+            condition = self.expression()
+            self.consume(TokenType.ELSE, "Expected 'else' in ternary expression")
+            otherwise = self.assignment()
+            return expr.Ternary(left, condition, otherwise)
+        
         # Augmented assignment operators
         aug_map = {
             TokenType.PLUS_EQUAL: "+",
@@ -655,6 +661,19 @@ class Parser:
                 right = self.comparison()
                 node = expr.Binary(node, op, right)
             
+            elif self.match(TokenType.IS):
+                op = self.previous()
+                if self.match(TokenType.NOT):
+                    op = Token(
+                        TokenType.IS,
+                        lexeme="is not",
+                        literal=None,
+                        line=op.line,
+                        column=getattr(op, "column", 0),
+                    )
+                right = self.comparison()
+                node = expr.Binary(node, op, right)
+            
             elif self.match(TokenType.NOT):
                 if self.match(TokenType.IN):
                     op = Token(
@@ -679,14 +698,31 @@ class Parser:
         node = self.addition()
         
         while self.match(
-            TokenType.GREATER,
-            TokenType.GREATER_EQUAL,
-            TokenType.LESS,
-            TokenType.LESS_EQUAL,
+            TokenType.GREATER, TokenType.GREATER_EQUAL,
+            TokenType.LESS, TokenType.LESS_EQUAL,
         ):
             op = self.previous()
             right = self.addition()
             node = expr.Binary(node, op, right)
+            
+            while self.match(
+                TokenType.GREATER, TokenType.GREATER_EQUAL,
+                TokenType.LESS, TokenType.LESS_EQUAL,
+            ):
+                next_op = self.previous()
+                next_right = self.addition()
+                prev_right = node.right if isinstance(node, expr.Binary) else right
+                next_cmp = expr.Binary(prev_right, next_op, next_right)
+                and_tok = Token(
+                    type=TokenType.AND,
+                    lexeme="and",
+                    literal=None,
+                    line=next_op.line,
+                    column=getattr(next_op, "column", 0),
+                )
+                
+                node = expr.Logical(node, and_tok, next_cmp)
+                right = next_right
         
         return node
     

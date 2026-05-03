@@ -107,6 +107,7 @@ class TokenType(Enum):
     RAISE = auto()
     MATCH = auto()
     CASE = auto()
+    IS = auto()
 
 # Mapping of string keywords to TokenType for easy lookup
 KEYWORDS = {
@@ -142,6 +143,7 @@ KEYWORDS = {
     "raise": TokenType.RAISE,
     "match": TokenType.MATCH,
     "case": TokenType.CASE,
+    "is": TokenType.IS,
 }
 
 # -------------------------------------------------------
