@@ -7,7 +7,7 @@ Each entry is a factor: (interpreter) -> PulseModule
 
 from src.stdlib import (
     math_module, io_module, model_module, preprocess_module,
-    time_module, random_module,
+    time_module, random_module, os_module
 )
 
 STDLIB_MODULES = {
@@ -17,4 +17,5 @@ STDLIB_MODULES = {
     "preprocess": preprocess_module.make,
     "time": time_module.make,
     "random": random_module.make,
+    "os": os_module.make,
 }
