@@ -1,57 +1,26 @@
-# literal matching
-status = 404
-match status:
-    case 200:
-        print("OK")
-    case 404:
-        print("Not Found")
-    case 500:
-        print("Server Error")
-    case _:
-        print("Unknown")
+# sum, any, all
+nums = [1, 2, 3, 4, 5]
+print(sum(nums))          # 15
+print(sum(nums, 10))      # 25
+print(any([False, True, False]))  # true
+print(all([True, True, True]))    # true
+print(all([True, False, True]))   # false
 
-# capture variable
-match status:
-    case 200:
-        print("OK")
-    case code:
-        print(f"Got code: {code}")
+# multi-line strings
+text = """
+Hello
+World
+"""
+print(text)
 
-# OR pattern
-match status:
-    case 400 | 401 | 403:
-        print("Client Error")
-    case 500 | 502 | 503:
-        print("Server Error")
+# list extend and count
+a = [1, 2, 3]
+a.extend([4, 5, 6])
+print(a)               # [1, 2, 3, 4, 5, 6]
+a.extend(range(7, 10))
+print(a)               # [1, 2, 3, 4, 5, 6, 7, 8, 9]
+print(a.count(1))      # 1
 
-# guard condition
-x = 42
-match x:
-    case n if n < 0:
-        print("negative")
-    case n if n == 0:
-        print("zero")
-    case n:
-        print(f"positive: {n}")
-
-# sequence pattern
-point = [1, 2]
-match point:
-    case [0, 0]:
-        print("origin")
-    case [x, 0]:
-        print(f"on x-axis at {x}")
-    case [0, y]:
-        print(f"on y-axis at {y}")
-    case [x, y]:
-        print(f"point at {x}, {y}")
-
-# mapping pattern
-response = {"status": 200, "body": "hello"}
-match response:
-    case {"status": 200, "body": msg}:
-        print(f"Success: {msg}")
-    case {"status": 404}:
-        print("Not found")
-    case _:
-        print("Unknown response")
+# string format
+print("Hello, {}!".format("Daud"))         # Hello, Daud!
+print("{} + {} = {}".format(1, 2, 3))      # 1 + 2 = 3

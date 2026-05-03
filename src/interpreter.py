@@ -86,6 +86,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("bool", PulseNativeFunction("bool", self._bi_bool)),
             ("enumerate", PulseNativeFunction("enumerate", self._bi_enumerate)),
             ("zip", PulseNativeFunction("zip", self._bi_zip)),
+            ("sum", PulseNativeFunction("sum", self._bi_sum)),
+            ("any", PulseNativeFunction("any", self._bi_any)),
+            ("all", PulseNativeFunction("all", self._bi_all)),
         ])
         
         # Built-in exception classes
@@ -380,6 +383,38 @@ class Interpreter(ExprVisitor, StmtVisitor):
             PulseList(list(group))
             for group in zip(*lists)
         ])
+    
+    def _bi_sum(self, iterable: Any, start: Any = None) -> PulseNumber:
+        if isinstance(iterable, PulseList):
+            items = iterable.elements
+        elif isinstance(iterable, PulseRange):
+            items = iterable.to_list()
+        else:
+            self._raise(f"sum() argument must be iterable, got '{iterable.type_name()}'")
+        
+        total = start.value if start is not None else 0
+        for item in items:
+            self._check_number(item, None, "sum() element")
+            total += item.value
+        return PulseNumber(total)
+    
+    def _bi_any(self, iterable: Any) -> PulseBoolean:
+        if isinstance(iterable, PulseList):
+            items = iterable.elements
+        elif isinstance(iterable, PulseRange):
+            items = iterable.to_list()
+        else:
+            self._raise(f"any() argument must be iterable, got '{iterable.type_name()}'")
+        return PulseBoolean(any(self._is_truthy(el) for el in items))
+    
+    def _bi_all(self, iterable: Any) -> PulseBoolean:
+        if isinstance(iterable, PulseList):
+            items = iterable.elements
+        elif isinstance(iterable, PulseRange):
+            items = iterable.to_list()
+        else:
+            self._raise(f"all() argument must be iterable, got '{iterable.type_name()}'")
+        return PulseBoolean(all(self._is_truthy(el) for el in items))
     
     # Statement visitors
     def visit_expression_stmt(self, stmt) -> Any:
@@ -1271,6 +1306,22 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return PulseNull()
             return PulseNativeFunction("insert", _insert)
         
+        if name == "extend":
+            def _extend(other: Any) -> PulseNull:
+                if isinstance(other, PulseList):
+                    obj.elements.extend(other.elements)
+                elif isinstance(other, PulseRange):
+                    obj.elements.extend(other.to_list())
+                else:
+                    self._raise(f"extend() argument must be a list or range, got '{other.type_name()}'", token)
+                return PulseNull()
+            return PulseNativeFunction("extend", _extend)
+        
+        if name == "count":
+            def _count(val: Any) -> PulseNumber:
+                return PulseNumber(sum(1 for el in obj.elements if self._is_equal(el, val)))
+            return PulseNativeFunction("count", _count)
+        
         self._raise(f"List has no method '{name}'", token)
     
     def _string_method(self, obj: PulseString, name: str, token: Token) -> PulseNativeFunction:
@@ -1360,6 +1411,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     self._raise("count() argument must be a string", token)
                 return PulseNumber(obj.value.count(sub.value))
             return PulseNativeFunction("count", _count)
+        
+        if name == "format":
+            def _format(*args: Any) -> PulseString:
+                result = obj.value
+                for arg in args:
+                    if "{}" not in result:
+                        self._raise("Too many arguments for format()", token)
+                    result = result.replace("{}", self._stringify(arg), 1)
+                if "{}" in result:
+                    self._raise("Not enough arguments for format()", token)
+                return PulseString(result)
+            return PulseNativeFunction("format", _format)
         
         self._raise(f"String has no method '{name}'", token)
     

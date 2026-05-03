@@ -258,8 +258,15 @@ class Lexer:
         """Handles string literals enclosed in double and single quotes"""
         start_line = self.line
         start_column = self.column()
-        value_chars = []
         
+        # Triple quotes
+        if self.peek() == quote_type and self.peek_next() == quote_type:
+            self.advance()
+            self.advance()
+            self._triple_string(quote_type, start_line, start_column)
+            return
+        
+        value_chars = []
         while not self.is_at_end():
             c = self.advance()
             
@@ -281,6 +288,22 @@ class Lexer:
                 value_chars.append(c)
         
         self._error("Unterminated string", start_line, start_column)
+    
+    def _triple_string(self, quote_type: str, start_line: int, start_column: int) -> None:
+        value_chars = []
+        while not self.is_at_end():
+            c = self.advance()
+            if c == quote_type and self.peek() == quote_type and self.peek_next() == quote_type:
+                self.advance()
+                self.advance()
+                self.add_token(TokenType.STRING, "".join(value_chars))
+                return
+            
+            if c == "\n":
+                self.line += 1
+            
+            value_chars.append(c)
+        self._error("Unterminated triple-quoted string", start_line, start_column)
     
     def fstring(self, quote_type) -> None:
         value_chars = []
