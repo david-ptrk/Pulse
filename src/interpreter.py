@@ -97,6 +97,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("RuntimeError", runtime.PulseRuntimeException),
             ("ValueError", runtime.PulseValueError),
             ("TypeError", runtime.PulseTypeError),
+            ("IndexError", runtime.PulseIndexError),
+            ("KeyError", runtime.PulseKeyError),
+            ("AttributeError", runtime.PulseAttributeError),
+            ("ZeroDivisionError", runtime.PulseZeroDivisionError),
+            ("NameError", runtime.PulseNameError),
+            ("NotImplementedError", runtime.PulseNotImplementedError),
         ])
     
     # Entry points
@@ -128,9 +134,72 @@ class Interpreter(ExprVisitor, StmtVisitor):
             )
         )
     
+    def _raise_type(self, message: str, token: Token | None = None) -> NoReturn:
+        raise runtime.PulseTypeError(
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
+        )
+    
+    def _raise_value(self, message: str, token: Token | None = None) -> NoReturn:
+        raise runtime.PulseValueError(
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
+        )
+    
+    def _raise_index(self, message: str, token: Token | None = None) -> NoReturn:
+        raise runtime.PulseIndexError(
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
+        )
+    
+    def _raise_key(self, message: str, token: Token | None = None) -> NoReturn:
+        raise runtime.PulseKeyError(
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
+        )
+    
+    def _raise_attr(self, message: str, token: Token | None = None) -> NoReturn:
+        raise runtime.PulseAttributeError(
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
+        )
+    
+    def _raise_zerodiv(self, message: str, token: Token | None = None) -> NoReturn:
+        raise runtime.PulseZeroDivisionError(
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
+        )
+    
+    def _raise_name(self, message: str, token: Token | None = None) -> NoReturn:
+        raise runtime.PulseNameError(
+            PulseRuntimeError(
+                message=message,
+                token=token,
+                context_source=self.source,
+            )
+        )
+    
     def _check_number(self, value: Any, token: Token | None, label: str = "Operand") -> PulseNumber:
         if not isinstance(value, PulseNumber):
-            self._raise(f"{label} must be a number, got {value.type_name()}", token)
+            self._raise_type(f"{label} must be a number, got {value.type_name()}", token)
         return value
     
     # Truthiness & equality
@@ -184,14 +253,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         if isinstance(container, PulseString):
             if not isinstance(item, PulseString):
-                self._raise("'in' on string requires a string operand", token)
+                self._raise_type("'in' on string requires a string operand", token)
             return item.value in container.value
         
         if isinstance(container, PulseRange):
             items = container.to_list()
             return any(self._is_equal(item, el) for el in items)
         
-        self._raise(f"'in' operator not supported for type '{container.type_name()}'", token)
+        self._raise_type(f"'in' operator not supported for type '{container.type_name()}'", token)
     
     def _is_same(self, a: Any, b: Any) -> bool:
         if isinstance(a, PulseNull) and isinstance(b, PulseNull):
@@ -275,8 +344,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
             try:
                 return PulseNumber(int(x.value))
             except ValueError:
-                self._raise(f"Cannot convert '{x.value}' to int")
-        self._raise(f"int() expects a number or string, got {x.type_name()}")
+                self._raise_value(f"Cannot convert '{x.value}' to int")
+        self._raise_type(f"int() expects a number or string, got {x.type_name()}")
     
     def _bi_float(self, x: Any) -> PulseNumber:
         if isinstance(x, PulseNumber):
@@ -285,8 +354,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
             try:
                 return PulseNumber(float(x.value))
             except ValueError:
-                self._raise(f"Cannot convert '{x.value}' to float")
-        self._raise(f"float() expects a number or string, got {x.type_name()}")
+                self._raise_value(f"Cannot convert '{x.value}' to float")
+        self._raise_type(f"float() expects a number or string, got {x.type_name()}")
     
     def _bi_type(self, obj: Any) -> PulseString:
         return PulseString(obj.type_name())
@@ -302,14 +371,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def _bi_min(self, *args: Any) -> PulseNumber:
         if not args:
-            self._raise("min() expects at least one argument")
+            self._raise_value("min() expects at least one argument")
         for a in args:
             self._check_number(a, None, "min() argument")
         return PulseNumber(min(a.value for a in args))
     
     def _bi_max(self, *args: Any) -> PulseNumber:
         if not args:
-            self._raise("max() expects at least one argument")
+            self._raise_value("max() expects at least one argument")
         for a in args:
             self._check_number(a, None, "max() argument")
         return PulseNumber(max(a.value for a in args))
@@ -323,7 +392,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNumber(len(x.entries))
         if isinstance(x, PulseRange):
             return PulseNumber(len(x))
-        self._raise(f"len() not supported for type '{x.type_name()}'")
+        self._raise_type(f"len() not supported for type '{x.type_name()}'")
     
     def _bi_range(self, *args: Any) -> PulseRange:
         int_args: list[int] = []
@@ -337,10 +406,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseRange(int_args[0], int_args[1])
         if len(int_args) == 3:
             if int_args[2] == 0:
-                self._raise("range() step cannot be zero")
+                self._raise_value("range() step cannot be zero")
             return PulseRange(int_args[0], int_args[1], int_args[2])
         
-        self._raise("range() expects 1, 2, or 3, arguments")
+        self._raise_value("range() expects 1, 2, or 3, arguments")
     
     def _bi_round(self, x: Any, digits: Any = None) -> PulseNumber:
         self._check_number(x, None, "round() argument")
@@ -365,7 +434,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif isinstance(iterable, PulseRange):
             items = iterable.to_list()
         else:
-            self._raise(f"enumerate() argument must be iterable, got '{iterable.type_name()}'")
+            self._raise_type(f"enumerate() argument must be iterable, got '{iterable.type_name()}'")
         
         return PulseList([
             PulseList([PulseNumber(i + offset), el])
@@ -383,7 +452,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return [PulseString(c) for c in obj.value]
             if isinstance(obj, PulseRange):
                 return obj.to_list()
-            self._raise(f"zip() argument must be iterable, got '{obj.type_name()}'")
+            self._raise_type(f"zip() argument must be iterable, got '{obj.type_name()}'")
         
         lists = [to_items(it) for it in iterables]
         return PulseList([
@@ -397,7 +466,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif isinstance(iterable, PulseRange):
             items = iterable.to_list()
         else:
-            self._raise(f"sum() argument must be iterable, got '{iterable.type_name()}'")
+            self._raise_type(f"sum() argument must be iterable, got '{iterable.type_name()}'")
         
         total = start.value if start is not None else 0
         for item in items:
@@ -411,7 +480,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif isinstance(iterable, PulseRange):
             items = iterable.to_list()
         else:
-            self._raise(f"any() argument must be iterable, got '{iterable.type_name()}'")
+            self._raise_type(f"any() argument must be iterable, got '{iterable.type_name()}'")
         return PulseBoolean(any(self._is_truthy(el) for el in items))
     
     def _bi_all(self, iterable: Any) -> PulseBoolean:
@@ -420,7 +489,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif isinstance(iterable, PulseRange):
             items = iterable.to_list()
         else:
-            self._raise(f"all() argument must be iterable, got '{iterable.type_name()}'")
+            self._raise_type(f"all() argument must be iterable, got '{iterable.type_name()}'")
         return PulseBoolean(all(self._is_truthy(el) for el in items))
     
     # Statement visitors
@@ -476,7 +545,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif isinstance(iterable, PulseString):
             items = [PulseString(c) for c in iterable.value]
         else:
-            self._raise(f"Object of type '{iterable.type_name()}' is not iterable")
+            self._raise_type(f"Object of type '{iterable.type_name()}' is not iterable")
         
         previous = self.environment
         for value in items:
@@ -488,7 +557,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     if not isinstance(value, PulseList):
                         self._raise(f"Cannot unpack non-list value in for loop")
                     if len(value.elements) != len(stmt.vars):
-                        self._raise(
+                        self._raise_value(
                             f"Cannot unpack {len(value.elements)} values "
                             f"into {len(stmt.vars)} variables"
                         )
@@ -584,7 +653,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 key = name_token.lexeme
                 val = module.get(key)
                 if val is None:
-                    self._raise(f"Module '{module_name}' has no member '{key}'", name_token)
+                    self._raise_attr(f"Module '{module_name}' has no member '{key}'", name_token)
                 binding =alias_token.lexeme if alias_token else key
                 self.environment.define(binding, val)
         else:
@@ -610,7 +679,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             if isinstance(target, expressions.Variable):
                 name = target.name.lexeme
                 if not self.environment.has(name):
-                    self._raise(f"Cannot delete undefined variable '{name}'", stmt.keyword)
+                    self._raise_name(f"Cannot delete undefined variable '{name}'", stmt.keyword)
                 self.environment.delete(name)
             
             elif isinstance(target, expressions.Index):
@@ -620,21 +689,21 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     self._check_number(index, stmt.keyword, "List index")
                     idx = int(index.value)
                     if idx < -len(obj.elements) or idx >= len(obj.elements):
-                        self._raise(f"List index {idx} out of range", stmt.keyword)
+                        self._raise_index(f"List index {idx} out of range", stmt.keyword)
                     obj.elements.pop(idx)
                 elif isinstance(obj, PulseDict):
                     if not obj.has(index):
-                        self._raise(f"Key '{self._stringify(index)}' not found in dict", stmt.keyword)
+                        self._raise_key(f"Key '{self._stringify(index)}' not found in dict", stmt.keyword)
                     obj.remove(index)
                 else:
-                    self._raise(f"Cannot delete index on type '{obj.type_name()}'", stmt.keyword)
+                    self._raise_type(f"Cannot delete index on type '{obj.type_name()}'", stmt.keyword)
             
             elif isinstance(target, expressions.MemberAccess):
                 obj = self.evaluate(target.object)
                 if isinstance(obj, PulseInstance):
                     obj.fields.pop(target.name.lexeme, None)
                 else:
-                    self._raise(f"Cannot delete member on type '{obj.type_name()}'", stmt.keyword)
+                    self._raise_attr(f"Cannot delete member on type '{obj.type_name()}'", stmt.keyword)
             
             else:
                 self._raise("Invalid del target", stmt.keyword)
@@ -730,7 +799,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         try:
             array = np.array(expr.value, dtype=float)
         except (ValueError, TypeError) as e:
-            self._raise(f"Invalid tensor data: {e}")
+            self._raise_value(f"Invalid tensor data: {e}")
         return PulseTensor(array)
     
     def visit_variable_expr(self, expr) -> Any:
@@ -739,9 +808,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return self.environment.get("self")
         
         distance = self.locals.get(expr)
-        if distance is not None:
-            return self.environment.get_at(distance, name)
-        return self.environment.get(name)
+        try:
+            if distance is not None:
+                return self.environment.get_at(distance, name)
+            return self.environment.get(name)
+        except runtime.PulseRuntimeException:
+            self._raise_name(f"Undefined variable '{name}'", expr.name)
     
     def visit_assign_expr(self, expr) -> Any:
         value = self.evaluate(expr.value)
@@ -795,14 +867,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
                         return PulseTensor(left.array * scalar)
                     if operator == "/":
                         if scalar == 0:
-                            self._raise("Division by zero", tok)
+                            self._raise_zerodiv("Division by zero", tok)
                         return PulseTensor(left.array / scalar)
-                    self._raise(f"Tensor does not support operator '{operator}' with scalar", tok)
+                    self._raise_type(f"Tensor does not support operator '{operator}' with scalar", tok)
                 except ValueError as e:
-                    self._raise(f"Tensor operation failed: {e}", tok)
+                    self._raise_value(f"Tensor operation failed: {e}", tok)
             
             if not isinstance(left, PulseTensor) or not isinstance(right, PulseTensor):
-                self._raise(
+                self._raise_type(
                     f"Both operands must be tensors, "
                     f"got '{left.type_name()}' and '{right.type_name()}'",
                     tok,
@@ -822,9 +894,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
                     return PulseBoolean(np.array_equal(left.array, right.array))
                 if operator == "!=":
                     return PulseBoolean(not np.array_equal(left.array, right.array))
-                self._raise(f"Tensor does not support operator '{operator}'", tok)
+                self._raise_type(f"Tensor does not support operator '{operator}'", tok)
             except ValueError as e:
-                self._raise(f"Tensor operation failed: {e}", tok)
+                self._raise_value(f"Tensor operation failed: {e}", tok)
         
         if operator == "==":
             return PulseBoolean(self._is_equal(left, right))
@@ -847,12 +919,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if operator in ("+", "-", "*", "/", "%", "//", "<", "<=", ">", ">="):
             if not isinstance(left, PulseNumber) or not isinstance(right, PulseNumber):
                 if operator == "+":
-                    self._raise(
+                    self._raise_type(
                         "'+' requires two numbers or two strings, "
                         f"got '{left.type_name()}' and '{right.type_name()}'",
                         tok,
                     )
-                self._raise(
+                self._raise_type(
                     f"'{operator}' requires two numbers, "
                     f"got '{left.type_name()}' and '{right.type_name()}'",
                     tok,
@@ -869,17 +941,17 @@ class Interpreter(ExprVisitor, StmtVisitor):
             
             if operator == "/":
                 if rv == 0:
-                    self._raise("Division by zero", tok)
+                    self._raise_zerodiv("Division by zero", tok)
                 return PulseNumber(lv / rv)
             
             if operator == "%":
                 if rv == 0:
-                    self._raise("Modulo by zero", tok)
+                    self._raise_zerodiv("Modulo by zero", tok)
                 return PulseNumber(lv % rv)
             
             if operator == "//":
                 if rv == 0:
-                    self._raise("Integer division by zero", tok)
+                    self._raise_zerodiv("Integer division by zero", tok)
                 return PulseNumber(int(lv // rv))
             
             if operator == "<":
@@ -921,33 +993,33 @@ class Interpreter(ExprVisitor, StmtVisitor):
             self._check_number(index, None, "List index")
             idx = int(index.value)
             if idx < -len(obj.elements) or idx >= len(obj.elements):
-                self._raise(f"List index {idx} out of range (length {len(obj.elements)})")
+                self._raise_index(f"List index {idx} out of range (length {len(obj.elements)})")
             return obj.elements[idx]
         
         if isinstance(obj, PulseDict):
             if not obj.has(index):
-                self._raise(f"Key '{self._stringify(index)}' not found in dict")
+                self._raise_key(f"Key '{self._stringify(index)}' not found in dict")
             return obj.get(index)
         
         if isinstance(obj, PulseString):
             self._check_number(index, None, "String index")
             idx = int(index.value)
             if idx < -len(obj.value) or idx >= len(obj.value):
-                self._raise(f"String index {idx} out of range (length {len(obj.value)})")
+                self._raise_index(f"String index {idx} out of range (length {len(obj.value)})")
             return PulseString(obj.value[idx])
         
         if isinstance(obj, PulseTensor):
             self._check_number(index, None, "Tensor index")
             idx = int(index.value)
             if idx < 0 or idx >= len(obj.array):
-                self._raise("Tensor index out of range")
+                self._raise_index("Tensor index out of range")
             
             result = obj.array[idx]
             if isinstance(result, np.ndarray):
                 return PulseTensor(result)
             return PulseNumber(float(result))
         
-        self._raise(f"Object of type '{obj.type_name()}' does not support indexing")
+        self._raise_type(f"Object of type '{obj.type_name()}' does not support indexing")
     
     def visit_setindex_expr(self, expr) -> Any:
         obj = self.evaluate(expr.object)
@@ -958,7 +1030,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             self._check_number(index, None, "List index")
             idx = int(index.value)
             if idx < -len(obj.elements) or idx >= len(obj.elements):
-                self._raise(f"List index {idx} out of range (length {len(obj.elements)})")
+                self._raise_index(f"List index {idx} out of range (length {len(obj.elements)})")
             obj.elements[idx] = value
             return value
         
@@ -967,9 +1039,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return value
         
         if isinstance(obj, PulseString):
-            self._raise("Strings are immutable and do not support index assignment")
+            self._raise_type("Strings are immutable and do not support index assignment")
         
-        self._raise(f"Object of type '{obj.type_name()}' does not support indexed assignment")
+        self._raise_type(f"Object of type '{obj.type_name()}' does not support indexed assignment")
     
     def visit_slice_expr(self, expr) -> Any:
         self._raise("Slice used outside of index expression")
@@ -988,13 +1060,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         if isinstance(obj, PulseList):
             if len(expr.indices) != 1 or not isinstance(expr.indices[0], expressions.Slice):
-                self._raise("Lists only support single slice indexing")
+                self._raise_type("Lists only support single slice indexing")
             s = resolve_index(expr.indices[0])
             return PulseList(obj.elements[s])
         
         if isinstance(obj, PulseString):
             if len(expr.indices) != 1 or not isinstance(expr.indices[0], expressions.Slice):
-                self._raise("Strings only support single slice indexing")
+                self._raise_type("Strings only support single slice indexing")
             s = resolve_index(expr.indices[0])
             return PulseString(obj.value[s])
         
@@ -1004,13 +1076,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
             try:
                 result = obj.array[key]
             except IndexError as e:
-                self._raise(f"Tensor index out of range: {e}")
+                self._raise_index(f"Tensor index out of range: {e}")
             
             if isinstance(result, np.ndarray):
                 return PulseTensor(result)
             return PulseNumber(float(result))
         
-        self._raise(f"Object of type '{obj.type_name()}' does not support slicing")
+        self._raise_type(f"Object of type '{obj.type_name()}' does not support slicing")
     
     def visit_setmember_expr(self, expr) -> Any:
         obj = self.evaluate(expr.object)
@@ -1024,7 +1096,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             obj.class_vars[expr.name.lexeme] = value
             return value
         
-        self._raise(
+        self._raise_attr(
             f"Cannot assign member '{expr.name.lexeme}' on "
             f"object of type '{obj.type_name()}'",
             expr.name,
@@ -1049,14 +1121,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 callee = callee.bind(arguments[0])
                 arguments = arguments[1:]
             else:
-                self._raise(f"{callee.declaration.name.lexeme}() missing required argument: 'self'. Calling non-static")
+                self._raise_type(f"{callee.declaration.name.lexeme}() missing required argument: 'self'. Calling non-static")
         
         if isinstance(callee, type) and issubclass(callee, runtime.PulseException):
             msg = self._stringify(arguments[0]) if arguments else ""
             raise callee(msg)
         
         if not callable(getattr(callee, "call", None)):
-            self._raise("Attempted to call a non-callable value")
+            self._raise_type("Attempted to call a non-callable value")
         
         func_name = getattr(getattr(callee, "declaration", None), "name", None)
         func_name = func_name.lexeme if func_name else repr(callee)
@@ -1077,7 +1149,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         name = expr.name.lexeme
         
         if isinstance(obj, PulseNull):
-            self._raise("Cannot access member of null", expr.name)
+            self._raise_attr("Cannot access member of null", expr.name)
         
         if isinstance(obj, PulseList):
             return self._list_method(obj, name, expr.name)
@@ -1093,7 +1165,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         if isinstance(obj, PulseModel):
             if not hasattr(obj, 'methods') or name not in obj.methods:
-                self._raise(f"Model '{obj.model_name}' has no method '{name}'", expr.name)
+                self._raise_attr(f"Model '{obj.model_name}' has no method '{name}'", expr.name)
             return obj.methods[name]
         
         if isinstance(obj, PulseInstance):
@@ -1105,15 +1177,15 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if isinstance(obj, PulseModule):
             val = obj.get(name)
             if val is None:
-                self._raise(f"Module '{obj.name}' has no member '{name}'", expr.name)
+                self._raise_attr(f"Module '{obj.name}' has no member '{name}'", expr.name)
             return val
         
         if isinstance(obj, PulseNamespace):
             if name not in obj.members:
-                self._raise(f"'{obj.name}' has no member '{name}'", expr.name)
+                self._raise_attr(f"'{obj.name}' has no member '{name}'", expr.name)
             return obj.members[name]
         
-        self._raise(
+        self._raise_attr(
             f"Object of type '{obj.type_name()}' does not support member access",
             expr.name,
         )
@@ -1130,7 +1202,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         right_val = self.evaluate(expr.right)
         
         if not callable(getattr(right_val, "call", None)):
-            self._raise("Right side of '|>' must be a callable")
+            self._raise_type("Right side of '|>' must be a callable")
         
         PulseRuntimeError.push_stack(repr(right_val), line_number=None)
         try:
@@ -1155,10 +1227,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 else:
                     elements.append(PulseNumber(float(row)))
         else:
-            self._raise(f"Cannot unpack value of type '{value.type_name()}'")
+            self._raise_type(f"Cannot unpack value of type '{value.type_name()}'")
         
         if len(expr.names) != len(elements):
-            self._raise(f"Cannot unpack {len(elements)} values into {len(expr.names)} variables")
+            self._raise_value(f"Cannot unpack {len(elements)} values into {len(expr.names)} variables")
         
         for name_tok, val in zip(expr.names, elements):
             self.environment.define(name_tok.lexeme, val)
@@ -1175,7 +1247,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         elif isinstance(iterable, PulseString):
             items = [PulseString(c) for c in iterable.value]
         else:
-            self._raise(f"List comprehension iterable must be iterable, got '{iterable.type_name()}'")
+            self._raise_type(f"List comprehension iterable must be iterable, got '{iterable.type_name()}'")
         
         results = []
         previous = self.environment
@@ -1209,13 +1281,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if name == "pop":
             def _pop(index: Any = None) -> Any:
                 if not obj.elements:
-                    self._raise("pop() called on empty list")
+                    self._raise_index("pop() called on empty list")
                 if index is None:
                     return obj.elements.pop()
                 self._check_number(index, token, "pop() index")
                 idx = int(index.value)
                 if idx < -len(obj.elements) or idx >= len(obj.elements):
-                    self._raise(f"pop() index {idx} out of range")
+                    self._raise_index(f"pop() index {idx} out of range")
                 return obj.elements.pop(idx)
             return PulseNativeFunction("pop", _pop)
         
@@ -1251,7 +1323,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 rev = False
                 if reverse is not None:
                     if not isinstance(reverse, PulseBoolean):
-                        self._raise("sort() 'reverse' must be a boolean", token)
+                        self._raise_type("sort() 'reverse' must be a boolean", token)
                     rev = reverse.value
                 
                 try:
@@ -1261,18 +1333,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
                                 return el.value
                             if isinstance(el, PulseString):
                                 return el.value
-                            self._raise(f"sort() cannot compare values of type '{el.type_name()}'", token)
+                            self._raise_type(f"sort() cannot compare values of type '{el.type_name()}'", token)
                         obj.elements.sort(key=default_key, reverse=rev)
                     else:
                         if not callable(getattr(key, "call", None)):
-                            self._raise("sort() key must be a callable", token)
+                            self._raise_type("sort() key must be a callable", token)
                         def pulse_key(el):
                             result = key.call(self, [el], {})
                             if isinstance(result, PulseNumber):
                                 return result.value
                             if isinstance(result, PulseString):
                                 return result.value
-                            self._raise(f"sort() key function must return a number or string", token)
+                            self._raise_type(f"sort() key function must return a number or string", token)
                         obj.elements.sort(key=pulse_key, reverse=rev)
                 except PulseRuntimeError:
                     raise
@@ -1283,14 +1355,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if name == "map":
             def _map(fn: Any) -> PulseList:
                 if not callable(getattr(fn, "call", None)):
-                    self._raise("map() argument must be a callable", token)
+                    self._raise_type("map() argument must be a callable", token)
                 return PulseList([fn.call(self, [el], {}) for el in obj.elements])
             return PulseNativeFunction("map", _map)
         
         if name == "filter":
             def _filter(fn: Any) -> PulseList:
                 if not callable(getattr(fn, "call", None)):
-                    self._raise("filter() argument must be a callable", token)
+                    self._raise_type("filter() argument must be a callable", token)
                 return PulseList([
                     el for el in obj.elements
                     if self._is_truthy(fn.call(self, [el], {}))
@@ -1303,7 +1375,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 for i, el in enumerate(obj.elements[s:], s):
                     if self._is_equal(el, val):
                         return PulseNumber(i)
-                self._raise(f"Value not found in list", token)
+                self._raise_value(f"Value not found in list", token)
             return PulseNativeFunction("index", _index)
         
         if name == "find":
@@ -1330,7 +1402,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 elif isinstance(other, PulseRange):
                     obj.elements.extend(other.to_list())
                 else:
-                    self._raise(f"extend() argument must be a list or range, got '{other.type_name()}'", token)
+                    self._raise_type(f"extend() argument must be a list or range, got '{other.type_name()}'", token)
                 return PulseNull()
             return PulseNativeFunction("extend", _extend)
         
@@ -1339,7 +1411,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return PulseNumber(sum(1 for el in obj.elements if self._is_equal(el, val)))
             return PulseNativeFunction("count", _count)
         
-        self._raise(f"List has no method '{name}'", token)
+        self._raise_attr(f"List has no method '{name}'", token)
     
     def _string_method(self, obj: PulseString, name: str, token: Token) -> PulseNativeFunction:
         if name == "upper":
@@ -1356,18 +1428,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 if sep is None:
                     return PulseList([PulseString(s) for s in obj.value.split()])
                 if not isinstance(sep, PulseString):
-                    self._raise("split() separator must be a string", token)
+                    self._raise_type("split() separator must be a string", token)
                 return PulseList([PulseString(s) for s in obj.value.split(sep.value)])
             return PulseNativeFunction("split", _split)
         
         if name == "join":
             def _join(lst: Any) -> PulseString:
                 if not isinstance(lst, PulseList):
-                    self._raise("join() expects a list", token)
+                    self._raise_type("join() expects a list", token)
                 parts: list[str] = []
                 for el in lst.elements:
                     if not isinstance(el, PulseString):
-                        self._raise("join() list elements must all be strings", token)
+                        self._raise_type("join() list elements must all be strings", token)
                     parts.append(el.value)
                 return PulseString(obj.value.join(parts))
             return PulseNativeFunction("join", _join)
@@ -1375,28 +1447,28 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if name == "replace":
             def _replace(old: Any, new: Any) -> PulseString:
                 if not isinstance(old, PulseString) or not isinstance(new, PulseString):
-                    self._raise("replace() expects two string arguments", token)
+                    self._raise_type("replace() expects two string arguments", token)
                 return PulseString(obj.value.replace(old.value, new.value))
             return PulseNativeFunction("replace", _replace)
         
         if name == "starts_with":
             def _starts_with(s: Any) -> PulseBoolean:
                 if not isinstance(s, PulseString):
-                    self._raise("starts_with() expects a string", token)
+                    self._raise_type("starts_with() expects a string", token)
                 return PulseBoolean(obj.value.startswith(s.value))
             return PulseNativeFunction("starts_with", _starts_with)
         
         if name == "ends_with":
             def _ends_with(s: Any) -> PulseBoolean:
                 if not isinstance(s, PulseString):
-                    self._raise("ends_with() expects a string", token)
+                    self._raise_type("ends_with() expects a string", token)
                 return PulseBoolean(obj.value.endswith(s.value))
             return PulseNativeFunction("ends_with", _ends_with)
         
         if name == "contains":
             def _contains(s: Any) -> PulseBoolean:
                 if not isinstance(s, PulseString):
-                    self._raise("contains() expects a string", token)
+                    self._raise_type("contains() expects a string", token)
                 return PulseBoolean(s.value in obj.value)
             return PulseNativeFunction("contains", _contains)
         
@@ -1406,7 +1478,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if name == "find":
             def _find(sub: Any, start: Any = None) -> PulseNumber:
                 if not isinstance(sub, PulseString):
-                    self._raise("find() argument must be a string", token)
+                    self._raise_type("find() argument must be a string", token)
                 s = int(start.value) if start is not None else 0
                 return PulseNumber(obj.value.find(sub.value, s))
             return PulseNativeFunction("find", _find)
@@ -1414,18 +1486,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if name == "index":
             def _index(sub: Any, start: Any = None) -> PulseNumber:
                 if not isinstance(sub, PulseString):
-                    self._raise("index() argument must be a string", token)
+                    self._raise_type("index() argument must be a string", token)
                 s = int(start.value) if start is not None else 0
                 try:
                     return PulseNumber(obj.value.index(sub.value, s))
                 except ValueError:
-                    self._raise(f"'{sub.value}' not found in string", token)
+                    self._raise_value(f"'{sub.value}' not found in string", token)
             return PulseNativeFunction("index", _index)
         
         if name == "count":
             def _count(sub: Any) -> PulseNumber:
                 if not isinstance(sub, PulseString):
-                    self._raise("count() argument must be a string", token)
+                    self._raise_type("count() argument must be a string", token)
                 return PulseNumber(obj.value.count(sub.value))
             return PulseNativeFunction("count", _count)
         
@@ -1434,14 +1506,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 result = obj.value
                 for arg in args:
                     if "{}" not in result:
-                        self._raise("Too many arguments for format()", token)
+                        self._raise_value("Too many arguments for format()", token)
                     result = result.replace("{}", self._stringify(arg), 1)
                 if "{}" in result:
-                    self._raise("Not enough arguments for format()", token)
+                    self._raise_value("Not enough arguments for format()", token)
                 return PulseString(result)
             return PulseNativeFunction("format", _format)
         
-        self._raise(f"String has no method '{name}'", token)
+        self._raise_attr(f"String has no method '{name}'", token)
     
     def _dict_method(self, obj: PulseDict, name: str, token: Token) -> PulseNativeFunction:
         if name == "keys":
@@ -1461,7 +1533,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if name == "remove":
             def _remove(key: Any) -> PulseNull:
                 if not obj.has(key):
-                    self._raise(f"Key '{self._stringify(key)}' not found in dict", token)
+                    self._raise_key(f"Key '{self._stringify(key)}' not found in dict", token)
                 obj.remove(key)
                 return PulseNull()
             return PulseNativeFunction("remove", _remove)
@@ -1469,7 +1541,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if name == "length":
             return PulseNativeFunction("length", lambda: PulseNumber(len(obj.entries)))
         
-        self._raise(f"Dict has no method '{name}'", token)
+        self._raise_attr(f"Dict has no method '{name}'", token)
     
     def _tensor_property(self, tensor: PulseTensor, name: str, token) -> Any:
         if name == "shape":
@@ -1494,7 +1566,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 try:
                     return PulseTensor(tensor.array.reshape(dims))
                 except ValueError as e:
-                    self._raise(f"reshape failed: {e}", token)
+                    self._raise_value(f"reshape failed: {e}", token)
             return PulseNativeMethod(reshape, arity=-1)
         
         if name == "sum":
@@ -1517,4 +1589,4 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return PulseNumber(float(tensor.array.min()))
             return PulseNativeMethod(min_, arity=0)
         
-        self._raise(f"Tensor has no property '{name}'", token)
+        self._raise_attr(f"Tensor has no property '{name}'", token)
