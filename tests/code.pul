@@ -1,27 +1,47 @@
-# ternary
-x = 10
-label = "big" if x > 5 else "small"
-print(label)   # big
+import os
 
-age = 20
-status = "adult" if age >= 18 else "minor"
-print(status)  # adult
+# current directory
+print(os.getcwd())
 
-# chained comparisons
-x = 5
-print(0 < x < 10)    # true
-print(0 < x < 4)     # false
-print(1 <= x <= 5)   # true
-print(10 > x > 3)    # true
+# directory listing
+files = os.listdir(".")
+for f in files:
+    print(f)
 
-# is / is not
-print(null is null)      # true
-print(True is True)      # true
-print(True is False)     # false
+# path checks
+print(os.exists("tests"))       # true/false
+print(os.is_dir("src"))         # true
+print(os.is_file("pulse.py"))   # true
 
-a = [1, 2, 3]
-b = a
-c = [1, 2, 3]
-print(a is b)       # true  — same object
-print(a is c)       # false — different objects
-print(a is not c)   # true
+# path manipulation
+print(os.join("src", "stdlib", "os_module.py"))  # src/stdlib/os_module.py
+print(os.basename("src/interpreter.py"))          # interpreter.py
+print(os.dirname("src/interpreter.py"))           # src
+print(os.abspath("."))                            # full absolute path
+print(os.splitext("file.pul"))                   # [file, .pul]
+print(os.split("src/interpreter.py"))            # [src, interpreter.py]
+
+# directory creation and removal
+os.mkdir("temp")
+os.makedirs("temp/a/b/c", exist_ok=True)
+os.rmtree("temp")
+
+# file operations
+os.rename("old.txt", "new.txt")
+os.copy("new.txt", "backup.txt")
+os.remove("backup.txt")
+
+# file info
+print(os.getsize("pulse.py"))   # size in bytes
+info = os.stat("pulse.py")
+print(info["size"])
+print(info["mtime"])
+
+# environment variables
+print(os.getenv("PATH"))
+os.setenv("MY_VAR", "hello")
+print(os.getenv("MY_VAR"))      # hello
+
+# system info
+print(os.platform())            # win32 / linux / darwin
+print(os.sep())                 # \ or /
