@@ -55,7 +55,6 @@ class Lexer:
     _COMPOUND_OPERATORS: dict[str, tuple[TokenType, TokenType]] = {
         '+': (TokenType.PLUS_EQUAL, TokenType.PLUS),
         '-': (TokenType.MINUS_EQUAL, TokenType.MINUS),
-        '*': (TokenType.STAR_EQUAL, TokenType.STAR),
         "%": (TokenType.PERCENT_EQUAL, TokenType.MODULUS),
     }
     
@@ -192,6 +191,15 @@ class Lexer:
         if c in self._COMPOUND_OPERATORS:
             with_eq, without_eq = self._COMPOUND_OPERATORS[c]
             self.add_token(with_eq if self.match('=') else without_eq)
+            return
+        
+        if c == '*':
+            if self.match('*'):
+                self.add_token(TokenType.STAR_STAR)
+            elif self.match('='):
+                self.add_token(TokenType.STAR_EQUAL)
+            else:
+                self.add_token(TokenType.STAR)
             return
         
         if c == "<":

@@ -37,6 +37,7 @@ class TokenType(Enum):
     MINUS = auto()
     PLUS = auto()
     STAR = auto()
+    STAR_STAR = auto()
     SLASH = auto()
     MODULUS = auto()
     AT = auto()

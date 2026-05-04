@@ -758,7 +758,17 @@ class Parser:
             right = self.unary()
             return expr.Unary(op, right)
         
-        return self.call()
+        return self.power()
+    
+    def power(self) -> expr.Expr:
+        node = self.call()
+        
+        if self.match(TokenType.STAR_STAR):
+            op = self.previous()
+            right = self.unary()
+            node = expr.Binary(node, op, right)
+        
+        return node
     
     def call(self) -> expr.Expr:
         expr_node = self.primary()

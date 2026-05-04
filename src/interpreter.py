@@ -916,7 +916,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if operator == "+" and isinstance(left, PulseString) and isinstance(right, PulseString):
             return PulseString(left.value + right.value)
         
-        if operator in ("+", "-", "*", "/", "%", "//", "<", "<=", ">", ">="):
+        if operator in ("+", "-", "*", "/", "%", "//", "**", "<", "<=", ">", ">="):
             if not isinstance(left, PulseNumber) or not isinstance(right, PulseNumber):
                 if operator == "+":
                     self._raise_type(
@@ -953,6 +953,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 if rv == 0:
                     self._raise_zerodiv("Integer division by zero", tok)
                 return PulseNumber(int(lv // rv))
+            
+            if operator == "**":
+                if not isinstance(left, PulseNumber) or not isinstance(right, PulseNumber):
+                    self._raise_type(f"'**' requires two numbers, got '{left.type_name()}' and '{right.type_name()}'", tok)
+                return PulseNumber(left.value ** right.value)
             
             if operator == "<":
                 return PulseBoolean(lv < rv)
