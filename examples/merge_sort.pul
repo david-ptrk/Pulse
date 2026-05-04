@@ -1,0 +1,50 @@
+def merge(left, right):
+    result = []
+    i = 0
+    j = 0
+
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            result = result + [left[i]]
+            i = i + 1
+        else:
+            result = result + [right[j]]
+            j = j + 1
+    
+    while i < len(left):
+        result = result + [left[i]]
+        i = i + 1
+    
+    while j < len(right):
+        result = result + [right[j]]
+        j = j + 1
+    
+    return result
+
+def merge_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    
+    mid = len(arr) / 2
+
+    left = []
+    right = []
+
+    i = 0
+    while i < len(arr):
+        if i < mid:
+            left = left + [arr[i]]
+        else:
+            right = right + [arr[i]]
+        i = i + 1
+    
+    left = merge_sort(left)
+    right = merge_sort(right)
+
+    return merge(left, right)
+
+
+nums = [5, 2, 9, 1, 5, 6]
+sorted = merge_sort(nums)
+
+print("Sorted:", sorted)

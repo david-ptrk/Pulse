@@ -1,0 +1,60 @@
+# string_ops.pul
+# Demonstrates native string methods in Pulse
+
+text = "  Madam In Eden, I'm Adam  "
+
+print("Original:", text)
+
+# basic transforms
+print("Upper:", text.upper())
+print("Lower:", text.lower())
+print("Trim:", text.trim())
+
+# splitting & joining
+words = text.trim().split(" ")
+print("Words:", words)
+
+joined = "-".join(words)
+print("Joined:", joined)
+
+# replace
+clean = text.replace(",", "").replace("'", "").trim()
+print("Clean:", clean)
+
+# search operations
+print("Starts with 'Madam':", text.trim().starts_with("Madam"))
+print("Ends with 'Adam':", text.trim().ends_with("Adam"))
+print("Contains 'Eden':", text.contains("Eden"))
+
+# length
+print("Length:", text.trim().length())
+
+# find vs index
+print("Find 'Eden':", text.find("Eden"))
+# print("Index 'XYZ':", text.index("XYZ"))
+
+# count
+print("Count of 'a':", text.lower().count("a"))
+
+# format
+msg = "Hello {}, you have {} messages"
+formatted = msg.format("David", 5)
+print(formatted)
+
+# ---- mini real example: palindrome ----
+
+def is_palindrome(s):
+    s = s.lower().replace(" ", "").replace(",", "").replace("'", "")
+    return s == reverse(s)
+
+def reverse(s):
+    result = ""
+    i = s.length() - 1
+
+    while i >= 0:
+        result = result + s[i]
+        i = i - 1
+
+    return result
+
+print("Palindrome:", is_palindrome(text))

@@ -1,0 +1,7 @@
+try:
+    x = int(input("Enter a number: "))
+    print(10 / x)
+except ValueError:
+    print("Not a valid number")
+except ZeroDivisionError:
+    print("You tried dividing by zero")

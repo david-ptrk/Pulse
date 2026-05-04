@@ -916,6 +916,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if operator == "+" and isinstance(left, PulseString) and isinstance(right, PulseString):
             return PulseString(left.value + right.value)
         
+        if operator == "+" and isinstance(left, PulseList) and isinstance(right, PulseList):
+            return PulseList(left.elements + right.elements)
+        
         if operator in ("+", "-", "*", "/", "%", "//", "**", "<", "<=", ">", ">="):
             if not isinstance(left, PulseNumber) or not isinstance(right, PulseNumber):
                 if operator == "+":
