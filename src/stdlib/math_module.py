@@ -1,4 +1,11 @@
-# math_module.py
+"""
+math_module.py
+
+Pulse standard library module for mathematical operations.
+Functions are backed by C via native bindings for performance.
+Constants are cached at import time.
+"""
+
 import math
 from src.values import PulseModule, PulseNumber
 from src.function import PulseNativeFunction
@@ -13,6 +20,8 @@ _TAU = PulseNumber(math.tau)
 _cached_module: PulseModule | None = None
 
 def make(interp) -> PulseModule:
+    """Built and return the Pulse 'math' module. Result is cached after first call."""
+    
     global _cached_module
     if _cached_module is not None:
         return _cached_module
@@ -23,6 +32,7 @@ def make(interp) -> PulseModule:
     c_fns = make_c_math_functions(_raise)
     
     def _wrap(name: str):
+        """Wrap a single-argument C math function with Pulse type checking."""
         c_fn = c_fns[name]
         def call(x):
             if not isinstance(x, _PN):
@@ -31,6 +41,7 @@ def make(interp) -> PulseModule:
         return call
     
     def _log(x, base=None):
+        """Return log(x) or log(x, base). Base defaults to e."""
         if not isinstance(x, _PN):
             _raise(f"log() argument must be a number, got {x.type_name()}")
         if base is not None and not isinstance(base, _PN):
@@ -38,6 +49,7 @@ def make(interp) -> PulseModule:
         return _PN(c_fns["log"](x.value, base.value if base else None))
     
     def _pow(b, e):
+        """Return b raised to the power e."""
         if not isinstance(b, _PN):
             _raise(f"pow() base must be a number, got {b.type_name()}")
         if not isinstance(e, _PN):

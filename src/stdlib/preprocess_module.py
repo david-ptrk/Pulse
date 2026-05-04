@@ -1,14 +1,26 @@
+"""
+preprocess_module.py
+
+Pulse standard library module for data preprocessing utilities.
+Provides tensor transformations commonly needed before model training
+such as normalization, standardization, splitting, and encoding.
+"""
+
 from __future__ import annotations
 from src.values import PulseModule, PulseTensor, PulseList, PulseNumber, PulseNull
 from src.function import PulseNativeFunction
 import numpy as np
 
 def make(interp) -> PulseModule:
+    """Build and return the Pulse 'preprocess' module."""
+    
     def _check_tensor(val, fn_name: str, arg_name: str = "data"):
+        """Raise if val is not a PulseTensor."""
         if not isinstance(val, PulseTensor):
             interp._raise(f"{fn_name}() expects a tensor for {arg_name}, got '{val.type_name()}'")
     
     def _normalize(data: PulseTensor) -> PulseTensor:
+        """Normalize each column to unit length using L2 norm."""
         _check_tensor(data, "normalize")
         arr = data.array
         norm = np.linalg.norm(arr, axis=0, keepdims=True)
@@ -16,6 +28,7 @@ def make(interp) -> PulseModule:
         return PulseTensor(arr / norm)
     
     def _standardize(data: PulseTensor) -> PulseTensor:
+        """Standardize each column to zero mean and unit variance."""
         _check_tensor(data, "standardize")
         arr = data.array
         mean = arr.mean(axis=0)
@@ -24,6 +37,7 @@ def make(interp) -> PulseModule:
         return PulseTensor((arr - mean) / std)
     
     def _min_max_scale(data: PulseTensor) -> PulseTensor:
+        """Scale each column to the range [0, 1] using min-max scaling."""
         _check_tensor(data, "min_max_scale")
         arr = data.array
         mn = arr.min(axis=0)
@@ -32,6 +46,7 @@ def make(interp) -> PulseModule:
         return PulseTensor((arr - mn) / rng)
     
     def _train_test_split(data: PulseTensor, labels: PulseTensor, test_size: PulseNumber) -> PulseList:
+        """Split data and labels into train/test sets. Returns [X_train, X_test, y_train, y_test]."""
         _check_tensor(data, "train_test_split", "data")
         _check_tensor(labels, "train_test_split", "labels")
         if not isinstance(test_size, PulseNumber):
@@ -47,12 +62,14 @@ def make(interp) -> PulseModule:
             interp._raise(f"train_test_split() failed: {e}")
     
     def _shuffle(data: PulseTensor) -> PulseTensor:
+        """Randomly shuffle the rows of a tensor."""
         _check_tensor(data, "shuffle")
         arr = data.array.copy()
         np.random.shuffle(arr)
         return PulseTensor(arr)
     
     def _flatten_data(data: PulseTensor) -> PulseTensor:
+        """Flatten each sample in a tensor to a 1D vector. Shape (n, ...) becomes (n, m)."""
         _check_tensor(data, "flatten_data")
         arr = data.array
         if arr.ndim == 1:
@@ -60,6 +77,7 @@ def make(interp) -> PulseModule:
         return PulseTensor(arr.reshape(arr.shape[0], -1))
     
     def _one_hot_encode(labels: PulseTensor) -> PulseTensor:
+        """Convert integer class labels to a one-hot encoded tensor."""
         _check_tensor(labels, "one_hot_encode", "labels")
         arr = labels.array.astype(int)
         n_classes = int(arr.max()) + 1

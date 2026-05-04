@@ -1,5 +1,9 @@
 """
 os_module.py
+
+Pulse standard library module for operating system interactions.
+Provides functions for directory management, file operations, path manipulation,
+environment variables, and basic system information.
 """
 
 from __future__ import annotations
@@ -10,7 +14,10 @@ from src.function import PulseNativeFunction
 import sys
 
 def make(interp) -> PulseModule:
+    """Build and return the Pulse 'os' module."""
+    
     def _check_str(val, name: str) -> str:
+        """Raise if val is not a PulseString, then return its raw Python string value."""
         if not isinstance(val, PulseString):
             interp._raise(f"{name} must be a string, got '{val.type_name()}'")
         return val.value

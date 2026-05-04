@@ -1,4 +1,11 @@
-# model_module.py
+"""
+model_module.py
+
+Pulse standard library module for machine learning models.
+Wraps scikit-learn classifiers and regressors behind a unified
+Pulse interface with optional auto-preprocessing and model selection.
+"""
+
 from __future__ import annotations
 from src.values import (PulseModule, PulseModel, PulseNumber, PulseBoolean, 
     PulseTensor, PulseNull, PulseNamespace, PulseString)
@@ -16,14 +23,19 @@ import warnings
 import sys
 
 def make(interp) -> PulseModule:
+    """Build and return the Pulse 'models' module."""
+    
     def _check_tensor(val, fn_name: str, arg_name: str = "data"):
+        """Raise if val is not a PulseTensor."""
         if not isinstance(val, PulseTensor):
             interp._raise(f"{fn_name}() expects a tensor for {arg_name}, got '{val.type_name()}'")
     
     def _make_model(name: str, sklearn_model):
+        """Wrap a scikit-learn model in a PulseModel with train/predict/score methods."""
         pulse_model = PulseModel(name, sklearn_model)
         
         def train(data: PulseTensor, labels: PulseTensor, auto_preprocess=None) -> PulseNull:
+            """Fit the model on data and labels. Optionally standardize and impute missing values."""
             if not isinstance(data, PulseTensor):
                 interp._raise(f"train() expects a tensor for data, got '{data.type_name()}'")
             if not isinstance(labels, PulseTensor):
@@ -69,6 +81,7 @@ def make(interp) -> PulseModule:
             return PulseNull()
         
         def predict(data: PulseTensor) -> PulseTensor:
+            """Run inference on data and return predictions as a tensor."""
             if not isinstance(data, PulseTensor):
                 interp._raise(f"predict() expects a tensor, got '{data.type_name()}'")
             if not pulse_model.is_trained:
@@ -90,6 +103,7 @@ def make(interp) -> PulseModule:
                 interp._raise(f"Prediction failed: {e}")
         
         def score(data: PulseTensor, labels: PulseTensor) -> PulseNumber:
+            """Return the model's accuracy or R2 score on data and labels."""
             if not isinstance(data, PulseTensor):
                 interp._raise(f"score() expects a tensor for data, got '{data.type_name()}'")
             if not isinstance(labels, PulseTensor):
@@ -113,6 +127,7 @@ def make(interp) -> PulseModule:
                 interp._raise(f"Score failed: {e}")
         
         def is_trained_fn() -> PulseBoolean:
+            """Return True if the model has been trained."""
             return PulseBoolean(pulse_model.is_trained)
         
         pulse_model.methods = {
@@ -125,34 +140,47 @@ def make(interp) -> PulseModule:
         return pulse_model
     
     def _linear_regression() -> PulseModel:
+        """Create a LinearRegression model."""
         return _make_model("LinearRegression", LinearRegression())
     
     def _logistic_regression() -> PulseModel:
+        """Create a LogisticsRegression model."""
         return _make_model("LogisticRegression", LogisticRegression())
     
     def _decision_tree() -> PulseModel:
+        """Create a DecisionTreeClassifier model."""
         return _make_model("DecisionTree", DecisionTreeClassifier())
     
     def _random_forest() -> PulseModel:
+        """Create a RandomForestClassifer model."""
         return _make_model("RandomForest", RandomForestClassifier())
     
     def _kmeans(k: PulseNumber) -> PulseModel:
+        """Create a KMeans clustering model with k clusters."""
         if not isinstance(k, PulseNumber):
             interp._raise(f"KMeans() expects a number for k, got '{k.type_name()}'")
         return _make_model("KMeans", KMeans(n_clusters=int(k.value)))
     
     def _knn(k: PulseNumber) -> PulseModel:
+        """Create a KNeighborsClassfier model with k neighbors."""
         if not isinstance(k, PulseNumber):
             interp._raise(f"KNN() expects a number for k, got '{k.type_name()}'")
         return _make_model("KNN", KNeighborsClassifier(n_neighbors=int(k.value)))
     
     def _svc() -> PulseModel:
+        """Create a Support Vector Classifier model."""
         return _make_model("SVC", SVC())
     
     def _neural_network() -> PulseModel:
+        """Create a MLPClassifier neural network model."""
         return _make_model("NeuralNetwork", MLPClassifier(max_iter=1000))
     
     def _model_auto(data: PulseTensor, labels: PulseTensor, mode: "PulseString | PulseNull" = None, auto_preprocess=None) -> PulseModel:
+        """
+        Automatically select and train the best model for the given data.
+        Tries multiple candidates using cross-validation and returns the winner.
+        mode can be 'classification' or 'regression' - inferred it not provided.
+        """
         _check_tensor(data, "Model.auto", "data")
         _check_tensor(labels, "Model.auto", "labels")
         
@@ -181,7 +209,6 @@ def make(interp) -> PulseModule:
             steps.append("Features standardized")
             
             did_preprocess = True
-            
             print("[Pulse] Auto-preprocessing applied:")
             for step in steps:
                 print(f"  -> {step}")

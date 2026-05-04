@@ -1,11 +1,20 @@
-# io_module.py
+"""
+io_module.py
+
+Pulse standard library module for file input/output operations.
+Provides functions for reading, writing, and checking files on disk.
+"""
+
 from __future__ import annotations
 from src.values import PulseModule, PulseString, PulseNull, PulseBoolean, PulseList
 from src.function import PulseNativeFunction
 import os
 
 def make(interp) -> PulseModule:
+    """Build and return the Pulse 'io' module"""
+    
     def _read_file(path: PulseString) -> PulseString:
+        """Read the entire contents of a file and return it as a string."""
         if not isinstance(path, PulseString):
             interp._raise(f"read_file() argument must be a string, got {path.type_name()}")
         try:
@@ -17,6 +26,7 @@ def make(interp) -> PulseModule:
             interp._raise(f"Could not read file '{path.value}': {e}")
     
     def _write_file(path: PulseString, content: PulseString) -> PulseNull:
+        """Write a string to a file, overwriting any existing content."""
         if not isinstance(path, PulseString):
             interp._raise(f"write_file() path must be a string, got {path.type_name()}")
         if not isinstance(content, PulseString):
@@ -29,6 +39,7 @@ def make(interp) -> PulseModule:
             interp._raise(f"Could not write file '{path.value}': {e}")
     
     def _append_file(path: PulseString, content: PulseString) -> PulseNull:
+        """Append a string to the end of a file without overwriting it."""
         if not isinstance(path, PulseString):
             interp._raise(f"append_file() path must be a string, got {path.type_name()}")
         if not isinstance(content, PulseString):
@@ -41,11 +52,13 @@ def make(interp) -> PulseModule:
             interp._raise(f"Could not append to file '{path.value}': {e}")
     
     def _file_exists(path: PulseString) -> PulseBoolean:
+        """Check whether a file exists at the given path."""
         if not isinstance(path, PulseString):
             interp._raise(f"file_exists() argument must be a string, got {path.type_name()}")
         return PulseBoolean(os.path.isfile(path.value))
     
     def _read_lines(path: PulseString) -> PulseList:
+        """Read a file and return its contents as a list of strings, one string per line, with newline characters stripped."""
         if not isinstance(path, PulseString):
             interp._raise(f"read_lines() argument must be a string, got {path.type_name()}")
         try:
