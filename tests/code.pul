@@ -1,47 +1,13 @@
-import os
+import learn
 
-# current directory
-print(os.getcwd())
+# see all topics
+learn.topics()
 
-# directory listing
-files = os.listdir(".")
-for f in files:
-    print(f)
-
-# path checks
-print(os.exists("tests"))       # true/false
-print(os.is_dir("src"))         # true
-print(os.is_file("pulse.py"))   # true
-
-# path manipulation
-print(os.join("src", "stdlib", "os_module.py"))  # src/stdlib/os_module.py
-print(os.basename("src/interpreter.py"))          # interpreter.py
-print(os.dirname("src/interpreter.py"))           # src
-print(os.abspath("."))                            # full absolute path
-print(os.splitext("file.pul"))                   # [file, .pul]
-print(os.split("src/interpreter.py"))            # [src, interpreter.py]
-
-# directory creation and removal
-os.mkdir("temp")
-os.makedirs("temp/a/b/c", exist_ok=True)
-os.rmtree("temp")
-
-# file operations
-os.rename("old.txt", "new.txt")
-os.copy("new.txt", "backup.txt")
-os.remove("backup.txt")
-
-# file info
-print(os.getsize("pulse.py"))   # size in bytes
-info = os.stat("pulse.py")
-print(info["size"])
-print(info["mtime"])
-
-# environment variables
-print(os.getenv("PATH"))
-os.setenv("MY_VAR", "hello")
-print(os.getenv("MY_VAR"))      # hello
-
-# system info
-print(os.platform())            # win32 / linux / darwin
-print(os.sep())                 # \ or /
+# run any example
+learn.example("linear_regression")
+learn.example("logistic_regression")
+learn.example("knn")
+learn.example("decision_tree")
+learn.example("random_forest")
+learn.example("kmeans")
+learn.example("neural_network")
