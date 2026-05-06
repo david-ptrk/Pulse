@@ -1,31 +1,3 @@
-import metrics
-import models
-import preprocess
+import learn
 
-data   = @[[1,2],[3,4],[5,6],[7,8],[9,10]]
-labels = @[0, 0, 1, 1, 1]
-
-X_train, X_test, y_train, y_test = preprocess.train_test_split(data, labels, 0.2)
-
-model = models.LogisticRegression()
-model.train(X_train, y_train)
-y_pred = model.predict(X_test)
-
-# individual metrics
-print(metrics.accuracy(y_test, y_pred))
-print(metrics.precision(y_test, y_pred))
-print(metrics.recall(y_test, y_pred))
-print(metrics.f1(y_test, y_pred))
-metrics.confusion_matrix(y_test, y_pred)
-metrics.classification_report(y_test, y_pred)
-
-# regression metrics
-print(metrics.mse(y_test, y_pred))
-print(metrics.rmse(y_test, y_pred))
-print(metrics.mae(y_test, y_pred))
-print(metrics.r2(y_test, y_pred))
-
-# full summary — infers classification vs regression automatically
-metrics.summary(y_test, y_pred)
-metrics.summary(y_test, y_pred, "classification")
-metrics.summary(y_test, y_pred, "regression")
+learn.example("random_forest")

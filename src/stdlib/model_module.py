@@ -7,8 +7,7 @@ Pulse interface with optional auto-preprocessing and model selection.
 """
 
 from __future__ import annotations
-from src.values import (PulseModule, PulseModel, PulseNumber, PulseBoolean, 
-    PulseTensor, PulseNull, PulseNamespace, PulseString)
+from src.values import PulseModule, PulseModel, PulseNumber, PulseBoolean, PulseTensor, PulseNull, PulseNamespace, PulseString, PulseDict, PulseList
 from src.function import PulseNativeFunction, PulseNativeMethod
 import numpy as np
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
@@ -21,6 +20,142 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import cross_val_score
 import warnings
 import sys
+
+# Explain helpers
+def _weight_label(value: float) -> str:
+    """Human-readable magnitude + direction label for a single weight."""
+    abs_v = abs(value)
+    if abs_v >= 10:
+        mag = "very strong"
+    elif abs_v >= 1:
+        mag = "strong"
+    elif abs_v >= 0.1:
+        mag = "moderate"
+    elif abs_v >= 0.01:
+        mag = "weak"
+    else:
+        mag = "negligible"
+    direction = "positive" if value >= 0 else "negative"
+    return f"{mag} {direction}"
+
+def _importance_bar(value: float, width: int = 20) -> str:
+    """ASCII bar proportional to importance value (0-1)."""
+    filled = max(0, min(width, round(value * width)))
+    return "[" + "█" * filled + "░" * (width - filled) + "]"
+
+def _rank_label(rank: int, total: int) -> str:
+    if rank == 0:
+        return "most important"
+    if rank == total - 1:
+        return "least important"
+    return f"#{rank + 1} of {total}"
+
+def _explain_linear(model_name: str, sklearn_model, feature_names: list[str] | None) -> PulseDict:
+    """Explain LinearRegression of Ridge."""
+    coef = np.atleast_1d(sklearn_model.coef_).flatten()
+    intercept = float(np.atleast_1d(sklearn_model.intercept_)[0])
+    n = len(coef)
+    names = feature_names if feature_names and len(feature_names) == n else [f"Feature {i}" for i in range(n)]
+    
+    abs_coef = np.abs(coef)
+    max_abs = abs_coef.max() if abs_coef.max() > 0 else 1.0
+    order = np.argsort(-abs_coef)
+    
+    print(f"\n[Pulse] {model_name} — learned parameters")
+    print(f"  {'Feature':<22} {'Weight':>10}  {'Bar':<22}  Influence")
+    print(f"  {'─' * 22}  {'─' * 9}  {'─' * 22}  {'─' * 28}")
+    for rank, i in enumerate(order):
+        bar_val = abs_coef[i] / max_abs
+        bar = _importance_bar(bar_val)
+        label = _weight_label(coef[i])
+        ranked = _rank_label(rank, n)
+        print(f"  {names[i]:<22} {coef[i]:>+10.4f}  {bar}  {label} ({ranked})")
+    print(f"\n  Bias (intercept): {intercept:+.4f}")
+    print()
+    
+    feature_list = []
+    for i in range(n):
+        entry = PulseDict({
+            PulseString("name"): PulseString(names[i]),
+            PulseString("weight"): PulseNumber(float(coef[i])),
+            PulseString("influence"): PulseString(_weight_label(coef[i])),
+        })
+        feature_list.append(entry)
+    
+    return PulseDict({
+        PulseString("model"): PulseString(model_name),
+        PulseString("type"): PulseString("linear"),
+        PulseString("features"): PulseList(feature_list),
+        PulseString("bias"): PulseNumber(intercept)
+    })
+
+def _explain_logistic(sklearn_model, feature_names: list[str] | None) -> PulseDict:
+    """Explain LogisticRegression (binary or multi-class)."""
+    coef = sklearn_model.coef_
+    intercept = sklearn_model.intercept_
+    classes = sklearn_model.classes_
+    n_features = coef.shape[1]
+    names = feature_names if feature_names and len(feature_names) == n_features else [f"Feature {i}" for i in range(n_features)]
+    
+    print(f"\n[Pulse] LogisticRegression — learned parameters")
+    print(f"  Classes: {classes.tolist()}")
+    
+    class_dicts = []
+    for ci, cls in enumerate(classes):
+        w = coef[ci] if len(classes) > 2 else coef[0]
+        bias = float(intercept[ci]) if len(classes) > 2 else float(intercept[0])
+        abs_w = np.abs(w)
+        max_abs = abs_w.max() if abs_w.max() > 0 else 1.0
+        order = np.argsort(-abs_w)
+        
+        print(f"\n  Class '{cls}'  (bias: {bias:+.4f})")
+        print(f"    {'Feature':<22} {'Weight':>10}  Influence")
+        print(f"    {'─' * 22}  {'─' * 9}  {'─' * 28}")
+        for rank, i in enumerate(order):
+            label = _weight_label(w[i])
+            ranked = _rank_label(rank, n_features)
+            print(f"    {names[i]:<22} {w[i]:>+10.4f}  {label} ({ranked})")
+        
+        feature_list = [
+            PulseDict({
+                PulseString("name"): PulseString(names[i]),
+                PulseString("weight"): PulseNumber(float(w[i])),
+                PulseString("influence"): PulseString(_weight_label(w[i])),
+            })
+            for i in range(n_features)
+        ]
+        class_dicts.append(PulseDict({
+            PulseString("class"): PulseString(str(cls)),
+            PulseString("bias"): PulseNumber(bias),
+            PulseString("features"): PulseList(feature_list),
+        }))
+    
+    print()
+    return PulseDict({
+        PulseString("model"): PulseString("LogisticRegression"),
+        PulseString("type"): PulseString("logistic"),
+        PulseString("classes"): PulseList([PulseString(str(c)) for c in classes]),
+        PulseString("per_class_weights"): PulseList(class_dicts),
+    })
+
+def _explain_tree(model_name: str, sklearn_model, feature_names: list[str] | None) -> PulseDict:
+    """Explain DecisionTreeClassifier or DecisionTreeRegressor."""
+    importances = sklearn_model.feature_importances_
+    n = len(importances)
+    names = feature_names if feature_names and len(feature_names) == n else [f"Feature {i}" for i in range(n)]
+    order = np.argsort(-importances)
+    
+    depth = sklearn_model.get_depth()
+    n_leaves = sklearn_model.get_n_leaves()
+    top_feature = names[order[0]]
+    
+    print(f"\n[Pulse] {model_name} — structure & feature importances")
+    print(f"  Tree depth  : {depth}")
+    print(f"  Leaf nodes  : {n_leaves}")
+    print(f"  Top split on: '{top_feature}'")
+    print()
+    
+
 
 def make(interp) -> PulseModule:
     """Build and return the Pulse 'models' module."""
