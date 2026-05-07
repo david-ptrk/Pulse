@@ -16,6 +16,8 @@ from src.environment import Environment
 from src.error import PulseError, report_error
 from src.runtime import PulseRuntimeException
 from src.values import PulseNull
+import argparse
+from time import perf_counter
 
 # Global runtime environment
 global_env = Environment()
@@ -38,8 +40,41 @@ def run(source: str) -> any:
     # 4. Interpretation
     return interpreter.interpret(statements, source)
 
+def run_with_time(source: str) -> any:
+    total_start = perf_counter()
+    
+    start = perf_counter()
+    lexer = Lexer(source)
+    tokens = lexer.scan_tokens()
+    lex_time = perf_counter() - start
+    
+    start = perf_counter()
+    parser = Parser(tokens, source)
+    statements = parser.parse()
+    parse_time = perf_counter() - start
+    
+    start = perf_counter()
+    resolver = Resolver(interpreter)
+    resolver.resolve(statements)
+    resolve_time = perf_counter() - start
+    
+    start = perf_counter()
+    result = interpreter.interpret(statements, source)
+    interpret_time = perf_counter() - start
+    
+    total_time = perf_counter() - total_start
+    
+    print("\n=== Pipeline Timing ===")
+    print(f"Lexing:        {lex_time:.6f}s")
+    print(f"Parsing:       {parse_time:.6f}s")
+    print(f"Resolving:     {resolve_time:.6f}s")
+    print(f"Interpret:     {interpret_time:.6f}s")
+    print(f"Total:         {total_time:.6f}s")
+    
+    return result
+
 # File Execution
-def run_file(path: str) -> None:
+def run_file(path: str, show_time: bool) -> None:
     try:
         with open(path, "r", encoding="utf-8") as f:
             source = f.read()
@@ -48,7 +83,10 @@ def run_file(path: str) -> None:
         sys.exit(1)
     
     try:
-        run(source)
+        if show_time:
+            run_with_time(source)
+        else:
+            run(source)
     except PulseRuntimeException as e:
         report_error(e.error)
         sys.exit(1)
@@ -154,17 +192,26 @@ def _repl_run(source: str) -> None:
     except Exception as e:
         print(f"[Internal Error] {e}")
 
+def main() -> int:
+    parser = argparse.ArgumentParser(prog="pulse", description="Pulse Programming Language")
+    
+    parser.add_argument("file", nargs="?", help="Pulse source file (.pul)")
+    parser.add_argument("--time", action="store_true", help="Show pipeline timing information")
+    args = parser.parse_args()
+    
+    # REPL mode
+    if args.file is None:
+        run_prompt()
+        return 0
+    
+    # Validate extension
+    if not args.file.lower().endswith(".pul"):
+        report_error(PulseError(f'Unsupported file type: "{args.file}". Expected a .pul file.'))
+        return 1
+    
+    run_file(args.file, args.time)
+    return 0
+
 # Entry point
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        path = sys.argv[1]
-        
-        if not path.endswith(".pul"):
-            report_error(
-                PulseError(f'"{path}" is not a .pul file. Pulse only reads .pul, behave.')
-            )
-            sys.exit(1)
-        
-        run_file(path)
-    else:
-        run_prompt()
+    sys.exit(main())
