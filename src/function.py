@@ -182,3 +182,23 @@ class PulseLambda:
     def __repr__(self) -> str:
         params = ", ".join(p.lexeme for p in self.params)
         return f"<lambda ({params})>"
+
+class BuiltinFunction:
+    """
+    Fast-path wrapper for native and C-backed functions.
+    Bypasses the full call pipeline - arguments are evaluated normally but the function is invoked directly
+    with no environment setup, no call frame, and no dynamic dispatch.
+    """
+    def __init__(self, name: str, func, arity: int = -1) -> None:
+        self.name = name
+        self.func = func
+        self.arity = arity
+    
+    def call(self, interpreter, arguments: list, kwargs: dict):
+        return self.func(*arguments, **kwargs)
+    
+    def type_name(self) -> str:
+        return "builtin"
+    
+    def __repr__(self) -> str:
+        return f"<builtin {self.name}>"

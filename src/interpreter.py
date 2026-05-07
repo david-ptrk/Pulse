@@ -47,7 +47,7 @@ from src.environment import Environment
 from src.error import PulseRuntimeError
 import src.runtime as runtime
 from src.tokens import Token
-from src.function import PulseFunction, PulseNativeFunction, PulseNativeMethod, PulseLambda
+from src.function import PulseFunction, PulseNativeFunction, PulseNativeMethod, PulseLambda, BuiltinFunction
 from src.runtime import PulseClass, PulseInstance
 from src.values import (
     PulseNumber, PulseString, PulseNull, PulseNamespace,
@@ -1123,6 +1123,15 @@ class Interpreter(ExprVisitor, StmtVisitor):
             name.lexeme: self.evaluate(value)
             for name, value in expr.keyword_arguments
         }
+        
+        if isinstance(callee, BuiltinFunction):
+            try:
+                result = callee.func(*arguments, **kwargs)
+                return result
+            except Exception as e:
+                self._raise(str(e), expr.paren)
+            finally:
+                self._call_depth -= 1
         
         if (isinstance(callee, PulseFunction) and not callee.is_bound and not callee.declaration.is_static and callee.declaration.is_method):
             if arguments and isinstance(arguments[0], PulseInstance):

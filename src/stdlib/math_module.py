@@ -8,7 +8,7 @@ Constants are cached at import time.
 
 import math
 from src.values import PulseModule, PulseNumber
-from src.function import PulseNativeFunction
+from src.function import BuiltinFunction
 from typing import Any
 from src.native import make_c_math_functions
 
@@ -57,18 +57,18 @@ def make(interp) -> PulseModule:
         return _PN(c_fns["pow"](b.value, e.value))
     
     _cached_module = PulseModule("math", {
-        "sqrt":  PulseNativeFunction("sqrt",  _wrap("sqrt")),
-        "floor": PulseNativeFunction("floor", _wrap("floor")),
-        "ceil":  PulseNativeFunction("ceil",  _wrap("ceil")),
-        "log":   PulseNativeFunction("log",   _log),
-        "log2":  PulseNativeFunction("log2",  _wrap("log2")),
-        "log10": PulseNativeFunction("log10", _wrap("log10")),
-        "exp":   PulseNativeFunction("exp",   _wrap("exp")),
-        "sin":   PulseNativeFunction("sin",   _wrap("sin")),
-        "cos":   PulseNativeFunction("cos",   _wrap("cos")),
-        "tan":   PulseNativeFunction("tan",   _wrap("tan")),
-        "abs":   PulseNativeFunction("abs",   _wrap("abs")),
-        "pow":   PulseNativeFunction("pow",   _pow),
+        "sqrt":  BuiltinFunction("sqrt",  _wrap("sqrt")),
+        "floor": BuiltinFunction("floor", _wrap("floor")),
+        "ceil":  BuiltinFunction("ceil",  _wrap("ceil")),
+        "log":   BuiltinFunction("log",   _log),
+        "log2":  BuiltinFunction("log2",  _wrap("log2")),
+        "log10": BuiltinFunction("log10", _wrap("log10")),
+        "exp":   BuiltinFunction("exp",   _wrap("exp")),
+        "sin":   BuiltinFunction("sin",   _wrap("sin")),
+        "cos":   BuiltinFunction("cos",   _wrap("cos")),
+        "tan":   BuiltinFunction("tan",   _wrap("tan")),
+        "abs":   BuiltinFunction("abs",   _wrap("abs")),
+        "pow":   BuiltinFunction("pow",   _pow),
         "pi":    _PI,
         "e":     _E,
         "inf":   _INF,
