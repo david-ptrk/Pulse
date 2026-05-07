@@ -154,9 +154,266 @@ def _explain_tree(model_name: str, sklearn_model, feature_names: list[str] | Non
     print(f"  Leaf nodes  : {n_leaves}")
     print(f"  Top split on: '{top_feature}'")
     print()
+    print(f"  {'Feature':<22} {'Importance':>10}  {'Bar':<22}  Rank")
+    print(f"  {'─' * 22}  {'─' * 10}  {'─' * 22}  {'─' * 20}")
+    for rank, i in enumerate(order):
+        bar = _importance_bar(importances[i])
+        ranked = _rank_label(rank, n)
+        print(f"  {names[i]:<22} {importances[i]:>10.4f}  {bar}  {ranked}")
+    print()
     
+    features_list = [
+        PulseDict({
+            PulseString("name"): PulseString(names[i]),
+            PulseString("importance"): PulseNumber(float(importances[i])),
+            PulseString("rank"): PulseNumber(int(np.where(order == i)[0][0])),
+        })
+        for i in range(n)
+    ]
+    
+    return PulseDict({
+        PulseString("model"): PulseString(model_name),
+        PulseString("type"): PulseString("tree"),
+        PulseString("depth"): PulseNumber(depth),
+        PulseString("n_leaves"): PulseNumber(n_leaves),
+        PulseString("top_feature"): PulseString(top_feature),
+        PulseString("features"): PulseList(features_list),
+    })
 
+def _explain_forest(model_name: str, sklearn_model, feature_names: list[str] | None) -> PulseDict:
+    """Explain RandomForestClassifier or RandomForestRegressor."""
+    importances = sklearn_model.feature_importances_
+    std = np.std([t.feature_importances_ for t in sklearn_model.estimators_], axis=0)
+    n = len(importances)
+    names = feature_names if feature_names and len(feature_names) == n else [f"Feature {i}" for i in range(n)]
+    order = np.argsort(-importances)
+    n_trees = len(sklearn_model.estimators_)
+    
+    print(f"\n[Pulse] {model_name} — ensemble feature importances")
+    print(f"  Trees in forest: {n_trees}")
+    print()
+    print(f"  {'Feature':<22} {'Importance':>10}  {'±Std':>7}  {'Bar':<22}  Rank")
+    print(f"  {'─' * 22}  {'─' * 10}  {'─' * 7}  {'─' * 22}  {'─' * 20}")
+    for rank, i in enumerate(order):
+        bar = _importance_bar(importances[i])
+        ranked = _rank_label(rank, n)
+        print(f"  {names[i]:<22} {importances[i]:>10.4f}  {std[i]:>7.4f}  {bar}  {ranked}")
+    print()
+    
+    features_list = [
+        PulseDict({
+            PulseString("name"): PulseString(names[i]),
+            PulseString("importance"): PulseNumber(float(importances[i])),
+            PulseString("std"): PulseNumber(float(std[i])),
+            PulseString("rank"): PulseNumber(int(np.where(order == i)[0][0])),
+        })
+        for i in range(n)
+    ]
+    
+    return PulseDict({
+        PulseString("model"): PulseString(model_name),
+        PulseString("type"): PulseString("forest"),
+        PulseString("n_trees"): PulseNumber(n_trees),
+        PulseString("features"): PulseList(features_list),
+    })
 
+def _explain_kmeans(sklearn_model) -> PulseDict:
+    """Explain KMeans clustering model."""
+    centers = sklearn_model.cluster_centers_
+    inertia = float(sklearn_model.inertia_)
+    k = centers.shape[0]
+    n_features = centers.shape[1]
+    
+    print(f"\n[Pulse] KMeans — cluster analysis")
+    print(f"  Clusters (k): {k}")
+    print(f"  Inertia     : {inertia:.4f}  (lower = tighter clusters)")
+    print(f"  Iterations  : {sklearn_model.n_iter_}")
+    print()
+    print(f"  Cluster centers ({n_features} features each):")
+    print(f"  {'Cluster':<10}", end="")
+    
+    for fi in range(n_features):
+        print(f"  {'F' + str(fi):>8}", end="")
+    print()
+    print(f"  {'─' * 10}" + ("  " + "─" * 8) * n_features)
+    for ci in range(k):
+        print(f"  {'#' + str(ci):<10}", end="")
+        for fi in range(n_features):
+            print(f"  {centers[ci, fi]:>8.4f}", end="")
+        print()
+    print()
+    
+    center_list = [
+        PulseList([PulseNumber(float(v)) for v in centers[ci]])
+        for ci in range(k)
+    ]
+    
+    return PulseDict({
+        PulseString("model"): PulseString("KMeans"),
+        PulseString("type"): PulseString("clustering"),
+        PulseString("k"): PulseNumber(k),
+        PulseString("inertia"): PulseNumber(inertia),
+        PulseString("n_iter"): PulseNumber(int(sklearn_model.n_iter_)),
+        PulseString("centers"): PulseList(center_list),
+    })
+
+def _explain_knn(sklearn_model) -> PulseDict:
+    """Explain KNeighborsClassifier."""
+    k = sklearn_model.n_neighbors
+    metric = sklearn_model.metric
+    algorithm = sklearn_model.algorithm
+    
+    print(f"\n[Pulse] KNN — configuration")
+    print(f"  Neighbors (k): {k}")
+    print(f"  Distance metric: {metric}")
+    print(f"  Algorithm: {algorithm}")
+    print(f"  (KNN is instance-based — no weights to inspect)")
+    print()
+    
+    return PulseDict({
+        PulseString("model"): PulseString("KNN"),
+        PulseString("type"): PulseString("instance_based"),
+        PulseString("k"): PulseNumber(k),
+        PulseString("metric"): PulseString(metric),
+        PulseString("algorithm"): PulseString(algorithm),
+    })
+
+def _explain_svc(sklearn_model) -> PulseDict:
+    """Explain Support Vector Classifier."""
+    kernel = sklearn_model.kernel
+    C = float(sklearn_model.C)
+    
+    print(f"\n[Pulse] SVC — configuration")
+    print(f"  Kernel: {kernel}")
+    print(f"  C (regularization): {C}")
+    
+    result = PulseDict({
+        PulseString("model"): PulseString("SVC"),
+        PulseString("type"): PulseString("svm"),
+        PulseString("kernel"): PulseString(kernel),
+        PulseString("C"): PulseNumber(C),
+    })
+    
+    # Support vectors only available after fitting
+    try:
+        sv = sklearn_model.support_vectors_
+        n_sv = sv.shape[0]
+        print(f"  Support vectors: {n_sv}")
+        result.entries[PulseString("n_support_vectors")] = PulseNumber(n_sv)
+    except AttributeError:
+        print(f"  Support vectors: not available (model not fitted)")
+    
+    print()
+    return result
+
+def _explain_mlp(sklearn_model) -> PulseDict:
+    """Explain MLPClassifier neural network."""
+    layer_sizes = list(sklearn_model.hidden_layer_sizes) if hasattr(sklearn_model.hidden_layer_sizes, '__iter__') else [sklearn_model.hidden_layer_sizes]
+    activation = sklearn_model.activation
+    solver = sklearn_model.solver
+    n_iter = getattr(sklearn_model, 'n_iter_', None)
+    loss = getattr(sklearn_model, 'loss_', None)
+    
+    try:
+        in_size = sklearn_model.coefs_[0].shape[0]
+        out_size = sklearn_model.coefs_[-1].shape[1]
+        all_layers = [in_size] + layer_sizes + [out_size]
+    except AttributeError:
+        all_layers = ["?"] + layer_sizes + ["?"]
+    
+    arch_str = " → ".join(str(x) for x in all_layers)
+    
+    print(f"\n[Pulse] NeuralNetwork (MLP) — architecture & training")
+    print(f"  Architecture : {arch_str}")
+    print(f"  Activation   : {activation}")
+    print(f"  Solver       : {solver}")
+    if n_iter is not None:
+        print(f"  Iterations   : {n_iter}")
+    if loss is not None:
+        print(f"  Final loss   : {loss:.6f}")
+    print()
+    
+    if hasattr(sklearn_model, 'coefs_'):
+        print(f"  Layer weight statistics:")
+        print(f"  {'Layer':<10}  {'Shape':<16}  {'Mean W':>10}  {'Std W':>10}  {'Max |W|':>10}")
+        print(f"  {'─' * 10}  {'─' * 16}  {'─' * 10}  {'─' * 10}  {'─' * 10}")
+        for li, W in enumerate(sklearn_model.coefs_):
+            shape_str = f"{W.shape[0]}×{W.shape[1]}"
+            print(f"  {'Layer ' + str(li):<10}  {shape_str:<16}  {W.mean():>+10.4f}  "
+                f"{W.std():>10.4f}  {np.abs(W).max():>10.4f}")
+    print()
+    
+    layer_list = []
+    if hasattr(sklearn_model, 'coefs_'):
+        for li, W in enumerate(sklearn_model.coefs_):
+            layer_list.append(PulseDict({
+                PulseString("layer"): PulseNumber(li),
+                PulseString("shape"): PulseList([PulseNumber(W.shape[0]), PulseNumber(W.shape[1])]),
+                PulseString("mean_w"): PulseNumber(float(W.mean())),
+                PulseString("std_w"): PulseNumber(float(W.std())),
+                PulseString("max_abs"): PulseNumber(float(np.abs(W).max())),
+            }))
+    
+    result = PulseDict({
+        PulseString("model"): PulseString("NeuralNetwork"),
+        PulseString("type"): PulseString("mlp"),
+        PulseString("activation"): PulseString(activation),
+        PulseString("solver"): PulseString(solver),
+        PulseString("architecture"): PulseString(arch_str),
+        PulseString("layers"): PulseList(layer_list),
+    })
+    if n_iter is not None:
+        result.entries[PulseString("n_iter")] = PulseNumber(n_iter)
+    if loss is not None:
+        result.entries[PulseString("final_loss")] = PulseNumber(loss)
+    return result
+
+def _build_explain(pulse_model: PulseModel, interp) -> PulseNativeMethod:
+    """Build the explain() method for a given PulseModel."""
+    
+    def explain(feature_names_arg=None) -> PulseDict:
+        if not pulse_model.is_trained:
+            interp._raise(f"Model '{pulse_model.model_name}' must be trained before calling explain()")
+        
+        feature_names: list[str] | None = None
+        if feature_names_arg is not None and isinstance(feature_names_arg, PulseList):
+            feature_names = [
+                el.value if isinstance(el, PulseString) else str(el)
+                for el in feature_names_arg.elements
+            ]
+        
+        sk = pulse_model.sklearn_model
+        name = pulse_model.model_name
+        
+        if isinstance(sk, (LinearRegression, Ridge)):
+            return _explain_linear(name, sk, feature_names)
+        if isinstance(sk, LogisticRegression):
+            return _explain_logistic(sk, feature_names)
+        if isinstance(sk, (DecisionTreeClassifier, DecisionTreeRegressor)):
+            return _explain_tree(name, sk, feature_names)
+        if isinstance(sk, (RandomForestClassifier, RandomForestRegressor)):
+            return _explain_forest(name, sk, feature_names)
+        if isinstance(sk, KMeans):
+            return _explain_kmeans(sk)
+        if isinstance(sk, KNeighborsClassifier):
+            return _explain_knn(sk)
+        if isinstance(sk, SVC):
+            return _explain_svc(sk)
+        if isinstance(sk, MLPClassifier):
+            return _explain_mlp(sk)
+        
+        # Fallback
+        print(f"\n[Pulse] {name} — no detailed explanation available for this model type")
+        print(f"  sklearn type: {type(sk).__name__}")
+        print()
+        return PulseDict({
+            PulseString("model"): PulseString(name),
+            PulseString("type"): PulseString("unknown"),
+        })
+    
+    return PulseNativeMethod(explain, arity=1)
+
+# Module factory
 def make(interp) -> PulseModule:
     """Build and return the Pulse 'models' module."""
     
@@ -166,7 +423,7 @@ def make(interp) -> PulseModule:
             interp._raise(f"{fn_name}() expects a tensor for {arg_name}, got '{val.type_name()}'")
     
     def _make_model(name: str, sklearn_model):
-        """Wrap a scikit-learn model in a PulseModel with train/predict/score methods."""
+        """Wrap a scikit-learn model in a PulseModel with train/predict/score/explain methods."""
         pulse_model = PulseModel(name, sklearn_model)
         
         def train(data: PulseTensor, labels: PulseTensor, auto_preprocess=None) -> PulseNull:
@@ -269,7 +526,8 @@ def make(interp) -> PulseModule:
             "train": PulseNativeMethod(train, arity=-1),
             "predict": PulseNativeMethod(predict, arity=1),
             "score": PulseNativeMethod(score, arity=2),
-            "is_trained": PulseNativeMethod(is_trained_fn, arity=0)
+            "is_trained": PulseNativeMethod(is_trained_fn, arity=0),
+            "explain": _build_explain(pulse_model, interp),
         }
         
         return pulse_model
