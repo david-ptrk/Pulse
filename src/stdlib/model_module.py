@@ -19,7 +19,7 @@ from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import cross_val_score
 import warnings
-import sys
+import time
 
 # Explain helpers
 def _weight_label(value: float) -> str:
@@ -413,6 +413,65 @@ def _build_explain(pulse_model: PulseModel, interp) -> PulseNativeMethod:
     
     return PulseNativeMethod(explain, arity=1)
 
+def _verbose_model_info(name: str, sk) -> None:
+    """Print model-specific training details when verbose=True."""
+    if isinstance(sk, (LinearRegression, Ridge)):
+        coef = np.atleast_1d(sk.coef_).flatten()
+        intercept = float(np.atleast_1d(sk.intercept_)[0])
+        print(f"[Pulse] Learned weights   : {coef.round(4).tolist()}")
+        print(f"[Pulse] Bias              : {intercept:.4f}")
+    
+    elif isinstance(sk, LogisticRegression):
+        print(f"[Pulse] Classes           : {sk.classes_.tolist()}")
+        print(f"[Pulse] Iterations taken  : {sk.n_iter_.tolist()}")
+        print(f"[Pulse] Solver            : {sk.solver}")
+    
+    elif isinstance(sk, (DecisionTreeClassifier, DecisionTreeRegressor)):
+        print(f"[Pulse] Tree depth        : {sk.get_depth()}")
+        print(f"[Pulse] Leaf nodes        : {sk.get_n_leaves()}")
+        importances = sk.feature_importances_
+        top_idx = int(np.argmax(importances))
+        print(f"[Pulse] Top feature       : Feature {top_idx} "
+                f"(importance: {importances[top_idx]:.4f})")
+    
+    elif isinstance(sk, (RandomForestClassifier, RandomForestRegressor)):
+        print(f"[Pulse] Trees             : {len(sk.estimators_)}")
+        importances = sk.feature_importances_
+        top_idx = int(np.argmax(importances))
+        print(f"[Pulse] Top feature       : Feature {top_idx} "
+                f"(importance: {importances[top_idx]:.4f})")
+        depths = [t.get_depth() for t in sk.estimators_]
+        print(f"[Pulse] Avg tree depth    : {np.mean(depths):.1f}")
+    
+    elif isinstance(sk, KMeans):
+        print(f"[Pulse] Clusters (k)      : {sk.n_clusters}")
+        print(f"[Pulse] Iterations        : {sk.n_iter_}")
+        print(f"[Pulse] Inertia           : {sk.inertia_:.4f}")
+    
+    elif isinstance(sk, KNeighborsClassifier):
+        print(f"[Pulse] Neighbors (k)     : {sk.n_neighbors}")
+        print(f"[Pulse] Distance metric   : {sk.metric}")
+        print(f"[Pulse] Training points   : {sk.n_samples_fit_}")
+    
+    elif isinstance(sk, SVC):
+        print(f"[Pulse] Kernel            : {sk.kernel}")
+        print(f"[Pulse] Support vectors   : {sk.support_vectors_.shape[0]}")
+        print(f"[Pulse] C                 : {sk.C}")
+    
+    elif isinstance(sk, MLPClassifier):
+        arch = list(sk.hidden_layer_sizes) if hasattr(sk.hidden_layer_sizes, '__iter__') else [sk.hidden_layer_sizes]
+        try:
+            in_size = sk.coefs_[0].shape[0]
+            out_size = sk.coefs_[-1].shape[1]
+            full = [in_size] + arch + [out_size]
+            arch_str = " -> ".join(str(x) for x in full)
+        except AttributeError:
+            arch_str = str(arch)
+        print(f"[Pulse] Architecture      : {arch_str}")
+        print(f"[Pulse] Activation        : {sk.activation}")
+        print(f"[Pulse] Iterations        : {sk.n_iter_}")
+        print(f"[Pulse] Final loss        : {sk.loss_:.6f}")
+
 # Module factory
 def make(interp) -> PulseModule:
     """Build and return the Pulse 'models' module."""
@@ -426,16 +485,34 @@ def make(interp) -> PulseModule:
         """Wrap a scikit-learn model in a PulseModel with train/predict/score/explain methods."""
         pulse_model = PulseModel(name, sklearn_model)
         
-        def train(data: PulseTensor, labels: PulseTensor, auto_preprocess=None) -> PulseNull:
+        def train(data: PulseTensor, labels: PulseTensor, auto_preprocess=None, verbose=None) -> PulseNull:
             """Fit the model on data and labels. Optionally standardize and impute missing values."""
             if not isinstance(data, PulseTensor):
                 interp._raise(f"train() expects a tensor for data, got '{data.type_name()}'")
             if not isinstance(labels, PulseTensor):
                 interp._raise(f"train() expects a tensor for labels, got '{labels.type_name()}'")
             
+            is_verbose = isinstance(verbose, PulseBoolean) and verbose.value
+            
             X = data.array.copy()
             y = labels.array.copy()
             
+            # Verbose
+            if is_verbose:
+                print(f"\n[Pulse] Training {name}...")
+                n_samples = X.shape[0]
+                n_features = X.shape[1] if X.ndim > 1 else 1
+                print(f"[Pulse] Samples: {n_samples}, Features: {n_features}")
+                
+                # detect task type
+                unique = np.unique(y)
+                is_clf = len(unique) <= 20 and np.all(unique == unique.astype(int))
+                task = "classification" if is_clf else "regression"
+                print(f"[Pulse] Task: {task}")
+                if is_clf:
+                    print(f"[Pulse] Classes: {sorted(unique.astype(int).tolist())}")
+            
+            # Auto-preprocessing
             if auto_preprocess is not None and isinstance(auto_preprocess, PulseBoolean) and auto_preprocess.value:
                 steps = []
                 
@@ -458,17 +535,52 @@ def make(interp) -> PulseModule:
                 pulse_model._scalar_std = std
                 pulse_model._auto_preprocess = True
                 
-                print("[Pulse] Auto-preprocessing applied:")
-                for step in steps:
-                    print(f"  -> {step}")
+                if is_verbose:
+                    print("[Pulse] Auto-preprocessing applied:")
+                    for step in steps:
+                        print(f"  -> {step}")
             else:
                 pulse_model._auto_preprocess = False
+            
+            # Training
+            t_start = time.perf_counter()
             
             try:
                 pulse_model.sklearn_model.fit(X, y)
                 pulse_model.is_trained = True
             except Exception as e:
                 interp._raise(f"Training failed: {e}")
+            
+            t_end = time.perf_counter()
+            duration = t_end - t_start
+            
+            # Post training summary
+            if is_verbose:
+                print(f"[Pulse] Training complete in {duration:.3f}s")
+                sk = pulse_model.sklearn_model
+                
+                try:
+                    train_score = float(sk.score(X, y))
+                    unique = np.unique(y)
+                    is_clf = len(unique) <= 20 and np.all(unique == unique.astype(int))
+                    
+                    if is_clf:
+                        print(f"[Pulse] Training accuracy : {train_score:.4f}")
+                    else:
+                        print(f"[Pulse] Training R^2 score: {train_score:.4f}")
+                        
+                        preds = sk.predict(X)
+                        mse = float(np.mean((y - preds) ** 2))
+                        rmse = float(np.sqrt(mse))
+                        mae = float(np.mean(np.abs(y - preds)))
+                        print(f"[Pulse] Training MSE      : {mse:.4f}")
+                        print(f"[Pulse] Training RMSE     : {rmse:.4f}")
+                        print(f"[Pulse] Training MAE      : {mae:.4f}")
+                except Exception:
+                    pass
+                
+                _verbose_model_info(name, sk)
+                print()
             
             return PulseNull()
         
