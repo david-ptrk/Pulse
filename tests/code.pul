@@ -13,6 +13,4 @@ y_test  = split["test"].labels()
 model = models.LinearRegression()
 model.train(X_train, y_train)
 
-print(model.score(X_test, y_test))
-
-model.explain(ds.feature_names())
+print(f"Score is {model.score(X_test, y_test)}")
