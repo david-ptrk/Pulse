@@ -52,7 +52,7 @@ from src.runtime import PulseClass, PulseInstance
 from src.values import (
     PulseNumber, PulseString, PulseNull, PulseNamespace,
     PulseList, PulseBoolean, PulseDict, PulseRange,
-    PulseTensor, PulseValue, PulseModule, PulseModel,
+    PulseTensor, PulseValue, PulseModule, PulseModel, PulseDataset,
 )
 import numpy as np
 import src.expressions as expressions
@@ -1183,6 +1183,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if isinstance(obj, PulseModel):
             if not hasattr(obj, 'methods') or name not in obj.methods:
                 self._raise_attr(f"Model '{obj.model_name}' has no method '{name}'", expr.name)
+            return obj.methods[name]
+        
+        if isinstance(obj, PulseDataset):
+            if name not in obj.methods:
+                self._raise_attr(f"Dataset has no method '{name}'", expr.name)
             return obj.methods[name]
         
         if isinstance(obj, PulseInstance):

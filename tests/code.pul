@@ -1,7 +1,18 @@
+import datasets
 import models
 
-X = @[[1,2],[3,4],[5,6],[7,8],[9,10]]
-y = @[1.5, 3.5, 5.5, 7.5, 9.5]
+ds = datasets.diabetes()
+
+split = ds.shuffle(42).normalize("standard").split(0.8)
+
+X_train = split["train"].features()
+y_train = split["train"].labels()
+X_test  = split["test"].features()
+y_test  = split["test"].labels()
 
 model = models.LinearRegression()
-model.train(X, y, verbose=True)
+model.train(X_train, y_train)
+
+print(model.score(X_test, y_test))
+
+model.explain(ds.feature_names())

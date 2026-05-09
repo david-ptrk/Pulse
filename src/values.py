@@ -245,3 +245,28 @@ class PulseNamespace(PulseValue):
     
     def __repr__(self) -> str:
         return f"<{self.name}>"
+
+class PulseDataset(PulseValue):
+    """Holds a dataset as two numpy arrays (X, y) plus metadata. Exposes manipulation methods callable from Pulse code."""
+    def __init__(self, X: np.ndarray, y: np.ndarray | None, feature_names: list[str] | None = None, target_names: list[str] | None = None, description: str = "") -> None:
+        self.X = np.array(X, dtype=float)
+        self.y = np.array(y, dtype=float) if y is not None else None
+        self.feature_names: list[str] = (
+            feature_names 
+            if feature_names and len(feature_names) == (self.X.shape[1] if self.X.ndim > 1 else 1)
+            else [f"feature_{i}" for i in range(self.X.shape[1] if self.X.ndim > 1 else 1)])
+        self.target_names: list[str] = target_names or []
+        self.description: str = description
+        self.methods: dict = {}
+    
+    def type_name(self) -> str:
+        return "dataset"
+    
+    def is_truthy(self) -> bool:
+        return True
+    
+    def __repr__(self) -> str:
+        rows = self.X.shape[0]
+        cols = self.X.shape[1] if self.X.ndim > 1 else 1
+        tag = " with labels" if self.y is not None else ""
+        return f"<dataset {rows}x{cols}{tag}>"
