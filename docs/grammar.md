@@ -10,64 +10,99 @@
    | exprStmt  
    | ifStmt  
    | whileStmt  
+   | forStmt  
    | breakStmt  
    | continueStmt  
    | returnStmt  
-   | forStmt  
    | funcStmt  
    | classStmt  
    | tryStmt  
-   | passStmt
+   | passStmt  
+   | importStmt  
+   | raiseStmt  
+   | delStmt  
+   | matchStmt  
+   | unpackStmt
 
-3. exprStmt -> expression
+3. exprStmt -> expression NEWLINE
 
 ## Expressions
 
 4. expression -> assignment
-5. assignment -> callOrMember "=" assignment | logical
-6. logical -> equality ( ("and" | "or") equality )\*
-7. equality -> comparison ( ("==" | "!=") comparison )\*
-8. comparison -> term ( (">" | "<") term )\*
-9. term -> factor ( ("+" | "-") factor )\*
-10. factor -> unary ( ("\*" | "/") unary )
-11. unary -> ("!" | "-") unary | primary
+5. assignment -> pipeline ("=" assignment)? | pipeline augAssign assigment | ternary
+6. augAssign -> "+=" | "-=" | "\*=" | "/=" | "%="
+7. ternary -> pipeline "if" expression "else" assignment
+8. pipeline -> logical ("|>" logical)\*
+9. logical -> equality (("and" | "or") equality)\*
+10. equality -> comparison (("==" | "!=" | "in" | "not in" | "is" | "is not") comparison)\*
+11. comparison -> addition ((">" | ">=" | "<" | "<=") addition)\*
+    -> (chained: addition op addition op addition)
+12. addition -> multiplication (("+" | "-") multiplication)\*
+13. multiplication -> power (("\*" | "/" | "//" | "%" | "@") power)\*
+14. power -> unary ("\*\*" unary)\*
+15. unary -> ("not" | "-") unary | call
+16. call -> primary (postfix)\*
+17. postfix -> "." IDENTIFIER | "(" arguments? keywordArguments? ")" | "[" indexOrSlice ("," indexOrSlice)* "]"
+18. primary -> NUMBER | STRING | BOOL | NULL | FSTRING | TENSOR_LITERAL | IDENTIFIER | "(" expression ")" | "[" listLiteral | listComp "]" | "{" dictLiteral "}" | "lambda" params? ":" expression
 
-## Primary Expressions & Postfix
+## Arguments & Parameters
 
-12. primary -> callOrMember
-13. callOrMember -> base (postfix)\*
-14. base -> NUMBER | IDENTIFIER | "(" expression ")"
-15. postfix -> "." IDENTIFIER | "(" arguments? ")"
-16. arguments -> expression ("," expression)\*
-17. parameters -> IDENTIFIER ("," IDENTIFIER)\*
+19. arguments -> expression ("," expression)\*
+20. keywordArguments -> IDENTIFIER "=" expression ("," IDENTIFIER "=" expression)\*
+21. params = param ("," param)\* ("," "\*" IDENTIFER)?
+22. param = IDENTIFIER ("=" expression)?
+
+## List & Dict Literals
+
+23. listLiteral -> expression ("," expression)\*
+24. listComp -> expression "for" IDENTIFER "in" expression ("if" expression)?
+25. dictLiteral -> (expression ":" expression) ("," expression ":" expression)\*
+
+## Index & Slice
+
+26. indexOrSlice -> expression | expression? ":" expression?
+
+## Unpack
+
+27. unpackStmt -> IDENTIFIER ("," IDENTIFIER)+ "=" expression NEWLINE
 
 ## Control Flow
 
-18. ifStmt -> "if" expression ":" statement ("elif" expression ":" statement)\* ("else" ":" statement)?
-19. whileStmt -> "while" expression ":" statement
-20. block -> INDENT statement\* DEDENT
-21. breakStmt -> "break"
-22. continueStmt -> "continue"
-23. passStmt -> "pass"
-24. returnStmt -> "return" expression?
-25. forStmt -> "for" IDENTIFIER "in" expression ":" statement
+28. ifStmt -> "if" expression ":" block ("elif" expression ":" block)\* ("else" ":" block)?
+29. whileStmt -> "while" expression ":" block
+30. forStmt -> "for" IDENTIFIER ("," IDENTIFIER)\* "in" expression ":" block
+31. block -> NEWLINE INDENT statement\* DEDENT
+32. breakStmt -> "break" NEWLINE
+33. continueStmt -> "continue" NEWLINE
+34. passStmt -> "pass" NEWLINE
+35. returnStmt -> "return" expression? NEWLINE
+
+## Match / Case
+
+36. matchStmt -> "match" expression ":" NEWLINE INDENT caseClause+ DEDENT
+37. caseClause -> "case" pattern ("if" expression)? ":" block
+38. pattern -> "\_" | IDENTIFIER | expression ("|" expression)+ | "[" pattern ("," pattern)\* "]" | "{" (expression ":" pattern)\* "}" | expression
 
 ## Functions and Classes
 
-26. funcStmt -> "def" IDENTIFIER "(" parameters? ")" ":" statement
-27. classStmt -> "class" IDENTIFIER ":" INDENT classBody DEDENT
-28. classBody -> (funcStmt | assignment | NEWLINE)\*
+39. funcStmt -> "def" IDENTIFIER "(" params? ")" ":" block
+40. classStmt -> "class" IDENTIFIER ("(" IDENTIFIER ("," IDENTIFER)\* ")") ":" NEWLINE INDENT classBody DEDENT
+41. classBody -> (funcStmt | "static" funcStmt | assignment | "pass" | NEWLINE)\*
 
 ## Error Handling
 
-29. tryStmt -> "try" ":" statement ("except" IDENTIFIER? ":" statement)+ ("finally" ":" statement)?
+42. tryStmt -> "try" ":" block ("except" expression? ("as" IDENTIFIER)? ":" block)\* ("else" ":" block)? ("finally" ":" block)?
+43. raiseStmt -> "raise" expression? NEWLINE
+
+## Import
+
+44. importStmt -> "import" modulePath ("as" IDENTIFIER)? NEWLINE | "from" modulePath "import" importNames NEWLINE
+45. modulePath -> IDENTIFIER ("." IDENTIFIER)\*
+46. importNames -> IDENTIFIER ("as" IDENTIFIER)? ("," IDENTIFIER ("as" IDENTIFIER)?)\*
+
+## Delete
+
+47. delStmt -> "del" delTarget ("," delTarget)\* NEWLINE
+48. delTarget -> IDENTIFIER | IDENTIFIER "[" expression "]" | IDENTIFIER "." IDENTIFIER
 
 ---
-
-## Notes / v1.0 Limitations
-
-- No array or dictionary literals yet.
-- No list comprehensions or generators.
-- No decorators or annotations.
-- Only simple exception handling supported.
-- Logical operators limited to `and` / `or` (no short-circuit optimizations yet).

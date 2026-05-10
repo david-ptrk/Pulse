@@ -1,16 +1,2 @@
-import datasets
-import models
-
-ds = datasets.diabetes()
-
-split = ds.shuffle(42).normalize("standard").split(0.8)
-
-X_train = split["train"].features()
-y_train = split["train"].labels()
-X_test  = split["test"].features()
-y_test  = split["test"].labels()
-
-model = models.LinearRegression()
-model.train(X_train, y_train)
-
-print(f"Score is {model.score(X_test, y_test)}")
+a, b = [1, 2]
+print(a, b)
