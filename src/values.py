@@ -65,7 +65,7 @@ class PulseBoolean(PulseValue):
         return 1 if self.value else 0
     
     def __repr__(self) -> str:
-        return "true" if self.value else "false"
+        return "True" if self.value else "False"
 
 class PulseNull(PulseValue):
     def type_name(self) -> str:
