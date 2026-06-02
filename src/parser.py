@@ -629,18 +629,28 @@ class Parser:
         return left
     
     def pipeline(self) -> expr.Expr:
-        node = self.logic()
+        node = self.logic_or()
         
         while self.match(TokenType.PIPE):
-            right = self.logic()
+            right = self.logic_or()
             node = expr.Pipe(node, right)
         
         return node
     
-    def logic(self) -> expr.Expr:
+    def logic_or(self) -> expr.Expr:
+        node = self.logic_and()
+        
+        while self.match(TokenType.OR):
+            op = self.previous()
+            right = self.logic_and()
+            node = expr.Logical(node, op, right)
+        
+        return node
+    
+    def logic_and(self) -> expr.Expr:
         node = self.equality()
         
-        while self.match(TokenType.AND, TokenType.OR):
+        while self.match(TokenType.AND):
             op = self.previous()
             right = self.equality()
             node = expr.Logical(node, op, right)
