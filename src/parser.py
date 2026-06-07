@@ -837,15 +837,15 @@ class Parser:
                 self.advance()
                 return expr.List([])
             
-            first = self.expression()
+            first = self.logic_or()
             
             if self.match(TokenType.FOR):
                 var = self.consume(TokenType.IDENTIFIER, "Expected variable after 'for'")
                 self.consume(TokenType.IN, "Expected 'in' after loop variable")
-                iterable = self.expression()
+                iterable = self.logic_or()
                 condition = None
                 if self.match(TokenType.IF):
-                    condition = self.expression()
+                    condition = self.logic_or()
                 self.consume(TokenType.RIGHT_BRACKET, "Expected ']' after list comprehension")
                 return expr.ListComp(first, var, iterable, condition)
             
