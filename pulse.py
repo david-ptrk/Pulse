@@ -18,6 +18,7 @@ from src.runtime import PulseRuntimeException
 from src.values import PulseNull
 import argparse
 from time import perf_counter
+import codeop
 
 # Global runtime environment
 global_env = Environment()
@@ -122,28 +123,55 @@ def _enable_history() -> None:
     except ImportError:
         pass
 
+def _setup_tab_indent() -> None:
+    """Configure Tab key to insert 4 spaces instead of triggering completion."""
+    try:
+        import readline
+        readline.parse_and_bind('tab: self-insert')
+        readline.set_completer(None)
+    except ImportError:
+        pass
+
+def _expand_tabs(line: str, tabsize: int = 4) -> str:
+    """Expand leading tabs to spaces; leave in-string tabs untouched."""
+    return line.expandtabs(tabsize)
+
+def _opens_block(line: str) -> bool:
+    """True if this line is a block header that expects an indented body."""
+    stripped = line.strip()
+    if stripped.endswith(":"):
+        return True
+    if stripped.startswith("@"):
+        return True
+    if stripped.endswith("\\"):
+        return True
+    return False
+
 def run_prompt() -> None:
     _enable_history()
+    _setup_tab_indent()
     
     print(f"Pulse {_REPL_VERSION} - interactive mode")
     print(f"Python {sys.version.split()[0]} on {sys.platform}")
     print('Type "exit" or press Ctrl+Z to quit.\n')
     
-    buffer = []
-    indent_level = 0
+    buffer: list[str] = []
     
     while True:
-        prompt = ("... " + "    " * indent_level) if buffer else ">>> "
+        prompt = "... " if buffer else ">>> "
         
         try:
             line = input(prompt)
         except EOFError:
+            if buffer:
+                source = "\n".join(buffer)
+                buffer = []
+                _repl_run(source)
             print()
             break
         except KeyboardInterrupt:
             print("\nKeyboardInterrupt")
             buffer = []
-            indent_level = 0
             continue
         
         if not buffer and line.strip() in ("exit", "exit()", "quit", "quit()"):
@@ -154,24 +182,14 @@ def run_prompt() -> None:
             if buffer:
                 source = "\n".join(buffer)
                 buffer = []
-                indent_level = 0
                 _repl_run(source)
             continue
         
-        indented_line = "    " * indent_level + line.strip()
-        buffer.append(indented_line)
+        buffer.append(_expand_tabs(line))
         
-        stripped = line.strip()
-        if stripped.endswith(":"):
-            indent_level += 1
-        elif stripped in ("pass", "break", "continue") or stripped.startswith("return"):
-            indent_level = max(0, indent_level - 1)
-        
-        source = "\n".join(buffer)
-        
-        if not _is_incomplete(source) and not _is_in_block(buffer):
+        if len(buffer) == 1 and not _opens_block(buffer[0]):
+            source = buffer[0]
             buffer = []
-            indent_level = 0
             _repl_run(source)
 
 def _is_in_block(buffer: list[str]) -> bool:
