@@ -110,6 +110,10 @@ class PulseError(Exception):
             context=self.context,
             hint=self.hint
         )
+    
+    @property
+    def plain_message(self):
+        return self.message
 
 # Lexical error
 class PulseLexError(PulseError):

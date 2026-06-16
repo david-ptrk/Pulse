@@ -277,6 +277,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 if method is not None:
                     result = method.bind(val).call(self, [], {})
                     return repr(result) if result is not None else "null"
+        if isinstance(val, str):
+            return val
         return repr(val)
     
     # File Loaders
@@ -627,7 +629,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 if match:
                     handled = True
                     if var_token is not None:
-                        self.environment.define(var_token.lexeme, exc)
+                        self.environment.define(var_token.lexeme, exc.message)
                     result = self.execute(block)
                     break
             

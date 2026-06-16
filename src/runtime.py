@@ -49,7 +49,7 @@ class PulseException(Exception):
 
 class PulseRuntimeException(PulseException):
     def __init__(self, error: PulseRuntimeError) -> None:
-        super().__init__(str(error))
+        super().__init__(error.message)
         self.error = error
     
     @classmethod

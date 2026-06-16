@@ -1,11 +1,4 @@
-age = 20
-has_id = True
-
-if age >= 18:
-    print("Adult")
-    if has_id:
-        print("Entry allowed")
-    else:
-        print("ID required")
-else:
-    print("Underage")
+try:
+    x = 1 / 0
+except Exception as e:
+    print(e)
