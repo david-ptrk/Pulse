@@ -1,1 +1,11 @@
-from math import sqrt as sq
+age = 20
+has_id = True
+
+if age >= 18:
+    print("Adult")
+    if has_id:
+        print("Entry allowed")
+    else:
+        print("ID required")
+else:
+    print("Underage")

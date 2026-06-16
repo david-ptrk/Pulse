@@ -53,15 +53,15 @@ def test_string_concatenation():
     assert result == "hello world"
 
 def test_true():
-    assert run_pulse("print(true)") == "true"
+    assert run_pulse("print(True)") == "True"
 
 def test_false():
-    assert run_pulse("print(false)") == "false"
+    assert run_pulse("print(False)") == "False"
 
 def test_if_true():
-    source = "if true:\n    print(1)\n"
+    source = "if True:\n    print(1)\n"
     assert run_pulse(source) == "1"
 
 def test_if_false_else():
-    source = "if false:\n    print(1)\nelse:\n    print(2)\n"
+    source = "if False:\n    print(1)\nelse:\n    print(2)\n"
     assert run_pulse(source) == "2"
