@@ -25,12 +25,12 @@ def test_string_single_quote():
     assert tokens[0].literal == "world"
 
 def test_boolean_true():
-    tokens = Lexer("true").scan_tokens()
+    tokens = Lexer("True").scan_tokens()
     assert tokens[0].type == TokenType.BOOL
     assert tokens[0].literal == True
 
 def test_boolean_false():
-    tokens = Lexer("false").scan_tokens()
+    tokens = Lexer("False").scan_tokens()
     assert tokens[0].literal == False
 
 def test_plus():
@@ -82,10 +82,10 @@ def test_unterminated_string():
 def test_tabs_not_allowed():
     from src.error import PulseLexError
     with pytest.raises(PulseLexError):
-        Lexer("if true:\n\tx = 1").scan_tokens()
+        Lexer("if True:\n\tx = 1").scan_tokens()
 
 def test_indent_dedent():
-    source = "if true:\n    x = 1\n"
+    source = "if True:\n    x = 1\n"
     types = lex(source)
     assert TokenType.INDENT in types
     assert TokenType.DEDENT in types
