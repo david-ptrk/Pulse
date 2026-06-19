@@ -686,4 +686,304 @@ class TestTryStatement:
         r.visit_try_stmt(stmt)
 
 class TestImportStatement:
-    pass
+    def test_import_module_no_alias(self):
+        r = make_resolver()
+        stmt = import_stmt(module_path=[make_token("math")])
+        r.visit_import_stmt(stmt)
+        assert r.scopes[-1].get("math") is True
+    
+    def test_import_module_with_alias(self):
+        r = make_resolver()
+        stmt = import_stmt(module_path=[make_token("numpy")], alias="np")
+        r.visit_import_stmt(stmt)
+        assert r.scopes[-1].get("np") is True
+    
+    def test_import_name_symbols(self):
+        r = make_resolver()
+        sym = (make_token("sqrt"), None)
+        sym_aliased = (make_token("pi"), make_token("PI"))
+        stmt = MagicMock()
+        stmt.names = [sym, sym_aliased]
+        stmt.accept = lambda v: v.visit_import_stmt(stmt)
+        r.visit_import_stmt(stmt)
+        assert r.scopes[-1].get("sqrt") is True
+        assert r.scopes[-1].get("PI") is True
+
+class TestMatchStatement:
+    def test_match_with_token_pattern(self):
+        from src.tokens import Token
+        r = make_resolver()
+        pat = make_token("x")
+        cases = [(pat, None, block_stmt())]
+        r.visit_match_stmt(match_stmt(cases=cases))
+    
+    def test_match_with_wildcard_pattern(self):
+        r = make_resolver()
+        pat = make_token("_")
+        cases = [(pat, None, block_stmt())]
+        r.visit_match_stmt(match_stmt(cases=cases))
+    
+    def test_match_with_or_pattern(self):
+        r = make_resolver()
+        pat = ("or", [literal_expr(), literal_expr()])
+        cases = [(pat, None, block_stmt())]
+        r.visit_match_stmt(match_stmt(cases=cases))
+    
+    def test_match_with_sequence_pattern(self):
+        r = make_resolver()
+        sub1 = make_token("a")
+        sub2 = make_token("b")
+        pat = ("sequence", [sub1, sub2])
+        cases = [(pat, None, block_stmt())]
+        r.visit_match_stmt(match_stmt(cases=cases))
+    
+    def test_match_with_mapping_pattern(self):
+        r = make_resolver()
+        key_expr = literal_expr()
+        val_pat = make_token("v")
+        pat = ("mapping", [(key_expr, val_pat)])
+        cases = [(pat, None, block_stmt())]
+        r.visit_match_stmt(match_stmt(cases=cases))
+    
+    def test_match_with_guard(self):
+        r = make_resolver()
+        guard = literal_expr()
+        pat = make_token("_")
+        cases = [(pat, guard, block_stmt())]
+        r.visit_match_stmt(match_stmt(cases=cases))
+    
+    def test_match_scope_per_case(self):
+        r = make_resolver()
+        initial = len(r.scopes)
+        r.visit_match_stmt(match_stmt(cases=[
+            (make_token("_"), None, block_stmt()),
+            (make_token("_"), None, block_stmt()),
+        ]))
+        assert len(r.scopes) == initial
+
+class TestExpressionVisitors:
+    def test_literal_expr(self):
+        r = make_resolver()
+        r.visit_literal_expr(literal_expr())
+    
+    def test_tensor_expr(self):
+        r = make_resolver()
+        r.visit_tensor_expr(tensor_expr())
+    
+    def test_grouping_expr(self):
+        r = make_resolver()
+        r.visit_grouping_expr(grouping_expr())
+    
+    def test_unary_expr(self):
+        r = make_resolver()
+        r.visit_unary_expr(unary_expr())
+    
+    def test_binary_expr(self):
+        r = make_resolver()
+        r.visit_binary_expr(binary_expr())
+    
+    def test_logical_expr(self):
+        r = make_resolver()
+        r.visit_logical_expr(logical_expr())
+    
+    def test_call_expr_no_args(self):
+        r = make_resolver()
+        r.visit_call_expr(call_expr())
+    
+    def test_call_expr_with_args_and_kwargs(self):
+        r = make_resolver()
+        r.visit_call_expr(call_expr(
+            args=[literal_expr()],
+            kwargs=[(make_token("key"), literal_expr())]
+        ))
+    
+    def test_list_expr_empty(self):
+        r = make_resolver()
+        r.visit_list_expr(list_expr())
+    
+    def test_list_expr_with_elements(self):
+        r = make_resolver()
+        r.visit_list_expr(list_expr([literal_expr(), literal_expr()]))
+    
+    def test_dict_expr(self):
+        r = make_resolver()
+        r.visit_dict_expr(dict_expr(
+            keys=[literal_expr()],
+            values=[literal_expr()]
+        ))
+    
+    def test_index_expr(self):
+        r = make_resolver()
+        r.visit_index_expr(index_expr())
+    
+    def test_setindex_expr(self):
+        r = make_resolver()
+        r.visit_setindex_expr(setindex_expr())
+    
+    def test_slice_expr_both_bounds(self):
+        r = make_resolver()
+        r.visit_slice_expr(slice_expr(lower=literal_expr(), upper=literal_expr()))
+    
+    def test_slice_expr_no_bounds(self):
+        r = make_resolver()
+        r.visit_slice_expr(slice_expr())
+    
+    def test_slice_expr_only_lower(self):
+        r = make_resolver()
+        r.visit_slice_expr(slice_expr(lower=literal_expr()))
+    
+    def test_multiindex_expr(self):
+        r = make_resolver()
+        r.visit_multiindex_expr(multiindex_expr())
+    
+    def test_memberaccess_expr(self):
+        r = make_resolver()
+        r.visit_memberaccess_expr(memberaccess_expr())
+    
+    def test_setmember_expr(self):
+        r = make_resolver()
+        r.visit_setmember_expr(setmember_expr())
+    
+    def test_fstring_expr(self):
+        r = make_resolver()
+        r.visit_fstring_expr(fstring_expr())
+    
+    def test_pipe_expr(self):
+        r = make_resolver()
+        r.visit_pipe_expr(pipe_expr())
+    
+    def test_unpack_expr(self):
+        interp = make_interpreter()
+        r = make_resolver(interp)
+        r.visit_unpack_expr(unpack_expr())
+    
+    def test_ternary_expr(self):
+        r = make_resolver()
+        r.visit_ternary_expr(ternary_expr())
+    
+    def test_lambda_expr(self):
+        r = make_resolver()
+        r.visit_lambda_expr(lambda_expr())
+    
+    def test_lambda_creates_new_scope(self):
+        r = make_resolver()
+        initial = len(r.scopes)
+        r.visit_lambda_expr(lambda_expr())
+        assert len(r.scopes) == initial
+    
+    def test_lambda_sets_and_restores_function_type(self):
+        r = make_resolver()
+        r.current_function = FunctionType.NONE
+        r.visit_lambda_expr(lambda_expr())
+        assert r.current_function == FunctionType.NONE
+    
+    def test_listcomp_expr_no_condition(self):
+        r = make_resolver()
+        r.visit_listcomp_expr(listcomp_expr())
+    
+    def test_listcomp_expr_with_condition(self):
+        r = make_resolver()
+        r.visit_listcomp_expr(listcomp_expr(condition=literal_expr()))
+    
+    def test_listcomp_scope_cleaned_up(self):
+        r = make_resolver()
+        initial = len(r.scopes)
+        r.visit_listcomp_expr(listcomp_expr())
+        assert len(r.scopes) == initial
+
+class TestLexicalScopingCorrectness:
+    def test_shadowing_in_inner_scope(self):
+        interp = make_interpreter()
+        r = make_resolver(interp)
+        r.scopes[0]["x"] = True
+        r.begin_scope()
+        r.scopes[-1]["x"] = True
+        expr = variable_expr("x")
+        r.resolve_local(expr, expr.name)
+        interp.resolve.assert_called_with(expr, 0)
+    
+    def test_closure_captures_outer_variable(self):
+        interp = make_interpreter()
+        r = make_resolver(interp)
+        r.begin_scope()
+        r.scopes[-1]["captured"] = True
+        r.begin_scope()
+        expr = variable_expr("captured")
+        r.resolve_local(expr, expr.name)
+        interp.resolve.assert_called_with(expr, 1)
+    
+    def test_global_not_accessible_in_nested_function_through_distance(self):
+        interp = make_interpreter()
+        r = make_resolver(interp)
+        r.scopes[0]["g"] = True
+        r.begin_scope()
+        r.begin_scope()
+        expr = variable_expr("g")
+        r.resolve_local(expr, expr.name)
+        interp.resolve.assert_called_with(expr, None)
+    
+    def test_full_function_resolution_flow(self):
+        interp = make_interpreter()
+        r = make_resolver(interp)
+        body = block_stmt()
+        stmt = function_stmt(name="add", params=["a", "b"], body=body)
+        r.resolve([stmt])
+        assert r.scopes[-1]["add"] is True
+    
+    def test_nested_function_does_not_leak_scope(self):
+        r = make_resolver()
+        inner = function_stmt(name="inner", params=["z"])
+        outer = function_stmt(name="outer", params=["y"], body=block_stmt(stmts=[inner]))
+        r.resolve([outer])
+        assert "inner" not in r.scopes[-1]
+        assert "y" not in r.scopes[-1]
+        assert "z" not in r.scopes[-1]
+    
+    def test_variable_use_before_declare_raises(self):
+        r = make_resolver()
+        r.begin_scope()
+        r.scopes[-1]["x"] = False
+        with pytest.raises(PulseSemanticError, match="before assignment"):
+            r.visit_variable_expr(variable_expr("x"))
+
+class TestPassRaiseDel:
+    def test_pass_stmt(self):
+        r = make_resolver()
+        r.visit_pass_stmt(pass_stmt())
+    
+    def test_raise_with_exception(self):
+        r = make_resolver()
+        r.visit_raise_stmt(raise_stmt(exc=literal_expr()))
+    
+    def test_raise_without_exception(self):
+        r = make_resolver()
+        r.visit_raise_stmt(raise_stmt(exc=None))
+    
+    def test_del_stmt(self):
+        r = make_resolver()
+        r.visit_del_stmt(del_stmt(targets=[literal_expr(), literal_expr()]))
+
+class TestResolveEntry:
+    def test_resolve_empty_list(self):
+        r = make_resolver()
+        r.resolve([])
+    
+    def test_resolve_multiple_statements(self):
+        r = make_resolver()
+        r.resolve([pass_stmt(), pass_stmt(), pass_stmt()])
+    
+    def test_resolve_expr_delegates(self):
+        r = make_resolver()
+        visited = []
+        expr = MagicMock()
+        expr.accept = lambda v: visited.append(True)
+        r.resolve_expr(expr)
+        assert visited
+    
+    def test_resolve_stmt_delegates(self):
+        r = make_resolver()
+        visited = []
+        stmt = MagicMock()
+        stmt.accept = lambda v: visited.append(True)
+        r.resolve_stmt(stmt)
+        assert visited
