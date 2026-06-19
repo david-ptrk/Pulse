@@ -73,9 +73,22 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.scopes[-1][name.lexeme] = True
     
     # Resolution Logic
-    def resolve_local(self, expr, name):        
+    def begin_scope(self, is_function=False):
+        self.scopes.append({"__is_function__": is_function})
+    
+    def resolve_local(self, expr, name, is_assignment=False):
         for i in range(len(self.scopes) - 1, -1, -1):
             if name.lexeme in self.scopes[i]:
+                if i == 0 and is_assignment and self.current_function is not FunctionType.NONE:
+                    for j in range(len(self.scopes) - 1, -1, -1):
+                        if self.scopes[j].get("__is_function__"):
+                            self.scopes[j][name.lexeme] = True
+                            distance = len(self.scopes) - 1 - j
+                            self.interpreter.resolve(expr, distance)
+                            return
+                    self.scopes[-1][name.lexeme] = True
+                    self.interpreter.resolve(expr, 0)
+                    return
                 if i == 0:
                     self.interpreter.resolve(expr, None)
                     return
@@ -83,12 +96,26 @@ class Resolver(ExprVisitor, StmtVisitor):
                 self.interpreter.resolve(expr, distance)
                 return
         
+        if is_assignment:
+            for i in range(len(self.scopes) - 1, -1, -1):
+                if self.scopes[i].get("__is_function__"):
+                    self.scopes[i][name.lexeme] = True
+                    distance = len(self.scopes) - 1 - i
+                    self.interpreter.resolve(expr, distance)
+                    return
+            self.scopes[-1][name.lexeme] = True
+            if len(self.scopes) == 1:
+                self.interpreter.resolve(expr, None)
+            else:
+                self.interpreter.resolve(expr, 0)
+            return
+        
         self.interpreter.resolve(expr, None)
     
     def resolve_function(self, func, func_type):
         enclosing_function = self.current_function
         self.current_function = func_type
-        self.begin_scope()
+        self.begin_scope(is_function=True)
         
         if func_type == FunctionType.METHOD and not func.is_static:
             self.scopes[-1]["self"] = True
@@ -314,8 +341,8 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.resolve_local(expr, expr.name)
     
     def visit_assign_expr(self, expr):
-        self.resolve_expr(expr.value)
-        self.resolve_local(expr, expr.name)
+        self.resolve_expr(expr.value)        
+        self.resolve_local(expr, expr.name, is_assignment=True)
     
     def visit_call_expr(self, expr):
         self.resolve_expr(expr.callee)
@@ -376,7 +403,7 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_lambda_expr(self, expr):
         enclosing_function = self.current_function
         self.current_function = FunctionType.FUNCTION
-        self.begin_scope()
+        self.begin_scope(is_function=True)
         
         for param in expr.params:
             self.scopes[-1][param.lexeme] = True

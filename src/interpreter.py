@@ -63,6 +63,7 @@ from src.native import find_module, read_file
 class Interpreter(ExprVisitor, StmtVisitor):
     def __init__(self, global_environment: Environment) -> None:
         self.environment = global_environment
+        self.globals = global_environment
         self.locals: dict[Any, int] = {}
         self.source: str = ""
         self._call_depth = 0
@@ -825,10 +826,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if distance is not None:
             self.environment.assign_at(distance, name, value)
         else:
-            if self.environment.has(name):
-                self.environment.assign(name, value)
+            if name in self.globals.values:
+                self.globals.assign(name, value)
             else:
-                self.environment.define(name, value)
+                self.globals.define(name, value)
         
         return value
     
