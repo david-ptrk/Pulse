@@ -31,7 +31,9 @@ class PulseNumber(PulseValue):
         return self.value != 0
     
     def __repr__(self) -> str:
-        if isinstance(self.value, float) and self.value.is_integer():
+        if isinstance(self.value, float):
+            return str(float(self.value))
+        if self.value.is_integer():
             return str(int(self.value))
         return str(self.value)
 
