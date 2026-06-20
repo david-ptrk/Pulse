@@ -1,4 +1,7 @@
 bin/
+build/
+dist/
+*.spec
 .venv/
 venv/
 ENV/
