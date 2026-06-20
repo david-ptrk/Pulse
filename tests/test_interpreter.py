@@ -34,7 +34,7 @@ def test_multiplication():
     assert run_pulse("print(3 * 4)") == "12"
 
 def test_division():
-    assert run_pulse("print(10 / 2)") == "5"
+    assert run_pulse("print(10 / 2)") == "5.0"
 
 def test_modulus():
     assert run_pulse("print(10 % 3)") == "1"
