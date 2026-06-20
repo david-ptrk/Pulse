@@ -348,7 +348,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return PulseNumber(int(x.value))
             except ValueError:
                 self._raise_value(f"Cannot convert '{x.value}' to int")
-        self._raise_type(f"int() expects a number or string, got {x.type_name()}")
+        if isinstance(x, PulseBoolean):
+            try:
+                return PulseNumber(int(x.value))
+            except ValueError:
+                self._raise_value(f"Cannot convert '{x.value}' to int")
+        self._raise_type(f"int() expects a number, string, or boolean, got {x.type_name()}")
     
     def _bi_float(self, x: Any) -> PulseNumber:
         if isinstance(x, PulseNumber):
