@@ -160,14 +160,10 @@ class Parser:
         
         if self.match(TokenType.BREAK):
             keyword = self.previous()
-            if self.loop_depth == 0:
-                self._error(keyword, "'break' used outside of a loop")
             self.match(TokenType.NEWLINE)
             return stmt.Break(keyword)
         if self.match(TokenType.CONTINUE):
             keyword = self.previous()
-            if self.loop_depth == 0:
-                self._error(keyword, "'continue' used outside of a loop")
             self.match(TokenType.NEWLINE)
             return stmt.Continue(keyword)
         if self.match(TokenType.RETURN):
