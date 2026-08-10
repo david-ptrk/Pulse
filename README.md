@@ -2,39 +2,91 @@ JMJ
 
 # Pulse — The AI-Native Programming Language
 
-**Pulse** is a domain-specific programming language designed for AI and machine learning. Unlike gerenal-purpose languages that rely heavily on external libraries, this language integrates AI-focused operations directly into its syntax.
+**Pulse** is a domain-specific programming language designed for artificial intelligence and machine learning. Unlike general-purpose languages that rely heavily on external libraries, Pulse aims to integrate AI-focused operations directly into the language.
 
-## Folder Structure
+## Features
 
-- `src/` — interpreter source code
-- `native/` - C source files for native extensions
-- `bin/` - compilder native binaries (generated, not committed)
-- `docs/` — documentation and journals
-- `examples/` — example Pulse programs
-- `tests/` — test scripts and validation
-- `website/` — official website for the Pulse Language
+* AI and machine-learning focused syntax
+* Tensor-based operations
+* Built-in AI-oriented functionality
+* Native extensions for performance-critical operations
+* Python-based interpreter with native components
 
-## Building Native Extensions
+## Project Structure
 
-Requires [MinGW](https://www.mingw-w64.org/) gcc on Windows.
+```text
+src/       — Interpreter source code
+native/    — C source files for native extensions
+bin/       — Generated native binaries (not committed)
+docs/      — Documentation and development notes
+examples/  — Example Pulse programs
+tests/     — Test suite and validation
+website/   — Official Pulse website
+```
+
+## Building
+
+Pulse currently requires its native components to be built before running the interpreter.
+
+### Windows
+
+Requires [MinGW](https://www.mingw-w64.org/).
 
 ```bat
 cd native
 .\build.bat
 ```
 
-Output `.dll` files will be placed in `bin/`. This step is required before running the interpreter.
+The generated `.dll` files will be placed in `bin/`.
 
-## Running
+### Linux
 
-```bat
-py pulse.py <path_to_file.pul>
+```bash
+cd native
+./build.sh
+```
+
+The generated native libraries will be placed in `bin/`.
+
+## Running Pulse
+
+After building the native components:
+
+```bash
+python pulse.py <path_to_file.pul>
+```
+
+For example:
+
+```bash
+python pulse.py examples/example.pul
+```
+
+## Development
+
+Create and activate a Python virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install the project dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the test suite:
+
+```bash
+pytest
 ```
 
 ## Authors
 
-- Daud Anjum
-- Hafiz Muhammad Ahmad
+* Daud Anjum
+* Hafiz Muhammad Ahmad
 
 ## License
 
