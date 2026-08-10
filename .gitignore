@@ -6,6 +6,7 @@ dist/
 venv/
 ENV/
 __pycache__/
+*.py[cod]
 *.pyc
 *.pyo
 *.pyd
