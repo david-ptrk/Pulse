@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom"
+
 function Navbar() {
     return (
         <nav className="navbar">
@@ -21,7 +23,7 @@ function Navbar() {
                 </li>
                 
                 <li>
-                    <a href="/architecture">Project Architecture</a>
+                    <Link to="/architecture">Project Architecture</Link>
                 </li>
                 
                 <li>

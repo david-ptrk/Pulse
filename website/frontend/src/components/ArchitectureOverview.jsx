@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom"
+
 const stages = [
     {
         name: 'Source Code',
@@ -46,7 +48,7 @@ function ArchitectureOverview() {
             </div>
             
             <div className="architecture-link">
-                <a href="/architecture">View Full Architecture</a>
+                <Link to="/architecture">View Full Architecture</Link>
             </div>
         </section>
     )
