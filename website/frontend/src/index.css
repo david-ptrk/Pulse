@@ -1,0 +1,101 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #ffffff;
+  color: #111827;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Navbar */
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 60px;
+}
+
+.logo-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo img {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
+}
+
+.logo-title {
+  margin: 0;
+  font-size: 28px;
+}
+
+.navbar ul {
+  display: flex;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navbar a {
+  font-size: 16px;
+}
+
+.navbar a:hover,
+.navbar a.active {
+  text-decoration: underline;
+}
+
+/* Hero */
+
+.hero-section {
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.hero-title h2 {
+  margin: 0;
+  font-size: clamp(40px, 6vw, 72px);
+}
+
+.hero-subtitle h3 {
+  margin: 20px 0 40px;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 20px;
+}
+
+.hero-button {
+  padding: 14px 28px;
+  border: 1px solid #111827;
+  border-radius: 8px;
+  transition: 0.2s ease;
+}
+
+.hero-button:hover {
+  transform: translateY(-2px);
+}

@@ -1,3 +1,4 @@
+# Python / Pulse
 bin/
 build/
 dist/
@@ -11,7 +12,25 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+
+# Node / React
+node_modules/
+website/frontend/node_modules/
+website/frontend/dist/
+website/frontend/.vite/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Editors / OS
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Logs
 *.log
+
+# Temporary old website backup
+website/old-static/
