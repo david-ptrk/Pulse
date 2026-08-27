@@ -27,7 +27,7 @@ interpreter = Interpreter(global_env)
 # Core pipeline
 def run(source: str, output=None) -> any:
     env = Environment()
-    interpreter = Interpreter(env)
+    interpreter = Interpreter(env, output=output)
     
     # 1. Lexing
     lexer = Lexer(source)

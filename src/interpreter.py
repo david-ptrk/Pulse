@@ -61,13 +61,14 @@ from src.parser import Parser
 from src.native import find_module, read_file
 
 class Interpreter(ExprVisitor, StmtVisitor):
-    def __init__(self, global_environment: Environment) -> None:
+    def __init__(self, global_environment: Environment, output=None) -> None:
         self.environment = global_environment
         self.globals = global_environment
         self.locals: dict[Any, int] = {}
         self.source: str = ""
         self._call_depth = 0
         self._max_call_depth = 1000
+        self.output = output or print
         
         # Built-in functions
         self.environment.define_many([
@@ -331,7 +332,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
         sep = str(kwargs.get("sep", " "))
         end = str(kwargs.get("end", "\n"))
         
-        print(sep.join(self._stringify(a) for a in args), end=end)
+        text = sep.join(self._stringify(a) for a in args)
+        self.output(text, end=end)
         return PulseNull()
     
     def _bi_input(self, prompt: Any = PulseString("")) -> PulseString:
