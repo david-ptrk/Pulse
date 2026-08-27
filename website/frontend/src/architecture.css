@@ -102,6 +102,12 @@
     align-items: center;
     width: 36px;
     margin: 0 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.connector.visible {
+    opacity: 1;
 }
 
 .conn-line {
@@ -265,6 +271,29 @@
     content: '→';
     color: var(--active-color);
     flex-shrink: 0;
+}
+
+.token-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.token-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-family: 'Fira Code', monospace;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.token-type {
+    opacity: 0.6;
+    font-size: 9px;
 }
 
 @media (max-width: 1000px) {

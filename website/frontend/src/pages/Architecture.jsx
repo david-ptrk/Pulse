@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import TokenStream from "../components/TokenStream";
 import '../architecture.css'
 
 const STAGES = [
@@ -15,7 +16,6 @@ const STAGES = [
         leftLabel: 'Sample Program',
         leftContent: (
             <pre className="code-block">{`X = @[[1, 2], [3, 4]]
-
 Y = @[0, 1]
 
 model = LinearModel()
@@ -50,6 +50,7 @@ print(prediction)
         title: 'Lexer (Tokenizer)',
         subtitle: 'Breaks source into a flat stream of tokens',
         leftLabel: 'Token Stream',
+        leftContent: <TokenStream />,
         rightLabel: 'How it works',
         rightContent: [
             'Reads chars one at a time via a cursor',
@@ -349,7 +350,13 @@ function Architecture() {
                             </div>
                             
                             {index < STAGES.length - 1 && (
-                                <div className="connector">
+                                <div
+                                    className={`connector ${
+                                        visibleStages.includes(STAGES[index + 1].id)
+                                            ? 'visible'
+                                            : ''
+                                    }`}
+                                >
                                     <div className="conn-line">
                                         <div
                                             className={`conn-pulse ${
