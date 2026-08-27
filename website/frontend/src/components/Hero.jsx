@@ -14,7 +14,7 @@ function Hero() {
                     Learn Pulse
                 </a>
                 
-                <a href="#editor" className="hero-button">
+                <a href="/editor" className="hero-button">
                     Online Editor
                 </a>
             </div>

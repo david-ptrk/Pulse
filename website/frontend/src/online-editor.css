@@ -1,0 +1,118 @@
+.editor-page {
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.editor-header {
+    max-width: 1200px;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.editor-header h1 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.editor-header p {
+    margin: 0.4rem 0 0;
+    opacity: 0.7;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.editor-btn {
+    padding: 0.65rem 1.1rem;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.editor-btn:hover {
+    background: #eee;
+}
+
+.editor-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.run-btn {
+    background: #7f77dd;
+    color: white;
+    border-color: #3c3489;
+}
+
+.run-btn:hover {
+    background: #3c3489;
+}
+
+.editor-workspace {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.code-panel,
+.output-panel {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background: #1e1e1e;
+}
+
+.panel-header {
+    height: 42px;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #252525;
+    color: #ddd;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #444;
+}
+
+.output-content {
+    height: 500px;
+    margin: 0;
+    padding: 1rem;
+    overflow: auto;
+    color: #ddd;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.clear-output {
+    border: 0;
+    background: transparent;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.clear-output:hover {
+    color: white;
+}
+
+@media (max-width: 800px) {
+    .editor-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .editor-workspace {
+        grid-template-columns: 1fr;
+    }
+}
