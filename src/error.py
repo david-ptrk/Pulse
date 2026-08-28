@@ -20,6 +20,7 @@ provide clear and informative diagnostics, which is essential for
 both language development and user experience.
 """
 
+import re
 import sys
 
 # ANSI color codes
@@ -33,6 +34,11 @@ class _C:
     GREEN = "\033[92m"
     MAGENTA = "\033[95m"
     WHITE = "\033[97m"
+
+_ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_ESCAPE.sub("", text)
 
 # Helpers
 def _gutter(line_no: int, width: int) -> str:
@@ -113,7 +119,7 @@ class PulseError(Exception):
     
     @property
     def plain_message(self):
-        return self.message
+        return _strip_ansi(str(self))
 
 # Lexical error
 class PulseLexError(PulseError):

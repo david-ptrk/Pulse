@@ -60,7 +60,7 @@ def execute(request):
         return JsonResponse(
             {
                 "stdout": output.getvalue() if "output" in locals() else "",
-                "stderr": str(e),
+                "stderr": e.error.plain_message,
                 "exit_code": 1,
             }
         )
@@ -69,7 +69,7 @@ def execute(request):
         return JsonResponse(
             {
                 "stdout": output.getvalue() if "output" in locals() else "",
-                "stderr": str(e),
+                "stderr": e.plain_message,
                 "exit_code": 1,
             }
         )
