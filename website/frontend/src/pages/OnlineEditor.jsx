@@ -1,30 +1,40 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CodeMirror from '@uiw/react-codemirror'
 import pulseLanguage from "../pulseLanguage";
 import { oneDark } from '@codemirror/theme-one-dark'
 import '../online-editor.css'
 
 const DEFAULT_CODE = `# PULSE Example Program
+from models import LinearRegression
+
 X = @[[1, 2],[3, 4]]
 Y = @[0, 1]
 
-model = LinearModel()
+model = LinearRegression()
 data = X
 labels = Y
 
 model.train(data, labels)
 
-prediction = model.predict(@[5, 6])
+prediction = model.predict(@[[5, 6]])
 print(prediction)`
 
 function OnlineEditor() {
     const [code, setCode] = useState(DEFAULT_CODE)
     const [output, setOutput] = useState('')
     const [running, setRunning] = useState(false)
+    const [executionTime, setExecutionTime] = useState(null);
+    
+    const editorRef = useRef(null);
     
     const runCode = async () => {
-        setRunning(true)
-        setOutput('Running Pulse program...')
+        if (running) return;
+        
+        setRunning(true);
+        setOutput('Running Pulse program...');
+        setExecutionTime(null);
+        
+        const startTime = performance.now();
         
         try {
             const response = await fetch('http://127.0.0.1:8000/api/execute/', {
@@ -32,28 +42,60 @@ function OnlineEditor() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
-                    code: code,
-                }),
+                body: JSON.stringify({ code }),
             })
             
             const data = await response.json()
             
+            const elapsed = performance.now() - startTime;
+            setExecutionTime(elapsed);
+            
             if (data.exit_code === 0) {
                 setOutput(data.stdout || 'Program finished successfully.')
             } else {
-                setOutput(data.stderr || 'Program execution failed.')
+                setOutput(data.stderr || data.error || 'Program execution failed.')
             }
         } catch (error) {
+            const elapsed = performance.now() - startTime;
+            setExecutionTime(elapsed);
+            
             setOutput(`Connection error: ${error.message}`)
         } finally {
             setRunning(false)
         }
-    }
+    };
     
     const clearOutput = () => {
         setOutput('')
+        setExecutionTime(null);
     }
+    
+    const resetCode = () => {
+        setCode(DEFAULT_CODE);
+        clearOutput();
+    };
+    
+    useEffect(() => {
+        const handleKeyboardShortcut = (event) => {
+            // Ctrl + Enter -> Run
+            if (event.ctrlKey && event.key === "Enter") {
+                event.preventDefault();
+                runCode();
+            }
+            
+            // Ctrl + L -> Clear Output
+            if (event.ctrlKey && event.key.toLowerCase() === 'l') {
+                event.preventDefault();
+                clearOutput();
+            }
+        };
+        
+        window.addEventListener("keydown", handleKeyboardShortcut);
+        
+        return () => {
+            window.removeEventListener("keydown", handleKeyboardShortcut);
+        };
+    }, [running, code]);
     
     return (
         <main className="editor-page">
@@ -71,6 +113,10 @@ function OnlineEditor() {
                     <button className="editor-btn" onClick={clearOutput}>
                         Clear Output
                     </button>
+                    
+                    <button className="editor-btn" onClick={resetCode}>
+                        Reset Code
+                    </button>
                 </div>
             </header>
             
@@ -78,6 +124,8 @@ function OnlineEditor() {
                 <div className="code-panel">
                     <div className="panel-header">
                         <span>main.pul</span>
+                        
+                        <span className="keyboard-hint">Ctrl + Enter to run</span>
                     </div>
                     
                     <CodeMirror
@@ -100,9 +148,21 @@ function OnlineEditor() {
                     <div className="panel-header">
                         <span>Output</span>
                         
-                        {output && (
-                            <button className="clear-output" onClick={clearOutput}>Clear</button>
-                        )}
+                        <div className="output-meta">
+                            {running && (
+                                <span>Running...</span>
+                            )}
+                            
+                            {!running && executionTime !== null && (
+                                <span>
+                                    {executionTime.toFixed(0)} ms
+                                </span>
+                            )}
+                            
+                            {output && (
+                                <button className="clear-output" onClick={clearOutput}>Clear</button>
+                            )}
+                        </div>
                     </div>
                     
                     <pre className="output-content">
@@ -111,7 +171,7 @@ function OnlineEditor() {
                 </div>
             </section>
         </main>
-    )
+    );
 }
 
-export default OnlineEditor
+export default OnlineEditor;
