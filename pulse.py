@@ -20,14 +20,12 @@ import argparse
 from time import perf_counter
 import codeop
 
-# Global runtime environment
-global_env = Environment()
-interpreter = Interpreter(global_env)
-
 # Core pipeline
-def run(source: str, output=None) -> any:
-    env = Environment()
-    interpreter = Interpreter(env, output=output)
+def run(source: str, output=None, env: Environment = None, interpreter: Interpreter = None) -> any:
+    if interpreter is None:
+        if env is None:
+            env = Environment()
+        interpreter = Interpreter(env, output=output)
     
     # 1. Lexing
     lexer = Lexer(source)
@@ -44,7 +42,10 @@ def run(source: str, output=None) -> any:
     # 4. Interpretation
     return interpreter.interpret(statements, source)
 
-def run_with_time(source: str) -> any:
+def run_with_time(source: str, env: Environment = None) -> any:
+    if env is None:
+        env = Environment()
+    
     total_start = perf_counter()
     
     start = perf_counter()
@@ -56,6 +57,8 @@ def run_with_time(source: str) -> any:
     parser = Parser(tokens, source)
     statements = parser.parse()
     parse_time = perf_counter() - start
+    
+    interpreter = Interpreter(env)
     
     start = perf_counter()
     resolver = Resolver(interpreter)
@@ -158,6 +161,8 @@ def run_prompt() -> None:
     print(f"Python {sys.version.split()[0]} on {sys.platform}")
     print('Type "exit" or press Ctrl+Z to quit.\n')
     
+    env = Environment()
+    interpreter = Interpreter(env)
     buffer: list[str] = []
     
     while True:
@@ -169,7 +174,7 @@ def run_prompt() -> None:
             if buffer:
                 source = "\n".join(buffer)
                 buffer = []
-                _repl_run(source)
+                _repl_run(source, interpreter)
             print()
             break
         except KeyboardInterrupt:
@@ -185,7 +190,7 @@ def run_prompt() -> None:
             if buffer:
                 source = "\n".join(buffer)
                 buffer = []
-                _repl_run(source)
+                _repl_run(source, interpreter)
             continue
         
         buffer.append(_expand_tabs(line))
@@ -193,17 +198,11 @@ def run_prompt() -> None:
         if len(buffer) == 1 and not _opens_block(buffer[0]):
             source = buffer[0]
             buffer = []
-            _repl_run(source)
+            _repl_run(source, interpreter)
 
-def _is_in_block(buffer: list[str]) -> bool:
-    for line in reversed(buffer):
-        if line.strip():
-            return line.startswith(" ") or line.startswith("\t")
-        return False
-
-def _repl_run(source: str) -> None:
+def _repl_run(source: str, interpreter: Interpreter) -> None:
     try:
-        result = run(source)
+        result = run(source, interpreter=interpreter)
         if result is not None and not isinstance(result, PulseNull):
             print(repr(result))
     except PulseRuntimeException as e:
