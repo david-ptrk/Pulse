@@ -9,7 +9,7 @@ html {
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
-  background: #ffffff;
+  background: #ada8a8;
   color: #111827;
 }
 
@@ -37,11 +37,12 @@ a {
   width: 45px;
   height: 45px;
   object-fit: contain;
+  border-radius: 100%;
 }
 
 .logo-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 40px;
 }
 
 .navbar ul {
