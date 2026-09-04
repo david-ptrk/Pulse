@@ -194,6 +194,13 @@ class PulseTensor(PulseValue):
     def T(self) -> "PulseTensor":
         return PulseTensor(self.array.T)
     
+    def __iter__(self):
+        for item in self.array:
+            if isinstance(item, np.ndarray):
+                yield PulseTensor(item)
+            else:
+                yield item
+    
     def __repr__(self) -> str:
         def to_str(val):
             if isinstance(val, float) and np.isnan(val):

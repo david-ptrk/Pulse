@@ -402,6 +402,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return PulseNumber(len(x.entries))
         if isinstance(x, PulseRange):
             return PulseNumber(len(x))
+        if isinstance(x, PulseTensor):
+            return PulseNumber(len(x.array))
         self._raise_type(f"len() not supported for type '{x.type_name()}'")
     
     def _bi_range(self, *args: Any) -> PulseRange:
@@ -443,6 +445,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
             items = [PulseString(c) for c in iterable.value]
         elif isinstance(iterable, PulseRange):
             items = iterable.to_list()
+        elif isinstance(iterable, PulseTensor):
+            items = list(iterable)
         else:
             self._raise_type(f"enumerate() argument must be iterable, got '{iterable.type_name()}'")
         
