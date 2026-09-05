@@ -225,25 +225,49 @@ class Lexer:
     def handle_indentation(self) -> None:
         """
         Handles spaces at the start of a line to generate INDENT/DEDENT tokens.
-        Tab are not allowed.
+        Blank lines and comment-only lines are ignored for indentation purposes.
+        Tabs are not allowed.
         """
-        spaces = 0
         pos = self.current
 
-        # Count leading spaces
-        while pos < len(self.source):
-            ch = self.source[pos]
-            if ch == ' ':
-                spaces += 1
-            elif ch == '\t':
-                self._error("Tabs are not allowed for indentation")
-            else:
-                break
-            pos += 1
+        while True:
+            # Count leading spaces
+            spaces = 0
+            line_start = pos
 
-        # Skip completely blank lines or comment lines
-        if pos >= len(self.source) or self.source[pos] in ('\n', '#'):
-            return
+            while pos < len(self.source):
+                ch = self.source[pos]
+
+                if ch == ' ':
+                    spaces += 1
+                    pos += 1
+                elif ch == '\t':
+                    self._error("Tabs are not allowed for indentation")
+                else:
+                    break
+
+            # Blank line
+            if pos >= len(self.source):
+                return
+
+            if self.source[pos] == '\n':
+                pos += 1
+                self.line += 1
+                continue
+
+            # Comment-only line
+            if self.source[pos] == '#':
+                while pos < len(self.source) and self.source[pos] != '\n':
+                    pos += 1
+
+                if pos < len(self.source):
+                    pos += 1
+                    self.line += 1
+
+                continue
+
+            # Found an actual line of code.
+            break
 
         last_indent = self.indent_stack[-1]
 
@@ -251,15 +275,17 @@ class Lexer:
             self.indent_stack.append(spaces)
             self.start = self.current
             self.add_token(TokenType.INDENT)
+
         elif spaces < last_indent:
             if spaces not in self.indent_stack:
                 self._error("Invalid indentation level")
+
             while self.indent_stack and spaces < self.indent_stack[-1]:
                 self.indent_stack.pop()
                 self.start = self.current
                 self.add_token(TokenType.DEDENT)
 
-        # Move current pointer past indentation
+        # Move current pointer to the first character of the actual code line.
         self.current = pos
     
     def string(self, quote_type) -> None:
