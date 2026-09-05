@@ -1,0 +1,32 @@
+# tensor_ops.pul
+# Demonstrates Pulse's native tensor type without going through the models module.
+# Builds a tiny one-neuron forward pass by hand: y = activation(W @ x + b)
+
+weights = @[[0.2, 0.8, -0.5]]
+inputs = @[[1.0], [0.5], [-1.5]]
+bias = @[[0.1]]
+
+print(f"weights shape: {weights.shape}")
+print(f"inputs shape: {inputs.shape}")
+
+z = weights @ inputs + bias
+print(f"pre-activation z: {z}")
+
+def sigmoid(t):
+    # crude elementwise sigmoid using tensor.map-like manual loop
+    flat = t.flatten()
+    result = []
+    for v in flat:
+        result.append(1 / (1 + 2.718281828 ** (-v)))
+    return result
+
+activated = sigmoid(z)
+print(f"activated output: {activated}")
+
+# Basic tensor arithmetic and reshaping
+a = @[[1, 2, 3], [4, 5, 6]]
+b = a.T
+print(f"a: {a}")
+print(f"a transposed: {b}")
+print(f"a reshaped to (3, 2): {a.reshape(3, 2)}")
+print(f"sum of a: {a.sum()}   mean of a: {a.mean()}")

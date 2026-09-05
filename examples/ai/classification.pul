@@ -1,0 +1,34 @@
+# classification.pul
+# Trains a logistic regression classifier on the iris dataset.
+
+import datasets
+import models
+import preprocess
+import metrics
+
+data = datasets.iris()
+X = data.features()
+y = data.labels()
+
+X_train, X_test, y_train, y_test = preprocess.train_test_split(X, y, test_size=0.25)
+
+model = models.LogisticRegression()
+model.train(X_train, y_train, auto_preprocess=True, verbose=True)
+
+predictions = model.predict(X_test)
+
+accuracy = metrics.accuracy(y_test, predictions)
+report = metrics.classification_report(y_test, predictions)
+
+print(f"Accuracy: {accuracy}")
+print(report)
+
+# Manual pass to show plain control flow alongside the stdlib
+correct = 0
+for i, actual in enumerate(y_test):
+    predicted = predictions[i]
+    if predicted == actual:
+        correct += 1
+
+total = len(y_test)
+print(f"Matched {correct} of {total} predictions ({correct / total * 100}%)")

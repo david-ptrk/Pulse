@@ -1,0 +1,28 @@
+# linear_regression.pul
+# Trains a linear regression model on the diabetes dataset and reports metrics.
+
+import datasets
+import models
+import preprocess
+import metrics
+
+data = datasets.diabetes()
+X = data.features()
+y = data.labels()
+
+X_train, X_test, y_train, y_test = preprocess.train_test_split(X, y, test_size=0.2)
+
+model = models.LinearRegression()
+model.train(X_train, y_train, auto_preprocess=True, verbose=True)
+
+predictions = model.predict(X_test)
+
+r2 = metrics.r2(y_test, predictions)
+rmse = metrics.rmse(y_test, predictions)
+mae = metrics.mae(y_test, predictions)
+
+print(f"R2 score: {r2}")
+print(f"RMSE: {rmse}")
+print(f"MAE: {mae}")
+
+model.explain(data.feature_names)

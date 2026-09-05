@@ -1,0 +1,29 @@
+# clustering.pul
+# Clusters synthetic blob data with KMeans and inspects the resulting groups.
+
+import datasets
+import models
+import preprocess
+
+data = datasets.make_blobs(n_samples=300, centers=4)
+X = data.features()
+y_true = data.labels()
+
+X_scaled = preprocess.standardize(X)
+
+model = models.KMeans(k=4)
+model.train(X_scaled, verbose=True)
+
+assignments = model.predict(X_scaled)
+
+counts = {}
+for label in assignments:
+    key = str(label)
+    if counts.has(key):
+        counts[key] = counts[key] + 1
+    else:
+        counts[key] = 1
+
+print("Cluster sizes:")
+for cluster_id in counts.keys():
+    print(f"  cluster {cluster_id}: {counts[cluster_id]} points")
