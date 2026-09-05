@@ -198,8 +198,10 @@ class PulseTensor(PulseValue):
         for item in self.array:
             if isinstance(item, np.ndarray):
                 yield PulseTensor(item)
+            elif np.issubdtype(self.array.dtype, np.bool_):
+                yield PulseBoolean(bool(item))
             else:
-                yield item
+                yield PulseNumber(float(item))
     
     def __repr__(self) -> str:
         def to_str(val):
