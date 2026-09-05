@@ -485,17 +485,22 @@ def make(interp) -> PulseModule:
         """Wrap a scikit-learn model in a PulseModel with train/predict/score/explain methods."""
         pulse_model = PulseModel(name, sklearn_model)
         
-        def train(data: PulseTensor, labels: PulseTensor, auto_preprocess=None, verbose=None) -> PulseNull:
+        def train(data: PulseTensor, labels=None, auto_preprocess=None, verbose=None) -> PulseNull:
             """Fit the model on data and labels. Optionally standardize and impute missing values."""
             if not isinstance(data, PulseTensor):
                 interp._raise(f"train() expects a tensor for data, got '{data.type_name()}'")
-            if not isinstance(labels, PulseTensor):
-                interp._raise(f"train() expects a tensor for labels, got '{labels.type_name()}'")
+            
+            is_kmeans = isinstance(pulse_model.sklearn_model, KMeans)
+            if is_kmeans:
+                X = data.array.copy()
+                y = None
+            else:
+                if not isinstance(labels, PulseTensor):
+                    interp._raise(f"train() expects a tensor for labels, got '{labels.type_name()}'")
+                X = data.array.copy()
+                y = labels.array.copy()
             
             is_verbose = isinstance(verbose, PulseBoolean) and verbose.value
-            
-            X = data.array.copy()
-            y = labels.array.copy()
             
             # Verbose
             if is_verbose:
@@ -504,13 +509,16 @@ def make(interp) -> PulseModule:
                 n_features = X.shape[1] if X.ndim > 1 else 1
                 print(f"[Pulse] Samples: {n_samples}, Features: {n_features}")
                 
-                # detect task type
-                unique = np.unique(y)
-                is_clf = len(unique) <= 20 and np.all(unique == unique.astype(int))
-                task = "classification" if is_clf else "regression"
-                print(f"[Pulse] Task: {task}")
-                if is_clf:
-                    print(f"[Pulse] Classes: {sorted(unique.astype(int).tolist())}")
+                if is_kmeans:
+                    print("[Pulse] Task: clustering")
+                    print(f"[Pulse] Clusters: {pulse_model.sklearn_model.n_clusters}")
+                else:
+                    unique = np.unique(y)
+                    is_clf = len(unique) <= 20 and np.all(unique == unique.astype(int))
+                    task = "classification" if is_clf else "regression"
+                    print(f"[Pulse] Task: {task}")
+                    if is_clf:
+                        print(f"[Pulse] Classes: {sorted(unique.astype(int).tolist())}")
             
             # Auto-preprocessing
             if auto_preprocess is not None and isinstance(auto_preprocess, PulseBoolean) and auto_preprocess.value:
@@ -546,7 +554,10 @@ def make(interp) -> PulseModule:
             t_start = time.perf_counter()
             
             try:
-                pulse_model.sklearn_model.fit(X, y)
+                if is_kmeans:
+                    pulse_model.sklearn_model.fit(X)
+                else:
+                    pulse_model.sklearn_model.fit(X, y)
                 pulse_model.is_trained = True
             except Exception as e:
                 interp._raise(f"Training failed: {e}")
@@ -560,22 +571,27 @@ def make(interp) -> PulseModule:
                 sk = pulse_model.sklearn_model
                 
                 try:
-                    train_score = float(sk.score(X, y))
-                    unique = np.unique(y)
-                    is_clf = len(unique) <= 20 and np.all(unique == unique.astype(int))
-                    
-                    if is_clf:
-                        print(f"[Pulse] Training accuracy : {train_score:.4f}")
+                    if isinstance(sk, KMeans):
+                        # print(f"[Pulse] Inertia           : {sk.inertia_:.4f}")
+                        # print(f"[Pulse] Iterations        : {sk.n_iter_}")
+                        pass
                     else:
-                        print(f"[Pulse] Training R^2 score: {train_score:.4f}")
+                        train_score = float(sk.score(X, y))
+                        unique = np.unique(y)
+                        is_clf = len(unique) <= 20 and np.all(unique == unique.astype(int))
                         
-                        preds = sk.predict(X)
-                        mse = float(np.mean((y - preds) ** 2))
-                        rmse = float(np.sqrt(mse))
-                        mae = float(np.mean(np.abs(y - preds)))
-                        print(f"[Pulse] Training MSE      : {mse:.4f}")
-                        print(f"[Pulse] Training RMSE     : {rmse:.4f}")
-                        print(f"[Pulse] Training MAE      : {mae:.4f}")
+                        if is_clf:
+                            print(f"[Pulse] Training accuracy : {train_score:.4f}")
+                        else:
+                            print(f"[Pulse] Training R^2 score: {train_score:.4f}")
+                            
+                            preds = sk.predict(X)
+                            mse = float(np.mean((y - preds) ** 2))
+                            rmse = float(np.sqrt(mse))
+                            mae = float(np.mean(np.abs(y - preds)))
+                            print(f"[Pulse] Training MSE      : {mse:.4f}")
+                            print(f"[Pulse] Training RMSE     : {rmse:.4f}")
+                            print(f"[Pulse] Training MAE      : {mae:.4f}")
                 except Exception:
                     pass
                 

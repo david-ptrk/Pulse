@@ -558,6 +558,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
             items = iterable.to_list()
         elif isinstance(iterable, PulseString):
             items = [PulseString(c) for c in iterable.value]
+        elif isinstance(iterable, PulseTensor):
+            items = list(iterable)
         else:
             self._raise_type(f"Object of type '{iterable.type_name()}' is not iterable")
         
