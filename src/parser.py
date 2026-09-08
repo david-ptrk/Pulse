@@ -894,7 +894,16 @@ class Parser:
             return expr.Variable(self.previous())
         
         if self.match(TokenType.LEFT_PAREN):
+            left_paren = self.previous()
+            
+            if self.is_at_end() or self.check(TokenType.NEWLINE):
+                self._error(left_paren, "Expected ')' after expression")
+            
             expr_node = self.expression()
+            
+            if self.is_at_end():
+                self._error(left_paren, "Expected ')' after expression")
+            
             self.consume(TokenType.RIGHT_PAREN, "Expected ')' after expression")
             return expr_node
         
