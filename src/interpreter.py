@@ -511,13 +511,17 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if isinstance(value, PulseTensor):
             return value
         
+        def convert(element):
+            if isinstance(element, PulseNumber):
+                return element.value
+            
+            if isinstance(element, PulseList):
+                return [convert(item) for item in element.elements]
+            
+            return element
+        
         if isinstance(value, PulseList):
-            values = []
-            for element in value.elements:
-                if isinstance(element, PulseNumber):
-                    values.append(element.value)
-                else:
-                    values.append(element)
+            values = convert(value)
             return PulseTensor(np.array(values))
         
         return PulseTensor(np.array(value))
