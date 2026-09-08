@@ -91,6 +91,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("sum", PulseNativeFunction("sum", self._bi_sum)),
             ("any", PulseNativeFunction("any", self._bi_any)),
             ("all", PulseNativeFunction("all", self._bi_all)),
+            ("tensor", PulseNativeFunction("tensor", self._bi_tensor)),
         ])
         
         # Built-in exception classes
@@ -505,6 +506,21 @@ class Interpreter(ExprVisitor, StmtVisitor):
         else:
             self._raise_type(f"all() argument must be iterable, got '{iterable.type_name()}'")
         return PulseBoolean(all(self._is_truthy(el) for el in items))
+    
+    def _bi_tensor(self, value) -> PulseTensor:
+        if isinstance(value, PulseTensor):
+            return value
+        
+        if isinstance(value, PulseList):
+            values = []
+            for element in value.elements:
+                if isinstance(element, PulseNumber):
+                    values.append(element.value)
+                else:
+                    values.append(element)
+            return PulseTensor(np.array(values))
+        
+        return PulseTensor(np.array(value))
     
     # Statement visitors
     def visit_expression_stmt(self, stmt) -> Any:
