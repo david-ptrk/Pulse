@@ -1,0 +1,61 @@
+# chatbot.pul
+
+import models
+
+# Fixed vocabulary used to turn a phrase into a bag-of-words feature vector.
+vocabulary = ["hello", "hi", "hey", "bye", "goodbye", "exit", "name", "who", "you", "help", "can", "what", "thanks", "thank"]
+
+# Training examples: [phrase, intent_id]
+# 0 = greeting, 1 = farewell, 2 = identity, 3 = help, 4 = gratitude
+training_data = [["hello", 0], ["hi there", 0], ["hey", 0], ["bye", 1], ["goodbye", 1], ["i want to exit", 1], ["who are you", 2], ["what is your name", 2], ["tell me your name", 2], ["can you help me", 3], ["i need help", 3], ["what can you do", 3], ["thanks", 4], ["thank you", 4]]
+
+responses = {0: "Hey! Good to see you.", 1: "Goodbye, take care!", 2: "I'm Pulse Bot, a tiny intent-classifying chatbot written in Pulse.", 3: "I can chat about greetings, farewells, my identity, and this help message.", 4: "You're welcome!"}
+
+def vectorize(phrase):
+    words = phrase.lower().split()
+    vector = []
+    for term in vocabulary:
+        count = 0
+        for word in words:
+            if word == term:
+                count += 1
+        vector.append(count)
+    return vector
+
+def build_dataset(data):
+    features = []
+    labels = []
+    for pair in data:
+        phrase = pair[0]
+        intent_id = pair[1]
+        features.append(vectorize(phrase))
+        labels.append(intent_id)
+    return [features, labels]
+
+dataset = build_dataset(training_data)
+X = tensor(dataset[0])
+y = tensor(dataset[1])
+
+classifier = models.LogisticRegression()
+classifier.train(X, y, auto_preprocess=True, verbose=True)
+
+def predict_intent(phrase):
+    vector = tensor([vectorize(phrase)])
+    prediction = classifier.predict(vector)
+    return int(prediction[0])
+
+def respond(phrase):
+    intent_id = predict_intent(phrase)
+    if responses.has(intent_id):
+        return responses[intent_id]
+    return "I'm not sure how to respond to that yet."
+
+print("Pulse Bot - type 'quit' to exit")
+
+while True:
+    user_input = input("You: ")
+    if user_input.lower().trim() == "quit":
+        print("Bot: Goodbye!")
+        break
+    reply = respond(user_input)
+    print(f"Bot: {reply}")
