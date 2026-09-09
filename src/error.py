@@ -14,6 +14,7 @@ Key functionalities include:
 - Lexical and syntax error reporting with line context.
 - Runtime error messages (if integrated with the interpreter).
 - Utilities to consistently format and print errors for debugging or user feedback.
+- Optional structured logging of errors to a file
 
 By centralizing error handling, this module ensures that Pulse programs
 provide clear and informative diagnostics, which is essential for
@@ -22,6 +23,8 @@ both language development and user experience.
 
 import re
 import sys
+import json
+import datetime
 
 # ANSI color codes
 class _C:
@@ -213,11 +216,41 @@ class PulseRuntimeError(PulseError):
             )
         return base + "\n".join(trace_lines)
 
+# Structured file logging
+def _serialize_error(error: PulseError) -> dict:
+    entry = {
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "stage": getattr(error, "STAGE", "Error"),
+        "type": type(error).__name__,
+        "message": getattr(error, "message", str(error)),
+        "filename": getattr(error, "filename", None),
+        "line": getattr(error, "line", None),
+        "column": getattr(error, "column", None),
+        "context": getattr(error, "context", None),
+        "hint": getattr(error, "hint", None),
+    }
+    
+    stack = getattr(error, "stack", None)
+    if stack:
+        entry["stack"] = [{"function": name, "line": ln} for name, ln in stack]
+    
+    return entry
+
+def log_error(error: PulseError, log_path: str) -> None:
+    """Append a single JSON Lines entry describing `error` to `log_path`."""
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(_serialize_error(error)) + "\n")
+    except OSError as e:
+        print(f"[Pulse] Warning: failed to write error log to '{log_path}': {e}", file=sys.stderr)
+
 # Top-level reporter
-def report_error(error: PulseError, filename: str = None) -> None:
+def report_error(error: PulseError, filename: str = None, log_path: str = None) -> None:
     if filename and hasattr(error, "filename"):
         error.filename = filename
     print(str(error), file=sys.stderr)
+    if log_path:
+        log_error(error, log_path)
 
 # Example usage
 if __name__ == "__main__":

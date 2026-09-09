@@ -81,7 +81,7 @@ def run_with_time(source: str, env: Environment = None) -> any:
     return result
 
 # File Execution
-def run_file(path: str, show_time: bool) -> None:
+def run_file(path: str, show_time: bool, log_path: str = None) -> None:
     try:
         with open(path, "r", encoding="utf-8") as f:
             source = f.read()
@@ -95,10 +95,10 @@ def run_file(path: str, show_time: bool) -> None:
         else:
             run(source)
     except PulseRuntimeException as e:
-        report_error(e.error)
+        report_error(e.error, log_path=log_path)
         sys.exit(1)
     except PulseError as e:
-        report_error(e)
+        report_error(e, log_path=log_path)
         sys.exit(1)
 
 # REPL
@@ -467,6 +467,7 @@ def main() -> int:
     parser.add_argument("file", nargs="?", help="Pulse source file (.pul)")
     parser.add_argument("--time", action="store_true", help="Show pipeline timing")
     parser.add_argument("--info", action="store_true", help="Show language reference")
+    parser.add_argument("--log", action="store_true", help="Log errors as JSON Lines to <file>.log next to the source file")
     args = parser.parse_args()
     
     if args.info:
@@ -483,7 +484,8 @@ def main() -> int:
         report_error(PulseError(f'Unsupported file type: "{args.file}". Expected a .pul file.'))
         return 1
     
-    run_file(args.file, args.time)
+    log_path = f"{args.file}.log" if args.log else None
+    run_file(args.file, args.time, log_path)
     return 0
 
 # Entry point
