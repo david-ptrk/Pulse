@@ -61,6 +61,13 @@ from src.parser import Parser
 from src.native import find_module, read_file
 
 class Interpreter(ExprVisitor, StmtVisitor):
+    @staticmethod
+    def _define_builtin(environment: Environment, name: str, value: Any) -> None:
+        if name in environment.values:
+            environment.values[name] = value
+        else:
+            environment.define(name, value)
+    
     def __init__(self, global_environment: Environment, output=None) -> None:
         self.environment = global_environment
         self.globals = global_environment
@@ -71,7 +78,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self.output = output or print
         
         # Built-in functions
-        self.environment.define_many([
+        builtins = [
             ("print", PulseNativeFunction("print", self._bi_print)),
             ("input", PulseNativeFunction("input", self._bi_input)),
             ("str", PulseNativeFunction("str", self._bi_str)),
@@ -92,10 +99,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("any", PulseNativeFunction("any", self._bi_any)),
             ("all", PulseNativeFunction("all", self._bi_all)),
             ("tensor", PulseNativeFunction("tensor", self._bi_tensor)),
-        ])
+        ]
+        
+        for name, value in builtins:
+            self._define_builtin(self.environment, name, value)
         
         # Built-in exception classes
-        self.environment.define_many([
+        builtin_exceptions = [
             ("Exception", runtime.PulseException),
             ("RuntimeError", runtime.PulseRuntimeException),
             ("ValueError", runtime.PulseValueError),
@@ -106,7 +116,10 @@ class Interpreter(ExprVisitor, StmtVisitor):
             ("ZeroDivisionError", runtime.PulseZeroDivisionError),
             ("NameError", runtime.PulseNameError),
             ("NotImplementedError", runtime.PulseNotImplementedError),
-        ])
+        ]
+        
+        for name, value in builtin_exceptions:
+            self._define_builtin(self.environment, name, value)
     
     # Entry points
     def interpret(self, statements: list, source: str)-> Any:
