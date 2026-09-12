@@ -1,0 +1,10 @@
+import pybridge
+
+stats = pybridge.import_module("statistics")
+numbers = [4, 8, 15, 16, 23, 42]
+print(f"mean: {stats.mean(numbers)}")
+print(f"median: {stats.median(numbers)}")
+
+helpers = pybridge.load_file("examples/bridge/py_helpers.py")
+print(helpers.celsius_to_fahrenheit(100))
+print(helpers.greet("Pulse"))

@@ -7,7 +7,7 @@ Each entry is a factor: (interpreter) -> PulseModule
 
 from src.stdlib import (
     math_module, io_module, model_module, preprocess_module, time_module, random_module,
-    os_module, learn_module, metrics_module, datasets_module,
+    os_module, learn_module, metrics_module, datasets_module, pybridge_module,
 )
 
 STDLIB_MODULES = {
@@ -21,4 +21,5 @@ STDLIB_MODULES = {
     "learn": learn_module.make,
     "metrics": metrics_module.make,
     "datasets": datasets_module.make,
+    "pybridge": pybridge_module.make,
 }
