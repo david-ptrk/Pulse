@@ -74,7 +74,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         self.locals: dict[Any, int] = {}
         self.source: str = ""
         self._call_depth = 0
-        self._max_call_depth = 1000
+        self._max_call_depth = 2000
         self.output = output or print
         
         # Built-in functions
