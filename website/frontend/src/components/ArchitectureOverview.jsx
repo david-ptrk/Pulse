@@ -29,7 +29,7 @@ function ArchitectureOverview() {
             <div className="architecture-pipeline">
                 {stages.map((stage, index) => (
                     <div className="architecture-stage-wrapper" key={stage.name}>
-                        <article className="architecture-stage">
+                        <article className="architecture-stage card">
                             <span className="architecture-stage-number">
                                 {String(index + 1).padStart(2, '0')}
                             </span>

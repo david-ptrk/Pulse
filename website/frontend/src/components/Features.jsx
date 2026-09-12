@@ -14,7 +14,7 @@ function Features() {
             
             <div className="feature-cards">
                 {features.map((feature) => (
-                    <article className="feature-card" key={feature}>
+                    <article className="feature-card card" key={feature}>
                         <h4>{feature}</h4>
                     </article>
                 ))}

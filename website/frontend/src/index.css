@@ -317,6 +317,10 @@ a {
   color: #6b7280;
 }
 
+.card {
+  background-color: white;
+}
+
 /* Responsive */
 
 @media (max-width: 900px) {

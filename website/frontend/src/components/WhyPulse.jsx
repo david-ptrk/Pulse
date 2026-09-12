@@ -30,7 +30,7 @@ function WhyPulse() {
             
             <ol className="why-pulse-cards">
                 {reasons.map((reason, index) => (
-                    <li className="why-pulse-card" key={reason.title}>
+                    <li className="why-pulse-card card" key={reason.title}>
                         <div className="why-pulse-content">
                             <div className="why-pulse-number">
                                 {String(index + 1).padStart(2, '0')}
