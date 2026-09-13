@@ -1,0 +1,24 @@
+def build_matrix(n):
+    rows = []
+    i = 0
+    while i < n:
+        row = []
+        j = 0
+        while j < n:
+            row.append((i + j) % 7)
+            j += 1
+        rows.append(row)
+        i += 1
+    return rows
+
+n = 80
+a = tensor(build_matrix(n))
+b = tensor(build_matrix(n))
+
+k = 0
+c = None
+while k < 20:
+    c = a @ b
+    k += 1
+
+print(c.shape)
