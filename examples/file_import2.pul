@@ -1,5 +1,5 @@
 # To be used by file_import
 
-def sum(a, b):
+def add(a, b):
     print("FROM file_import2")
     return a + b

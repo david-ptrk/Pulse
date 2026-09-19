@@ -2,4 +2,4 @@ import examples.file_import2 as file
 
 x = 3
 y = 8
-print(file.sum(x, y))
+print(file.add(x, y))
