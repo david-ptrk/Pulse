@@ -5,21 +5,24 @@ Registry of Pulse built-in standard library modules.
 Each entry is a factor: (interpreter) -> PulseModule
 """
 
-from src.stdlib import (
-    math_module, io_module, model_module, preprocess_module, time_module, random_module,
-    os_module, learn_module, metrics_module, datasets_module, pybridge_module,
-)
+from importlib import import_module
+
+def _module_factory(module_name: str):
+    def make(interpreter):
+        module = import_module(f"src.stdlib.{module_name}")
+        return module.make(interpreter)
+    return make
 
 STDLIB_MODULES = {
-    "math": math_module.make,
-    "io": io_module.make,
-    "models": model_module.make,
-    "preprocess": preprocess_module.make,
-    "time": time_module.make,
-    "random": random_module.make,
-    "os": os_module.make,
-    "learn": learn_module.make,
-    "metrics": metrics_module.make,
-    "datasets": datasets_module.make,
-    "pybridge": pybridge_module.make,
+    "math": _module_factory("math_module"),
+    "io": _module_factory("io_module"),
+    "models": _module_factory("model_module"),
+    "preprocess": _module_factory("preprocess_module"),
+    "time": _module_factory("time_module"),
+    "random": _module_factory("random_module"),
+    "os": _module_factory("os_module"),
+    "learn": _module_factory("learn_module"),
+    "metrics": _module_factory("metrics_module"),
+    "datasets": _module_factory("datasets_module"),
+    "pybridge": _module_factory("pybridge_module"),
 }

@@ -54,11 +54,14 @@ from src.values import (
     PulseList, PulseBoolean, PulseDict, PulseRange,
     PulseTensor, PulseValue, PulseModule, PulseModel, PulseDataset,
 )
-import numpy as np
 import src.expressions as expressions
 from src.lexer import Lexer
 from src.parser import Parser
 from src.native import find_module, read_file
+
+def _numpy():
+    import numpy as np
+    return np
 
 class Interpreter(ExprVisitor, StmtVisitor):
     @staticmethod
@@ -535,9 +538,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
         
         if isinstance(value, PulseList):
             values = convert(value)
-            return PulseTensor(np.array(values))
+            return PulseTensor(_numpy().array(values))
         
-        return PulseTensor(np.array(value))
+        return PulseTensor(_numpy().array(value))
     
     # Statement visitors
     def visit_expression_stmt(self, stmt) -> Any:
@@ -846,7 +849,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
     
     def visit_tensor_expr(self, expr) -> PulseTensor:
         try:
-            array = np.array(expr.value, dtype=float)
+            array = _numpy().array(expr.value, dtype=float)
         except (ValueError, TypeError) as e:
             self._raise_value(f"Invalid tensor data: {e}")
         return PulseTensor(array)
@@ -940,9 +943,9 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 if operator == "@":
                     return PulseTensor(left.array @ right.array)
                 if operator == "==":
-                    return PulseBoolean(np.array_equal(left.array, right.array))
+                    return PulseBoolean(_numpy().array_equal(left.array, right.array))
                 if operator == "!=":
-                    return PulseBoolean(not np.array_equal(left.array, right.array))
+                    return PulseBoolean(not _numpy().array_equal(left.array, right.array))
                 self._raise_type(f"Tensor does not support operator '{operator}'", tok)
             except ValueError as e:
                 self._raise_value(f"Tensor operation failed: {e}", tok)
@@ -1072,7 +1075,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 self._raise_index("Tensor index out of range")
             
             result = obj.array[idx]
-            if isinstance(result, np.ndarray):
+            if isinstance(result, _numpy().ndarray):
                 return PulseTensor(result)
             return PulseNumber(float(result))
         
@@ -1135,7 +1138,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             except IndexError as e:
                 self._raise_index(f"Tensor index out of range: {e}")
             
-            if isinstance(result, np.ndarray):
+            if isinstance(result, _numpy().ndarray):
                 return PulseTensor(result)
             return PulseNumber(float(result))
         
@@ -1293,7 +1296,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             elements = []
             for i in range(len(value.array)):
                 row = value.array[i]
-                if isinstance(row, np.ndarray):
+                if isinstance(row, _numpy().ndarray):
                     elements.append(PulseTensor(row))
                 else:
                     elements.append(PulseNumber(float(row)))

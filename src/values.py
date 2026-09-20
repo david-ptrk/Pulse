@@ -8,7 +8,10 @@ behavior such as type naming, truthiness, and string representation.
 
 from __future__ import annotations
 from typing import Any, List, Dict, Union
-import numpy as np
+
+def _numpy():
+    import numpy as np
+    return np
 
 class PulseValue:
     def type_name(self) -> str:
@@ -171,7 +174,8 @@ class PulseRange(PulseValue):
         return f"range({self.start}, {self.stop}, {self.step})"
 
 class PulseTensor(PulseValue):
-    def __init__(self, array: np.ndarray) -> None:
+    def __init__(self, array) -> None:
+        np = _numpy()
         if not (np.issubdtype(array.dtype, np.number) or np.issubdtype(array.dtype, np.bool_)):
             raise TypeError(f"Tensor supports numerical and boolean data, got dtype '{array.dtype}'")
         self.array = array
@@ -195,6 +199,7 @@ class PulseTensor(PulseValue):
         return PulseTensor(self.array.T)
     
     def __iter__(self):
+        np = _numpy()
         for item in self.array:
             if isinstance(item, np.ndarray):
                 yield PulseTensor(item)
@@ -204,6 +209,7 @@ class PulseTensor(PulseValue):
                 yield PulseNumber(float(item))
     
     def __repr__(self) -> str:
+        np = _numpy()
         def to_str(val):
             if isinstance(val, float) and np.isnan(val):
                 return "NaN"
@@ -259,7 +265,8 @@ class PulseNamespace(PulseValue):
 
 class PulseDataset(PulseValue):
     """Holds a dataset as two numpy arrays (X, y) plus metadata. Exposes manipulation methods callable from Pulse code."""
-    def __init__(self, X: np.ndarray, y: np.ndarray | None, feature_names: list[str] | None = None, target_names: list[str] | None = None, description: str = "") -> None:
+    def __init__(self, X, y, feature_names: list[str] | None = None, target_names: list[str] | None = None, description: str = "") -> None:
+        np = _numpy()
         self.X = np.array(X, dtype=float)
         self.y = np.array(y, dtype=float) if y is not None else None
         self.feature_names: list[str] = (
