@@ -16,6 +16,7 @@ Two entry points:
 """
 
 from __future__ import annotations
+import builtins
 import importlib
 import types
 from src.values import (
@@ -28,6 +29,34 @@ try:
     import numpy as np
 except ImportError:
     np = None
+
+ALLOWED_MODULES = {
+    "math",
+    "statistics",
+    "numpy",
+}
+
+_BLOCKED_BUILTIN_NAMES = {
+    "open", "exec", "eval", "compile", "__import__",
+    "globals", "locals", "vars", "dir", "input",
+    "breakpoint", "memoryview",
+}
+
+def _restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
+    if name not in ALLOWED_MODULES:
+        raise ImportError(f"import of '{name}' is not permitted here (allowed: {sorted(ALLOWED_MODULES)})")
+    return importlib.import_module(name)
+
+def _build_restricted_globals() -> dict:
+    """Build a fresh __builtins__ mapping for exec()'d file code: the normal
+    builtins minus the blocked names above, plus a restricted __import__."""
+    safe_builtins = {
+        name: getattr(builtins, name)
+        for name in dir(builtins)
+        if not name.startswith("_") and name not in _BLOCKED_BUILTIN_NAMES
+    }
+    safe_builtins["__import__"] = _restricted_import
+    return {"__builtins__": safe_builtins}
 
 def _to_python(interp, value: PulseValue):
     """Convert a Pulse value into the equivalent native Python value."""
@@ -111,23 +140,33 @@ def make(interp) -> PulseModule:
         """Import an installed Python module by name and expose its public functions/values to Pulse. Example: pybridge.import_module("statistics")"""
         if not isinstance(name, PulseString):
             interp._raise(f"import_module() argument must be a string, got {name.type_name()}")
+        
+        module_name = name.value
+        if module_name not in ALLOWED_MODULES:
+            interp._raise(f"Python module '{module_name}' is not approved for pybridge access")
+        
         try:
-            py_module = importlib.import_module(name.value)
+            py_module = importlib.import_module(module_name)
         except ImportError as e:
-            interp._raise(f"Could not import Python module '{name.value}': {e}")
-        return _wrap_namespace(interp, name.value, vars(py_module))
+            interp._raise(f"Could not import Python module '{module_name}': {e}")
+        return _wrap_namespace(interp, module_name, vars(py_module))
     
     def _load_file(path: PulseString) -> PulseModule:
         """Execute a user-supplied .py file and expose its top-level functions/values to Pulse. Example: pybridge.load_file("helpers.py")"""
         if not isinstance(path, PulseString):
             interp._raise(f"load_file() argument must be a string, got {path.type_name()}")
-        namespace: dict = {"__name__": f"pybridge_module_{abs(hash(path.value))}"}
+        
+        namespace: dict = _build_restricted_globals()
+        namespace["__name__"] = f"pybridge_module_{abs(hash(path.value))}"
+        
         try:
             with open(path.value, "r", encoding="utf-8") as f:
                 source = f.read()
             exec(compile(source, path.value, "exec"), namespace)
         except FileNotFoundError:
             interp._raise(f"Python file not found: '{path.value}'")
+        except ImportError as e:
+            interp._raise(f"Import blocked while executing '{path.value}': {e}")
         except Exception as e:
             interp._raise(f"Error executing Python file '{path.value}': {type(e).__name__}: {e}")
         return _wrap_namespace(interp, path.value, namespace)
