@@ -1,10 +1,11 @@
 import textwrap
 import pytest
-from src.values import PulseNumber, PulseString, PulseBoolean, PulseNull, PulseList, PulseDict
+from src.values import PulseNumber, PulseString, PulseBoolean, PulseNull, PulseList, PulseDict, PulseTensor
 from src.runtime import PulseException
 from src.environment import Environment
 from pulse import run
 from src.stdlib import pybridge_module as pb
+import numpy as np
 
 class FakeInterp:
     def _raise(self, message):
@@ -230,3 +231,171 @@ class TestLoadFileIntegration:
         )
         with pytest.raises(PulseException):
             run_and_capture(source)
+
+class TestTensorConversion:
+    def setup_method(self):
+        self.interp = FakeInterp()
+    
+    def test_pulse_tensor_to_python_returns_numpy_array(self):
+        array = np.array([[1, 2], [3, 4]], dtype=float)
+        tensor = PulseTensor(array)
+        
+        result = pb._to_python(self.interp, tensor)
+        
+        assert isinstance(result, np.ndarray)
+        assert np.array_equal(result, array)
+    
+    def test_numpy_array_to_pulse_tensor(self):
+        array = np.array([[1, 2], [3, 4]], dtype=float)
+        result = pb._to_pulse(self.interp, array)
+        
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, array)
+    
+    def test_tensor_shape_is_preserved(self):
+        array = np.array([[1, 2, 3], [4, 5, 6]])
+        tensor = PulseTensor(array)
+        
+        result = pb._to_python(self.interp, tensor)
+        assert result.shape == (2, 3)
+    
+    def test_tensor_values_are_preserved(self):
+        array = np.array([[1.5, 2.5], [3.5, 4.5]])
+        tensor = PulseTensor(array)
+        
+        result = pb._to_python(self.interp, tensor)
+        assert np.array_equal(result, array)
+    
+    def test_numpy_boolean_array_to_pulse_tensor(self):
+        array = np.array([[True, False], [False, True]])
+        result = pb._to_pulse(self.interp, array)
+        
+        assert isinstance(result, PulseTensor)
+        assert np.array_equal(result.array, array)
+    
+    def test_tensor_mutation_aliasing_is_explicit(self):
+        array = np.array([1, 2, 3])
+        tensor = PulseTensor(array)
+        
+        result = pb._to_python(self.interp, tensor)
+        result[0] = 99
+        
+        assert tensor.array[0] == 99
+
+class TestNumpyScalarConversion:
+    def setup_method(self):
+        self.interp = FakeInterp()
+    
+    def test_numpy_integer_scalar(self):
+        result = pb._to_pulse(self.interp, np.int64(42))
+        
+        assert isinstance(result, PulseNumber)
+        assert result.value == 42
+    
+    def test_numpy_float_scalar(self):
+        result = pb._to_pulse(self.interp, np.float64(3.14))
+        
+        assert isinstance(result, PulseNumber)
+        assert result.value == 3.14
+    
+    def test_numpy_boolean_scalar(self):
+        result = pb._to_pulse(self.interp, np.bool_(True))
+        
+        assert isinstance(result, PulseBoolean)
+        assert result.value is True
+
+class TestRestrictedPythonExecution:
+    def test_load_file_allows_approved_import(self, tmp_path):
+        helper_file = tmp_path / "math_helper.py"
+        helper_file.write_text(
+            textwrap.dedent(
+                """
+                import math
+                def square_root(value):
+                    return math.sqrt(value)
+                """
+            )
+        )
+        
+        source = (
+            "import pybridge\n"
+            f'helpers = pybridge.load_file("{helper_file.as_posix()}")\n'
+            "print(helpers.square_root(25))\n"
+        )
+        
+        output = run_and_capture(source)
+        assert output == ["5.0"]
+    
+    def test_load_file_blocks_unapproved_import(self, tmp_path):
+        helper_file = tmp_path / "blocked.py"
+        helper_file.write_text("import os\n")
+        
+        source = (
+            "import pybridge\n"
+            f'pybridge.load_file("{helper_file.as_posix()}")\n'
+        )
+        
+        with pytest.raises(PulseException):
+            run_and_capture(source)
+    
+    def test_load_file_blocks_open(self, tmp_path):
+        helper_file = tmp_path / "blocked.py"
+        helper_file.write_text(
+            textwrap.dedent(
+                """
+                def read_file():
+                    return open("secret.txt", "r").read()
+                """
+            )
+        )
+        
+        source = (
+            "import pybridge\n"
+            f'helpers = pybridge.load_file("{helper_file.as_posix()}")\n'
+            "helpers.read_file()\n"
+        )
+        
+        with pytest.raises(PulseException):
+            run_and_capture(source)
+    
+    def test_load_file_blocks_eval(self, tmp_path):
+        helper_file = tmp_path / "blocked.py"
+        helper_file.write_text(
+            textwrap.dedent(
+                """
+                def calculate():
+                    return eval("1 + 1")
+                """
+            )
+        )
+        
+        source = (
+            "import pybridge\n"
+            f'helpers = pybridge.load_file("{helper_file.as_posix()}")\n'
+            "helpers.calculate()\n"
+        )
+        
+        with pytest.raises(PulseException):
+            run_and_capture(source)
+    
+    def test_load_file_blocks_exec(self, tmp_path):
+        helper_file = tmp_path / "blocked.py"
+        helper_file.write_text(
+            textwrap.dedent(
+                """
+                def execute():
+                    exec("x = 10")
+                    return x
+                """
+            )
+        )
+        
+        source = (
+            "import pybridge\n"
+            f'helpers = pybridge.load_file("{helper_file.as_posix()}")\n'
+            "helpers.execute()\n"
+        )
+        
+        with pytest.raises(PulseException):
+            run_and_capture(source)
+
