@@ -86,6 +86,13 @@ def _to_pulse(interp, value) -> PulseValue:
     """Convert a native Python value (typically a Python function's return value) into the corresponding Pulse value."""
     if value is None:
         return PulseNull()
+    if np is not None:
+        if isinstance(value, np.bool_):
+            return PulseBoolean(bool(value))
+        if isinstance(value, np.integer):
+            return PulseNumber(int(value))
+        if isinstance(value, np.floating):
+            return PulseNumber(float(value))
     if isinstance(value, bool):
         return PulseBoolean(value)
     if isinstance(value, (int, float)):
