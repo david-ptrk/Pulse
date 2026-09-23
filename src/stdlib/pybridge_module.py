@@ -43,8 +43,14 @@ _BLOCKED_BUILTIN_NAMES = {
 }
 
 def _restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
-    if name not in ALLOWED_MODULES:
-        raise ImportError(f"import of '{name}' is not permitted here (allowed: {sorted(ALLOWED_MODULES)})")
+    root_name = name.split(".", 1)[0]
+    
+    if root_name not in ALLOWED_MODULES:
+        raise ImportError(
+            f"import of '{name}' is not permitted here "
+            f"(allowed: {sorted(ALLOWED_MODULES)})"
+        )
+    
     return importlib.import_module(name)
 
 def _build_restricted_globals() -> dict:
