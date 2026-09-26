@@ -15,13 +15,15 @@ JMJ
 ## Project Structure
 
 ```text
-src/       — Interpreter source code
-native/    — C source files for native extensions
-bin/       — Generated native binaries (not committed)
-docs/      — Documentation and development notes
-examples/  — Example Pulse programs
-tests/     — Test suite and validation
-website/   — Official Pulse website
+src/        — Interpreter source code
+native/     — C source files for native extensions
+bin/        — Generated native binaries (not committed)
+docs/       — Documentation and development notes
+examples/   — Example Pulse programs
+tests/      — Test suite and validation
+website/    — Official Pulse website
+benchmarks/ — Performance and NFR testing scripts
+spec/       — Language specification & technical reports
 ```
 
 ## Building
