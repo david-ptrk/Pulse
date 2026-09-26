@@ -7,7 +7,6 @@ Entry point for the Pulse programming language.
 import sys
 sys.setrecursionlimit(50000)
 
-from src.tokens import TokenType
 from src.lexer import Lexer
 from src.parser import Parser
 from src.interpreter import Interpreter
@@ -18,7 +17,6 @@ from src.runtime import PulseRuntimeException
 from src.values import PulseNull
 import argparse
 from time import perf_counter
-import codeop
 from pulse_info import _show_info
 
 # Core pipeline
@@ -76,7 +74,7 @@ def run_with_time(source: str, env: Environment = None) -> any:
     print(f"Lexing:        {lex_time:.6f}s")
     print(f"Parsing:       {parse_time:.6f}s")
     print(f"Resolving:     {resolve_time:.6f}s")
-    print(f"Interpret:     {interpret_time:.6f}s")
+    print(f"Interpreting:  {interpret_time:.6f}s")
     print(f"Total:         {total_time:.6f}s")
     
     return result
@@ -104,24 +102,6 @@ def run_file(path: str, show_time: bool, log_path: str = None) -> None:
 
 # REPL
 _REPL_VERSION = "0.1"
-_INDENT_KEYWORDS = (
-    "if", "else", "elif", "for", "while", "def", "class", "try",
-    "except", "finally", "match", "case",
-)
-
-def _is_incomplete(source: str) -> bool:
-    stripped = source.strip()
-    if not stripped:
-        return False
-    if stripped.count("(") > stripped.count(")"):
-        return True
-    if stripped.count("[") > stripped.count("]"):
-        return True
-    if stripped.count("{") > stripped.count("}"):
-        return True
-    if stripped.endswith(":"):
-        return True
-    return False
 
 def _enable_history() -> None:
     try:
