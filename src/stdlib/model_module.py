@@ -16,7 +16,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-from sklearn.neural_network import MLPClassifier
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.model_selection import cross_val_score
 import warnings
 import time
@@ -399,7 +399,7 @@ def _build_explain(pulse_model: PulseModel, interp) -> PulseNativeMethod:
             return _explain_knn(sk)
         if isinstance(sk, SVC):
             return _explain_svc(sk)
-        if isinstance(sk, MLPClassifier):
+        if isinstance(sk, (MLPClassifier, MLPRegressor)):
             return _explain_mlp(sk)
         
         # Fallback
@@ -692,9 +692,33 @@ def make(interp) -> PulseModule:
         """Create a Support Vector Classifier model."""
         return _make_model("SVC", SVC())
     
-    def _neural_network() -> PulseModel:
-        """Create a MLPClassifier neural network model."""
-        return _make_model("NeuralNetwork", MLPClassifier(max_iter=1000))
+    def _neural_network(task=None) -> PulseModel:
+        """Create a neural network for classification or regression."""
+        if isinstance(task, PulseString):
+            task_name = task.value.lower()
+        else:
+            task_name = "classification"
+        
+        if task_name == "classification":
+            model = MLPClassifier(max_iter=1000)
+        elif task_name == "regression":
+            model = MLPRegressor(
+                hidden_layer_sizes=(),
+                activation="identity",
+                solver="sgd",
+                learning_rate_init=0.01,
+                max_iter=1000,
+                random_state=42,
+                tol=0,
+                n_iter_no_change=1000,
+                shuffle=False,
+                momentum=0,
+                alpha=0,
+            )
+        else:
+            interp._raise("NeuralNetwork() task must be 'classification' or 'regression'")
+        
+        return _make_model("NeuralNetwork", model)
     
     def _model_auto(data: PulseTensor, labels: PulseTensor, mode: "PulseString | PulseNull" = None, auto_preprocess=None) -> PulseModel:
         """
