@@ -27,6 +27,7 @@ function OnlineEditor() {
     
     const editorRef = useRef(null);
     
+    /*
     const runCode = async () => {
         if (running) return;
         
@@ -64,6 +65,12 @@ function OnlineEditor() {
             setRunning(false)
         }
     };
+    */
+    
+    const runCode = () => {
+        setOutput('Online execution is temporarily unavailable. Pulse programs can still be written and edited here.')
+        setExecutionTime(null);
+    }
     
     const clearOutput = () => {
         setOutput('')
@@ -106,8 +113,8 @@ function OnlineEditor() {
                 </div>
                 
                 <div className="editor-actions">
-                    <button className="editor-btn run-btn" onClick={runCode} disabled={running}>
-                        {running ? '⏳ Running...' : '▶ Run'}
+                    <button className="editor-btn run-btn" onClick={runCode}>
+                        ▶ Run
                     </button>
                     
                     <button className="editor-btn" onClick={clearOutput}>
