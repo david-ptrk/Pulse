@@ -1,3 +1,7 @@
+"""
+worker.py
+"""
+
 import builtins
 import hmac
 import json
@@ -7,23 +11,30 @@ import shutil
 import signal
 import subprocess
 import sys
+import sysconfig
 import time
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 # Configuration
-RUNTIME_ROOT = Path("/opt/pulse-worker")
+RUNTIME_ROOT = Path(
+    os.environ.get("PULSE_RUNTIME_ROOT", Path(__file__).resolve().parents[2])
+).resolve()
+
 PYTHON = str(Path(sys.executable).resolve())
+PYTHON_PREFIX = Path(sys.base_exec_prefix).resolve()
 
-PYTHON_VERSION = (
-    f"python{sys.version_info.major}.{sys.version_info.minor}"
-)
-
-SITE_PACKAGES = Path("/opt/pulse-worker/python-packages")
+SITE_PACKAGES = Path(
+    os.environ.get("PULSE_SITE_PACKAGES", sysconfig.get_paths()["purelib"])
+).resolve()
 
 HOST = "127.0.0.1"
-PORT = 8765
+PORT = int(os.environ.get("PULSE_WORKER_PORT", "8765"))
+
+# Stable paths exposed only inside the Bubblewrap namespace.
+SANDBOX_RUNTIME_ROOT = "/opt/pulse-worker"
+SANDBOX_SITE_PACKAGES = "/opt/python-packages"
 
 MAX_SOURCE_SIZE = 64 * 1024
 MAX_OUTPUT_SIZE = 256 * 1024
@@ -247,20 +258,44 @@ def set_resource_limits():
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 
 def sandbox_command():
-    return [
+    command = [
         "bwrap",
         "--die-with-parent",
         "--new-session",
         "--unshare-all",
+    ]
+    
+    # Mount only runtime directories that exist on the hosting image.
+    for directory in ("/usr", "/lib", "/lib64", "/etc"):
+        if Path(directory).exists():
+            command.extend(["--ro-bind", directory, directory])
+    
+    standard_roots = (Path("/usr"), Path("/lib"), Path("/lib64"))
+    prefix_is_mounted = any(
+        PYTHON_PREFIX == root or root in PYTHON_PREFIX.parents
+        for root in standard_roots
+    )
+    
+    if not prefix_is_mounted:
+        command.extend(["--dir", "/opt"])
+        parent = Path(PYTHON_PREFIX.anchor)
+        for part in PYTHON_PREFIX.parts[1:-1]:
+            parent = parent / part
+            if str(parent) != "/opt":
+                command.extend(["--dir", str(parent)])
         
-        "--ro-bind", "/usr", "/usr",
-        "--ro-bind", "/lib", "/lib",
-        "--ro-bind", "/lib64", "/lib64",
-        "--ro-bind", "/etc", "/etc",
-        
-        "--dir", "/opt",
-        "--ro-bind", str(RUNTIME_ROOT), "/opt/pulse-worker",
-        "--ro-bind", str(SITE_PACKAGES), "/opt/python-packages",
+        command.extend([
+            "--ro-bind",
+            str(PYTHON_PREFIX),
+            str(PYTHON_PREFIX),
+        ])
+    
+    if prefix_is_mounted:
+        command.extend(["--dir", "/opt"])
+    
+    command.extend([
+        "--ro-bind", str(RUNTIME_ROOT), SANDBOX_RUNTIME_ROOT,
+        "--ro-bind", str(SITE_PACKAGES), SANDBOX_SITE_PACKAGES,
         
         "--proc", "/proc",
         "--dev", "/dev",
@@ -273,7 +308,7 @@ def sandbox_command():
         "--setenv", "HOME", "/workspace",
         "--setenv", "TMPDIR", "/tmp",
         "--setenv", "PATH", "/usr/bin:/bin",
-        "--setenv", "PYTHONPATH", "/opt/python-packages",
+        "--setenv", "PYTHONPATH", SANDBOX_SITE_PACKAGES,
         "--setenv", "PYTHONDONTWRITEBYTECODE", "1",
         
         "--setenv", "OMP_NUM_THREADS", "1",
@@ -283,7 +318,9 @@ def sandbox_command():
         PYTHON,
         "-c",
         RUNNER_SOURCE,
-    ]
+    ])
+    
+    return command
 
 def kill_process(process):
     try:
