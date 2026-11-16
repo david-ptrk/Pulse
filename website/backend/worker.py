@@ -570,8 +570,18 @@ def main():
     if not SITE_PACKAGES.is_dir():
         raise SystemExit("Python virtual environment was not found.")
     
-    if not Path("/lib64").exists():
-        raise SystemExit("/lib64 is missing.")
+    # Verify that Bubblewrap can actually create the required sandbox on this host.
+    try:
+        probe = run_sandbox("print(1 + 1)")
+    except Exception as exc:
+        raise SystemExit(
+            f"Bubblewrap sandbox preflight failed: {exc}"
+        ) from exc
+    
+    if probe != {"stdout": "2\n", "stderr": "", "exit_code": 0}:
+        raise SystemExit("Bubblewrap sandbox preflight returned an invalid result.")
+    
+    print("Bubblewrap sandbox preflight passed.", flush=True)
     
     token = os.environ.get("PULSE_WORKER_TOKEN", "")
     
