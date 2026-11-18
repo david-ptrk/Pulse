@@ -428,7 +428,10 @@ def run_sandbox(code):
         process.wait(timeout=1)
         
         if process.returncode != 0:
-            raise RuntimeError("Sandbox process failed.")
+            error = streams["stderr"].decode("utf-8", errors="replace").strip()
+            raise RuntimeError(
+                f"Sandbox process failed (exit {process.returncode}): {error}"
+            )
         
         if streams["stderr"]:
             raise RuntimeError("Unexpected sandbox error output.")
