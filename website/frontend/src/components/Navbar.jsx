@@ -1,21 +1,21 @@
-import { Link } from "react-router-dom"
+import { Link, NavLink } from "react-router-dom"
 
 function Navbar() {
     return (
         <nav className="navbar">
-            <div className="logo-wrapper">
+            <Link to="/" className="logo-wrapper">
                 <div className="logo">
                     <img src="/logo.png" alt="Pulse logo" />
                 </div>
                 
                 <h1 className="logo-title">Pulse</h1>
-            </div>
+            </Link>
             
             <ul>
                 <li>
-                    <a href="/" className="active">
+                    <NavLink to="/" end>
                         Home
-                    </a>
+                    </NavLink>
                 </li>
                 
                 <li>
@@ -23,15 +23,15 @@ function Navbar() {
                 </li>
                 
                 <li>
-                    <Link to="/architecture">Project Architecture</Link>
+                    <NavLink to="/architecture">Project Architecture</NavLink>
                 </li>
                 
                 <li>
-                    <Link to="/about">About</Link>
+                    <NavLink to="/about">About</NavLink>
                 </li>
             </ul>
         </nav>
     )
 }
 
-export default Navbar
+export default Navbar;
