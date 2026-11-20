@@ -1,85 +1,131 @@
 .about-wrap {
     max-width: 960px;
     margin: 0 auto;
-    padding: 60px 24px 100px;
+    padding: 70px 24px 100px;
 }
 
 .about-hero {
+    position: relative;
     text-align: center;
-    margin-bottom: 64px;
+    margin-bottom: 72px;
+}
+
+.about-hero::before {
+    content: "";
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    width: 520px;
+    height: 260px;
+    transform: translateX(-50%);
+    background: radial-gradient(closest-side, rgba(139, 124, 246, 0.2), transparent);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .about-title {
-    font-size: 2.75rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    color: #1a1a1a;
+    margin: 0 0 20px;
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .about-lede {
-    font-size: 1.15rem;
-    line-height: 1.7;
-    color: #4a4a48;
     max-width: 700px;
     margin: 0 auto;
+    font-size: 1.15rem;
+    line-height: 1.75;
+    color: var(--text-muted);
 }
 
 .about-section {
-    margin-bottom: 56px;
+    margin-bottom: 64px;
 }
 
 .about-section h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin-bottom: 16px;
-    color: #1a1a1a;
+    margin: 0 0 16px;
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text);
 }
 
-.about-section p {
+.about-section h2::after {
+    content: "";
+    display: block;
+    width: 48px;
+    height: 3px;
+    margin-top: 10px;
+    border-radius: 999px;
+    background: var(--gradient);
+}
+
+.about-section>p {
+    margin: 0;
     font-size: 1.05rem;
-    line-height: 1.75;
-    color: #4a4a48;
+    line-height: 1.8;
+    color: var(--text-muted);
 }
 
 .about-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 20px;
-    margin-top: 24px;
+    margin-top: 28px;
 }
 
 .about-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-color);
-    border-radius: 12px;
-    padding: 22px 24px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    padding: 24px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--card-color) 38%, transparent);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--card-color) 9%, rgba(255, 255, 255, 0.03));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.about-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--card-color);
+    opacity: 0.85;
 }
 
 .about-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transform: translateY(-5px);
+    border-color: var(--card-color);
+    box-shadow: 0 12px 34px color-mix(in srgb, var(--card-color) 22%, transparent);
 }
 
 .about-card h3 {
-    font-size: 1.05rem;
+    margin: 0 0 10px;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--card-color);
-    margin-bottom: 8px;
 }
 
 .about-card p {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    color: #3a3a38;
     margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--text-muted);
 }
 
 @media (max-width: 600px) {
-    .about-title {
-        font-size: 2rem;
+    .about-wrap {
+        padding-top: 40px;
     }
-    
+
     .about-lede {
         font-size: 1rem;
     }
